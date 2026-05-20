@@ -2,7 +2,7 @@
   "scripts": {
     "lint": "eslint --ext .html index.html",
     "lint:summary": "eslint --ext .html --format json index.html > /tmp/eslint-report.json; node scripts/lint-summary.js",
-    "smoke": "node scripts/smoke.js",
+    "smoke": "node scripts/smoke.js && node scripts/smoke-lab.js",
     "check": "npm run smoke"
   },
   "dependencies": {

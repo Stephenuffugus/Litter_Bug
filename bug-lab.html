@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Litter Bug / bug lab</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; background: #0d100c; color: #e8dcc8;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 14px 16px 6px; border-bottom: 1px solid #1c1f1a; }
+  h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
+  .sub { margin-top: 2px; font-size: 12px; color: #8a9178; }
+  main { padding: 12px 14px 80px; }
+  .row { display: flex; gap: 8px; margin: 10px 0 12px; flex-wrap: wrap; }
+  input[type=text] { flex: 1 1 auto; min-width: 0; padding: 10px 12px;
+    background: #15191a; color: #e8dcc8; border: 1px solid #2a2f28;
+    border-radius: 8px; font-size: 15px; }
+  button { padding: 10px 14px; background: #1d251c; color: #e8dcc8;
+    border: 1px solid #3a4634; border-radius: 8px; font-size: 14px;
+    min-height: 44px; min-width: 44px; cursor: pointer; }
+  button:active { background: #2a3527; }
+  .grid { display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .card { background: #131614; border: 1px solid #1f231d; border-radius: 12px;
+    padding: 10px; display: flex; flex-direction: column; align-items: stretch; }
+  .card svg { width: 100%; height: auto; display: block; }
+  .name { margin-top: 6px; font-size: 13px; font-weight: 600; color: #c8a84b; }
+  .seed { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px; color: #6f7766; word-break: break-all; margin-top: 2px; }
+  .hash { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9.5px; color: #4f574a; word-break: break-all; margin-top: 2px; }
+  footer { padding: 10px 16px 24px; color: #6f7766; font-size: 12px;
+    border-top: 1px solid #1c1f1a; }
+  footer code { background: #15191a; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Litter Bug / bug lab</h1>
+  <div class="sub">Proof of concept. Hash a seed string, draw a procedural insect from it.</div>
+</header>
+<main>
+  <div class="row">
+    <input type="text" id="seed" placeholder="seed string (any text)" value="">
+    <button id="add">add</button>
+    <button id="shuffle">shuffle</button>
+    <button id="clear">clear</button>
+  </div>
+  <div id="grid" class="grid"></div>
+</main>
+<footer>
+  Renderer is placeholder. Bodies, heads, legs, and antennae are inline SVG.
+  Wings will swap to PNG sprites once the bank exists. Each seed string
+  produces the same bug every time. Open <code>view-source:</code> to see
+  <code>_generateBugSVG</code>.
+</footer>
+<script>
+(function(){
+  'use strict';
+
+  // ── Hash a string to SHA-256 hex via WebCrypto. ─────────────────────
+  async function sha256Hex(s) {
+    var enc = new TextEncoder().encode(s);
+    var buf = await crypto.subtle.digest('SHA-256', enc);
+    var bytes = new Uint8Array(buf);
+    var out = '';
+    for (var i = 0; i < bytes.length; i++) {
+      var h = bytes[i].toString(16);
+      out += h.length === 1 ? '0' + h : h;
+    }
+    return out;
+  }
+
+  // ── Read hash bytes / nibbles. ──────────────────────────────────────
+  // hb(n) → byte n as 0..255. hc(n) → nibble n as 0..15.
+  function hb(hash, n) { return parseInt(hash.substr(n * 2, 2), 16); }
+  function hc(hash, n) { return parseInt(hash.substr(n, 1), 16); }
+
+  // ── Map a hash to insect traits. ────────────────────────────────────
+  // Bytes 0..18 carry anatomy; 19..27 are reserved for behavior later.
+  // Bank sizes are placeholders for v0; replace with real catalogs.
+  function hashToBugTraits(hash) {
+    return {
+      body:      hb(hash,  0) % 30,     // 30 body shapes (placeholder uses 3)
+      head:      hb(hash,  4) % 25,     // 25 heads (placeholder uses 2)
+      wing:      hb(hash,  8) % 40,     // 40 wing types
+      leg:      hb(hash, 12) % 20,      // 20 leg sets
+      antenna:   hb(hash, 14) % 15,     // 15 antenna sets
+      pattern:   hb(hash, 16) % 50,     // 50 surface patterns
+      palette:   [hc(hash, 18), hc(hash, 19), hc(hash, 20), hc(hash, 21)],
+      behavior:  hb(hash, 22) % 12,
+      // Plumbing
+      bodyLen:   80 + (hb(hash, 1) % 40),  // 80..120
+      bodyW:     40 + (hb(hash, 2) % 30),  // 40..70
+      wingScale: 0.85 + ((hb(hash, 9) % 30) / 100), // 0.85..1.14
+      headSize:  18 + (hb(hash, 5) % 12)   // 18..30
+    };
+  }
+
+  // ── Palette. 16 entries indexed by nibbles. ─────────────────────────
+  // Picked to feel earthy / cozy / not synthetic. Refine when art lands.
+  var PAL = [
+    '#3a4634', '#7ab356', '#c8a84b', '#e8dcc8',
+    '#a85a3a', '#4a3a2e', '#2a3a4a', '#8a6f4a',
+    '#5a8c3a', '#d4842a', '#a0c4e8', '#6b4f3a',
+    '#3e5a3e', '#b8985a', '#5a6e4a', '#8a9178'
+  ];
+
+  // ── _generateBugSVG(hash, size). ────────────────────────────────────
+  // Draws an insect facing right inside a viewBox of 200x200.
+  // Layers (back-to-front): aura placeholder → wings → body
+  //   → leg shadow pass → legs → head → antennae → pattern overlay.
+  // This is a v0 placeholder. Real anatomy banks replace each switch.
+  function _generateBugSVG(hash, size) {
+    var t = hashToBugTraits(hash);
+    var cx = 100, cy = 100;
+    var bodyHalfLen = t.bodyLen / 2;
+    var bodyHalfW = t.bodyW / 2;
+
+    var primary = PAL[t.palette[0]];
+    var secondary = PAL[t.palette[1]];
+    var accent = PAL[t.palette[2]];
+    var dark = PAL[t.palette[3] % 8]; // bias toward darker half
+
+    // Body: ellipse with a subtle taper via two stacked ellipses.
+    var body = ''
+      + '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + bodyHalfLen
+      + '" ry="' + bodyHalfW + '" fill="' + primary + '" />'
+      + '<ellipse cx="' + (cx + bodyHalfLen * 0.5) + '" cy="' + cy
+      + '" rx="' + (bodyHalfLen * 0.45) + '" ry="' + (bodyHalfW * 0.85)
+      + '" fill="' + secondary + '" opacity="0.55" />';
+
+    // Wings: two mirrored ellipses behind body.
+    // PNG sprites will replace this once the bank exists.
+    var wingRx = bodyHalfLen * 0.7 * t.wingScale;
+    var wingRy = bodyHalfW * 1.5 * t.wingScale;
+    var wings = ''
+      + '<ellipse cx="' + (cx - 8) + '" cy="' + (cy - bodyHalfW * 0.6)
+      + '" rx="' + wingRx + '" ry="' + wingRy
+      + '" fill="' + accent + '" opacity="0.45"'
+      + ' transform="rotate(-18 ' + (cx - 8) + ' ' + (cy - bodyHalfW * 0.6) + ')" />'
+      + '<ellipse cx="' + (cx - 8) + '" cy="' + (cy + bodyHalfW * 0.6)
+      + '" rx="' + wingRx + '" ry="' + wingRy
+      + '" fill="' + accent + '" opacity="0.45"'
+      + ' transform="rotate(18 ' + (cx - 8) + ' ' + (cy + bodyHalfW * 0.6) + ')" />';
+
+    // Legs: 6 thin lines, 3 per side, fanning from the underside.
+    var legs = '';
+    var legAttach = [cx - bodyHalfLen * 0.5, cx, cx + bodyHalfLen * 0.5];
+    for (var i = 0; i < 3; i++) {
+      var ax = legAttach[i];
+      var bend = 14 + (t.leg * 2 % 12);
+      legs += ''
+        + '<line x1="' + ax + '" y1="' + (cy + bodyHalfW * 0.85)
+        + '" x2="' + (ax - 10 + i * 10) + '" y2="' + (cy + bodyHalfW * 0.85 + bend)
+        + '" stroke="' + dark + '" stroke-width="2.5" stroke-linecap="round" />'
+        + '<line x1="' + ax + '" y1="' + (cy - bodyHalfW * 0.85)
+        + '" x2="' + (ax - 10 + i * 10) + '" y2="' + (cy - bodyHalfW * 0.85 - bend)
+        + '" stroke="' + dark + '" stroke-width="2.5" stroke-linecap="round" />';
+    }
+
+    // Head + eye, on the right (bug faces +x).
+    var hx = cx + bodyHalfLen + t.headSize * 0.35;
+    var head = ''
+      + '<circle cx="' + hx + '" cy="' + cy + '" r="' + (t.headSize / 2)
+      + '" fill="' + dark + '" />'
+      + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+
+    // Antennae: two curved paths from head front.
+    var antTip = hx + t.headSize * 0.9;
+    var antennae = ''
+      + '<path d="M' + (hx + 4) + ' ' + (cy - 4)
+      + ' Q' + (antTip - 4) + ' ' + (cy - 20)
+      + ', ' + antTip + ' ' + (cy - 24)
+      + '" stroke="' + dark + '" stroke-width="1.8" fill="none" stroke-linecap="round" />'
+      + '<path d="M' + (hx + 4) + ' ' + (cy + 4)
+      + ' Q' + (antTip - 4) + ' ' + (cy + 20)
+      + ', ' + antTip + ' ' + (cy + 24)
+      + '" stroke="' + dark + '" stroke-width="1.8" fill="none" stroke-linecap="round" />';
+
+    // Pattern: simple stripes across body, count derived from pattern byte.
+    var pattern = '';
+    var stripes = 2 + (t.pattern % 4);
+    for (var j = 1; j <= stripes; j++) {
+      var sx = cx - bodyHalfLen + (bodyHalfLen * 2) * (j / (stripes + 1));
+      pattern += '<line x1="' + sx + '" y1="' + (cy - bodyHalfW * 0.85)
+        + '" x2="' + sx + '" y2="' + (cy + bodyHalfW * 0.85)
+        + '" stroke="' + dark + '" stroke-width="2" opacity="0.5" />';
+    }
+
+    return ''
+      + '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"'
+      + ' width="' + size + '" height="' + size + '">'
+      + wings + legs + body + pattern + head + antennae
+      + '</svg>';
+  }
+
+  // ── Cozy procedural nickname so each card has something to read. ────
+  // Two-word generator, deterministic from hash bytes.
+  var ADJ = ['Mossy','Tin','Husk','Glass','Rust','Sleepy','Paper','Brittle',
+             'Velvet','Salt','Cobweb','Dusty','Lichen','Brass','Quiet','Wax'];
+  var NOUN = ['Beetle','Moth','Hopper','Skip','Click','Watcher','Drowse','Knot',
+              'Mite','Crawler','Spinner','Filing','Hum','Crawl','Drift','Snip'];
+  function bugName(hash) {
+    return ADJ[hb(hash, 23) % ADJ.length] + ' '
+         + NOUN[hb(hash, 24) % NOUN.length];
+  }
+
+  // ── DOM glue. ───────────────────────────────────────────────────────
+  var grid = document.getElementById('grid');
+  var seedEl = document.getElementById('seed');
+
+  async function addBug(seedStr) {
+    var hash = await sha256Hex(seedStr);
+    var name = bugName(hash);
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = ''
+      + _generateBugSVG(hash, 160)
+      + '<div class="name">' + name + '</div>'
+      + '<div class="seed">' + seedStr.replace(/[<>&]/g, '?') + '</div>'
+      + '<div class="hash">' + hash.slice(0, 16) + '...</div>';
+    grid.appendChild(card);
+  }
+
+  function randomSeed() {
+    return Math.random().toString(36).slice(2) + '-' + Date.now();
+  }
+
+  document.getElementById('add').addEventListener('click', function(){
+    var s = seedEl.value.trim() || randomSeed();
+    addBug(s);
+    seedEl.value = '';
+  });
+  document.getElementById('shuffle').addEventListener('click', function(){
+    grid.innerHTML = '';
+    for (var i = 0; i < 6; i++) addBug(randomSeed());
+  });
+  document.getElementById('clear').addEventListener('click', function(){
+    grid.innerHTML = '';
+  });
+
+  // First paint: a small starter set so the page is not empty.
+  var STARTERS = ['litter-bug-001', 'litter-bug-002', 'litter-bug-003',
+                  'litter-bug-004', 'litter-bug-005', 'litter-bug-006'];
+  STARTERS.forEach(addBug);
+
+  // Expose for console poking.
+  window._generateBugSVG = _generateBugSVG;
+  window.hashToBugTraits = hashToBugTraits;
+  window.sha256Hex = sha256Hex;
+})();
+</script>
+</body>
+</html>
