@@ -96,6 +96,22 @@ function runChecks(){
       + ' head=' + hasHead + ' antennae=' + hasAntennae };
   });
 
+  // 2a. Wings now render as PNG <image> tags from the WING_BANK.
+  check('_generateBugSVG renders wing PNG from assets/wings/', function(){
+    var svg = window._generateBugSVG(testHash, 160);
+    var m = svg.match(/<image[^>]+href="assets\/wings\/(wing-\d+\.png)"/);
+    return { ok: !!m, detail: m ? 'using ' + m[1] : 'no wing image found' };
+  });
+
+  // 2b. Per-bug tint filter exists so wings color match the bug palette.
+  check('_generateBugSVG defines a per-bug wing tint filter', function(){
+    var svg = window._generateBugSVG(testHash, 160);
+    var hasFilterDef = /<filter id="wt-[0-9a-f]{8}"/.test(svg);
+    var hasFilterUse = /filter="url\(#wt-[0-9a-f]{8}\)"/.test(svg);
+    return { ok: hasFilterDef && hasFilterUse,
+      detail: 'def=' + hasFilterDef + ' use=' + hasFilterUse };
+  });
+
   // 3. Determinism: same hash should produce identical SVG.
   // This is the core promise of "every bug derives from a hash" so the
   // smoke gates on it from day one.
@@ -125,6 +141,28 @@ function runChecks(){
   check('starter set rendered (6 cards in DOM)', function(){
     var cards = window.document.querySelectorAll('.card');
     return { ok: cards.length === 6, detail: 'count=' + cards.length };
+  });
+
+  // 7. WING_BANK is exposed and has 8 entries (placeholder size).
+  check('WING_BANK exposed with 8 entries', function(){
+    var b = window.WING_BANK;
+    return { ok: Array.isArray(b) && b.length === 8,
+      detail: 'len=' + (b && b.length) };
+  });
+
+  // 8. All wing PNG files referenced by WING_BANK exist on disk.
+  // Catches the case where the bank lists a file we never generated.
+  check('all WING_BANK files exist on disk', function(){
+    var b = window.WING_BANK || [];
+    var fs2 = require('fs');
+    var pathMod = require('path');
+    var missing = [];
+    for (var i = 0; i < b.length; i++) {
+      var p = pathMod.join(ROOT, 'assets', 'wings', b[i]);
+      if (!fs2.existsSync(p)) missing.push(b[i]);
+    }
+    return { ok: missing.length === 0,
+      detail: missing.length ? 'missing: ' + missing.join(',') : 'all ' + b.length + ' present' };
   });
 
   // ── Output ───────────────────────────────────────────────────────────

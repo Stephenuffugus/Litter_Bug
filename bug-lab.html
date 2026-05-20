@@ -77,6 +77,16 @@
   function hb(hash, n) { return parseInt(hash.substr(n * 2, 2), 16); }
   function hc(hash, n) { return parseInt(hash.substr(n, 1), 16); }
 
+  // ── Hex color to {r,g,b} as 0..1 floats for feColorMatrix. ──────────
+  function hexToRGB(hex) {
+    var h = hex.replace('#', '');
+    return {
+      r: parseInt(h.substr(0, 2), 16) / 255,
+      g: parseInt(h.substr(2, 2), 16) / 255,
+      b: parseInt(h.substr(4, 2), 16) / 255
+    };
+  }
+
   // ── Map a hash to insect traits. ────────────────────────────────────
   // Bytes 0..18 carry anatomy; 19..27 are reserved for behavior later.
   // Bank sizes are placeholders for v0; replace with real catalogs.
@@ -107,13 +117,25 @@
     '#3e5a3e', '#b8985a', '#5a6e4a', '#8a9178'
   ];
 
+  // ── Wing bank. PNG silhouettes, white on transparent. ──────────────
+  // The bug-lab tints them per-bug via feColorMatrix at render time.
+  // Overwrite these files in assets/wings/ to swap in real art; no code
+  // change needed here as long as filenames stay the same.
+  var WING_BANK = [
+    'wing-01.png', 'wing-02.png', 'wing-03.png', 'wing-04.png',
+    'wing-05.png', 'wing-06.png', 'wing-07.png', 'wing-08.png'
+  ];
+
   // ── _generateBugSVG(hash, size). ────────────────────────────────────
   // Draws an insect facing right inside a viewBox of 200x200.
-  // Layers (back-to-front): aura placeholder → wings → body
-  //   → leg shadow pass → legs → head → antennae → pattern overlay.
-  // This is a v0 placeholder. Real anatomy banks replace each switch.
+  // Layers (back-to-front): defs (tint filter) → wings (PNG)
+  //   → legs → body → pattern → head → antennae.
+  // This is a v0 placeholder. Real anatomy banks replace each switch
+  // except wings, which are real PNGs from assets/wings/ (also still
+  // placeholders, but the pipeline that swaps them is final).
   function _generateBugSVG(hash, size) {
     var t = hashToBugTraits(hash);
+    var uid = hash.substr(0, 8);
     var cx = 100, cy = 100;
     var bodyHalfLen = t.bodyLen / 2;
     var bodyHalfW = t.bodyW / 2;
@@ -122,6 +144,24 @@
     var secondary = PAL[t.palette[1]];
     var accent = PAL[t.palette[2]];
     var dark = PAL[t.palette[3] % 8]; // bias toward darker half
+    var rgb = hexToRGB(accent);
+
+    // Defs: per-bug wing tint filter. Multiplies the PNG channels by the
+    // accent color so a white silhouette becomes `accent` everywhere it
+    // had alpha. Unique id per hash prevents two bugs on the same page
+    // sharing a filter and clobbering each other.
+    var tintId = 'wt-' + uid;
+    var defs = ''
+      + '<defs>'
+      + '<filter id="' + tintId + '" x="-5%" y="-5%" width="110%" height="110%">'
+      + '<feColorMatrix type="matrix" values="'
+      + rgb.r + ' 0 0 0 0  '
+      + '0 ' + rgb.g + ' 0 0 0  '
+      + '0 0 ' + rgb.b + ' 0 0  '
+      + '0 0 0 1 0'
+      + '"/>'
+      + '</filter>'
+      + '</defs>';
 
     // Body: ellipse with a subtle taper via two stacked ellipses.
     var body = ''
@@ -131,19 +171,31 @@
       + '" rx="' + (bodyHalfLen * 0.45) + '" ry="' + (bodyHalfW * 0.85)
       + '" fill="' + secondary + '" opacity="0.55" />';
 
-    // Wings: two mirrored ellipses behind body.
-    // PNG sprites will replace this once the bank exists.
-    var wingRx = bodyHalfLen * 0.7 * t.wingScale;
-    var wingRy = bodyHalfW * 1.5 * t.wingScale;
+    // Wings: two PNG sprites tinted to the bug's accent color.
+    // Picked deterministically from the wing bank by traits.wing.
+    // Each wing PNG is 256x128 with attachment at (24, 64) in PNG space.
+    // We render at width wW, height wH, place so attachment lands on
+    // the body's thorax, then rotate to fan up-back and down-back.
+    var wingFile = WING_BANK[t.wing % WING_BANK.length];
+    var wingHref = 'assets/wings/' + wingFile;
+    var wW = 140 * t.wingScale;
+    var wH = 70 * t.wingScale;
+    var attachX = cx - bodyHalfLen * 0.15;
+    var attachY = cy;
+    // PNG attachment is at 24/256 = 0.094 of width, 64/128 = 0.5 of height.
+    var px = attachX - wW * 0.094;
+    var py = attachY - wH * 0.5;
     var wings = ''
-      + '<ellipse cx="' + (cx - 8) + '" cy="' + (cy - bodyHalfW * 0.6)
-      + '" rx="' + wingRx + '" ry="' + wingRy
-      + '" fill="' + accent + '" opacity="0.45"'
-      + ' transform="rotate(-18 ' + (cx - 8) + ' ' + (cy - bodyHalfW * 0.6) + ')" />'
-      + '<ellipse cx="' + (cx - 8) + '" cy="' + (cy + bodyHalfW * 0.6)
-      + '" rx="' + wingRx + '" ry="' + wingRy
-      + '" fill="' + accent + '" opacity="0.45"'
-      + ' transform="rotate(18 ' + (cx - 8) + ' ' + (cy + bodyHalfW * 0.6) + ')" />';
+      + '<g transform="rotate(165 ' + attachX + ' ' + attachY + ')" '
+      + 'filter="url(#' + tintId + ')" opacity="0.75">'
+      + '<image href="' + wingHref + '" x="' + px + '" y="' + py
+      + '" width="' + wW + '" height="' + wH + '" />'
+      + '</g>'
+      + '<g transform="rotate(195 ' + attachX + ' ' + attachY + ')" '
+      + 'filter="url(#' + tintId + ')" opacity="0.75">'
+      + '<image href="' + wingHref + '" x="' + px + '" y="' + py
+      + '" width="' + wW + '" height="' + wH + '" />'
+      + '</g>';
 
     // Legs: 6 thin lines, 3 per side, fanning from the underside.
     var legs = '';
@@ -192,7 +244,7 @@
     return ''
       + '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"'
       + ' width="' + size + '" height="' + size + '">'
-      + wings + legs + body + pattern + head + antennae
+      + defs + wings + legs + body + pattern + head + antennae
       + '</svg>';
   }
 
@@ -250,6 +302,8 @@
   window._generateBugSVG = _generateBugSVG;
   window.hashToBugTraits = hashToBugTraits;
   window.sha256Hex = sha256Hex;
+  window.WING_BANK = WING_BANK;
+  window.hexToRGB = hexToRGB;
 })();
 </script>
 </body>
