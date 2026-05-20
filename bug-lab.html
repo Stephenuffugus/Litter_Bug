@@ -50,9 +50,9 @@
   <div id="grid" class="grid"></div>
 </main>
 <footer>
-  Heads, legs, and antennae are inline SVG. Bodies and wings are PNG
-  sprites from <code>assets/</code> (catalogs in
-  <code>bodies.json</code> / <code>wings.json</code>), each tinted per
+  Legs and antennae are inline SVG. Bodies, wings, and heads are PNG
+  sprites from <code>assets/</code> (catalogs in <code>bodies.json</code>
+  / <code>wings.json</code> / <code>heads.json</code>), each tinted per
   bug via feColorMatrix. Each seed string produces the same bug every
   time. Open <code>view-source:</code> to see <code>_generateBugSVG</code>.
 </footer>
@@ -164,6 +164,25 @@
   ];
   // BODY_BANK_AUTOGEN_END
 
+  // ── Head bank. ─────────────────────────────────────────────────────
+  // PNG silhouettes of bug heads (face on the right, neck on the left).
+  // 96x96 normalized; attachment at left edge (0, 48) is where the
+  // head meets the body. Tinted to bug's dark palette color at render
+  // time so eyes/mandibles read as shadowed accents on the body.
+  // Managed by `node scripts/import-art.js heads` / `npm run heads`.
+  // HEAD_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var HEAD_BANK = [
+    { file: "head-01.png", name: "Round", tintable: true, attachment: [0, 48] },
+    { file: "head-02.png", name: "Triangular", tintable: true, attachment: [0, 48] },
+    { file: "head-03.png", name: "Bulbous", tintable: true, attachment: [0, 48] },
+    { file: "head-04.png", name: "Squared", tintable: true, attachment: [0, 48] },
+    { file: "head-05.png", name: "Pointed", tintable: true, attachment: [0, 48] },
+    { file: "head-06.png", name: "Broad", tintable: true, attachment: [0, 48] },
+    { file: "head-07.png", name: "Compact", tintable: true, attachment: [0, 48] },
+    { file: "head-08.png", name: "Lobed", tintable: true, attachment: [0, 48] }
+  ];
+  // HEAD_BANK_AUTOGEN_END
+
   // ── _generateBugSVG(hash, size). ────────────────────────────────────
   // Draws an insect facing right inside a viewBox of 220x200.
   // Layers (back-to-front): defs (tint filters) → wings (PNG)
@@ -181,13 +200,17 @@
     var dark = PAL[t.palette[3] % 8];
     var primaryRGB = hexToRGB(primary);
     var accentRGB = hexToRGB(accent);
+    var darkRGB = hexToRGB(dark);
 
-    // Defs: two per-bug tint filters. `bt-<uid>` tints body PNGs to
-    // the bug's primary color; `wt-<uid>` tints wings to accent.
+    // Defs: per-bug tint filters, one for each PNG layer.
+    //   bt-<uid> = body tint (primary color)
+    //   wt-<uid> = wing tint (accent color)
+    //   ht-<uid> = head tint (dark color)
     // Unique IDs per hash so multiple bugs on the page don't share
     // and clobber each other.
     var bodyTintId = 'bt-' + uid;
     var wingTintId = 'wt-' + uid;
+    var headTintId = 'ht-' + uid;
     function tintFilter(id, rgb) {
       return '<filter id="' + id + '" x="-5%" y="-5%" width="110%" height="110%">'
         + '<feColorMatrix type="matrix" values="'
@@ -201,6 +224,7 @@
       + '<defs>'
       + tintFilter(bodyTintId, primaryRGB)
       + tintFilter(wingTintId, accentRGB)
+      + tintFilter(headTintId, darkRGB)
       + '</defs>';
 
     // Body. PNG from BODY_BANK rendered at 160x80, centered horizontally
@@ -271,23 +295,52 @@
         + '" stroke="' + dark + '" stroke-width="2.5" stroke-linecap="round" />';
     }
 
-    // Head + eye, on the right (bug faces +x).
-    var hx = cx + bodyHalfLen + t.headSize * 0.35;
-    var head = ''
-      + '<circle cx="' + hx + '" cy="' + cy + '" r="' + (t.headSize / 2)
-      + '" fill="' + dark + '" />'
-      + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    // Head: PNG from HEAD_BANK at body's right-edge attachment.
+    // Picked deterministically by traits.head. Tinted to bug's dark
+    // palette color so eyes/mandibles read as shadowed accents.
+    // hx is the bug's head-center x, used downstream for antennae.
+    var headW = 40 + (hb(hash, 5) % 12); // 40..52 — small hash-driven scale
+    var headH = headW; // square viewBox source
+    var bodyAttachX = cx + bodyHalfLen;
+    var bodyAttachY = cy;
+    var hx = bodyAttachX + headW * 0.35; // head center
+    var head = '';
+    if (HEAD_BANK.length > 0) {
+      var headEntry = HEAD_BANK[t.head % HEAD_BANK.length];
+      var headHref = 'assets/heads/' + headEntry.file;
+      var hax = (headEntry.attachment && headEntry.attachment[0]) || 0;
+      var hay = (headEntry.attachment && headEntry.attachment[1]) || 48;
+      // Place so head's PNG-attachment lands on body's attachment.
+      var headX = bodyAttachX - headW * (hax / 96);
+      var headY = bodyAttachY - headH * (hay / 96);
+      var headTintAttr = (headEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
+      head = '<image href="' + headHref + '"'
+        + ' x="' + headX + '" y="' + headY
+        + '" width="' + headW + '" height="' + headH + '"'
+        + headTintAttr + ' />'
+        // Eye dot stays inline so palette accent reads as the eye shine.
+        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    } else {
+      // Inline-circle fallback if HEAD_BANK is empty.
+      head = '<circle cx="' + hx + '" cy="' + cy + '" r="' + (headW / 2)
+        + '" fill="' + dark + '" />'
+        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    }
 
-    // Antennae: two curved paths from head front.
-    var antTip = hx + t.headSize * 0.9;
+    // Antennae: two curved paths emerging from the front of the head.
+    // Start at the head's front edge, curve up-and-back, ending past
+    // the head tip. Distances scaled to head size so larger heads get
+    // proportionally longer antennae.
+    var antStart = hx + headW * 0.3; // front edge of head
+    var antTip = hx + headW * 0.9;   // well past head front
     var antennae = ''
-      + '<path d="M' + (hx + 4) + ' ' + (cy - 4)
-      + ' Q' + (antTip - 4) + ' ' + (cy - 20)
-      + ', ' + antTip + ' ' + (cy - 24)
+      + '<path d="M' + antStart + ' ' + (cy - 4)
+      + ' Q' + (antTip - 4) + ' ' + (cy - 22)
+      + ', ' + antTip + ' ' + (cy - 26)
       + '" stroke="' + dark + '" stroke-width="1.8" fill="none" stroke-linecap="round" />'
-      + '<path d="M' + (hx + 4) + ' ' + (cy + 4)
-      + ' Q' + (antTip - 4) + ' ' + (cy + 20)
-      + ', ' + antTip + ' ' + (cy + 24)
+      + '<path d="M' + antStart + ' ' + (cy + 4)
+      + ' Q' + (antTip - 4) + ' ' + (cy + 22)
+      + ', ' + antTip + ' ' + (cy + 26)
       + '" stroke="' + dark + '" stroke-width="1.8" fill="none" stroke-linecap="round" />';
 
     // Pattern: simple stripes across body, count derived from pattern byte.
@@ -363,6 +416,7 @@
   window.sha256Hex = sha256Hex;
   window.WING_BANK = WING_BANK;
   window.BODY_BANK = BODY_BANK;
+  window.HEAD_BANK = HEAD_BANK;
   window.hexToRGB = hexToRGB;
 })();
 </script>

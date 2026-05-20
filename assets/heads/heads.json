@@ -1,0 +1,98 @@
+[
+  {
+    "file": "head-01.png",
+    "name": "Round",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "head-02.png",
+    "name": "Triangular",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "head-03.png",
+    "name": "Bulbous",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "head-04.png",
+    "name": "Squared",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "head-05.png",
+    "name": "Pointed",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "head-06.png",
+    "name": "Broad",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "head-07.png",
+    "name": "Compact",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "head-08.png",
+    "name": "Lobed",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      0,
+      48
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  }
+]
