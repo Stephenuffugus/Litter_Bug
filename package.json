@@ -19,8 +19,9 @@
     "legs:gen": "node scripts/gen-legs.js && node scripts/import-art.js legs",
     "antennae": "node scripts/import-art.js antennae",
     "antennae:gen": "node scripts/gen-antennae.js && node scripts/import-art.js antennae",
-    "art": "npm run wings && npm run bodies && npm run heads && npm run legs && npm run antennae",
+    "art": "npm run wings && npm run bodies && npm run heads && npm run legs && npm run antennae && npm run patterns",
     "art:contact": "npm run wings:contact && npm run bodies:contact && npm run heads:contact && npm run patterns:contact",
+    "status": "node scripts/status.js",
     "check": "npm run smoke"
   },
   "dependencies": {

@@ -1,0 +1,63 @@
+{
+  "generated": "2026-05-20T23:05:35.097Z",
+  "branch": "main",
+  "head": "2396f42",
+  "smoke": {
+    "pass": 47,
+    "fail": 0
+  },
+  "totals": {
+    "have": 48,
+    "target": 180
+  },
+  "layers": [
+    {
+      "name": "wings",
+      "display": "wing",
+      "kind": "PNG",
+      "have": 8,
+      "target": 40,
+      "needed": 32
+    },
+    {
+      "name": "bodies",
+      "display": "body",
+      "kind": "PNG",
+      "have": 8,
+      "target": 30,
+      "needed": 22
+    },
+    {
+      "name": "heads",
+      "display": "head",
+      "kind": "PNG",
+      "have": 8,
+      "target": 25,
+      "needed": 17
+    },
+    {
+      "name": "patterns",
+      "display": "pattern",
+      "kind": "PNG",
+      "have": 8,
+      "target": 50,
+      "needed": 42
+    },
+    {
+      "name": "legs",
+      "display": "leg-set",
+      "kind": "JSON",
+      "have": 8,
+      "target": 20,
+      "needed": 12
+    },
+    {
+      "name": "antennae",
+      "display": "antenna-set",
+      "kind": "JSON",
+      "have": 8,
+      "target": 15,
+      "needed": 7
+    }
+  ]
+}
