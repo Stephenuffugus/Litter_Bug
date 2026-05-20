@@ -15,8 +15,12 @@
     "patterns": "node scripts/import-art.js patterns",
     "patterns:gen": "node scripts/gen-patterns.js && node scripts/import-art.js patterns",
     "patterns:contact": "node scripts/contact-sheet.js patterns",
-    "art": "npm run wings && npm run bodies && npm run heads && npm run patterns",
-    "art:contact": "npm run wings:contact && npm run bodies:contact && npm run heads:contact && npm run patterns:contact",
+    "legs": "node scripts/import-art.js legs",
+    "legs:gen": "node scripts/gen-legs.js && node scripts/import-art.js legs",
+    "antennae": "node scripts/import-art.js antennae",
+    "antennae:gen": "node scripts/gen-antennae.js && node scripts/import-art.js antennae",
+    "art": "npm run wings && npm run bodies && npm run heads && npm run legs && npm run antennae",
+    "art:contact": "npm run wings:contact && npm run bodies:contact && npm run heads:contact",
     "check": "npm run smoke"
   },
   "dependencies": {

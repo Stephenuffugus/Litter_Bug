@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Sprinter",
+    "count": 6,
+    "length": 22,
+    "segments": 2,
+    "thickness": 2.5,
+    "pose": "spread",
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Crouched",
+    "count": 6,
+    "length": 16,
+    "segments": 2,
+    "thickness": 2.8,
+    "pose": "low",
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Long-Reach",
+    "count": 6,
+    "length": 28,
+    "segments": 2,
+    "thickness": 2,
+    "pose": "spread",
+    "rarity": "uncommon",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Stubby",
+    "count": 6,
+    "length": 13,
+    "segments": 1,
+    "thickness": 3,
+    "pose": "spread",
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Mantis",
+    "count": 6,
+    "length": 26,
+    "segments": 3,
+    "thickness": 2.2,
+    "pose": "forward",
+    "rarity": "rare",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Eight-Pack",
+    "count": 8,
+    "length": 20,
+    "segments": 2,
+    "thickness": 1.8,
+    "pose": "spread",
+    "rarity": "rare",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Bristled",
+    "count": 6,
+    "length": 18,
+    "segments": 2,
+    "thickness": 1.5,
+    "pose": "splayed",
+    "rarity": "uncommon",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Smooth",
+    "count": 6,
+    "length": 22,
+    "segments": 1,
+    "thickness": 2.5,
+    "pose": "spread",
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  }
+]

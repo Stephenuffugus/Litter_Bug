@@ -50,11 +50,11 @@
   <div id="grid" class="grid"></div>
 </main>
 <footer>
-  Legs and antennae are inline SVG. Bodies, wings, and heads are PNG
-  sprites from <code>assets/</code> (catalogs in <code>bodies.json</code>
-  / <code>wings.json</code> / <code>heads.json</code>), each tinted per
-  bug via feColorMatrix. Each seed string produces the same bug every
-  time. Open <code>view-source:</code> to see <code>_generateBugSVG</code>.
+  All anatomy is catalog-driven. Bodies, wings, and heads are PNG
+  sprites in <code>assets/</code> tinted per bug. Legs and antennae
+  are inline SVG drawn from <code>legs.json</code> / <code>antennae.json</code>
+  shape params. Same seed string always produces the same bug. Open
+  <code>view-source:</code> to see <code>_generateBugSVG</code>.
 </footer>
 <script>
 (function(){
@@ -163,6 +163,42 @@
     { file: "body-08.png", name: "Compact", tintable: true, attachment: [200, 50] }
   ];
   // BODY_BANK_AUTOGEN_END
+
+  // ── Leg bank. ──────────────────────────────────────────────────────
+  // Procedural — no PNG art. Each entry is { name, count, length,
+  // segments, thickness, pose, rarity }. The lab interprets these
+  // params into 6 (or 8) line strokes per bug. Edit assets/legs/legs.json
+  // and run `npm run legs` to push changes here.
+  // LEG_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var LEG_BANK = [
+    {"name":"Sprinter","count":6,"length":22,"segments":2,"thickness":2.5,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Crouched","count":6,"length":16,"segments":2,"thickness":2.8,"pose":"low","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Long-Reach","count":6,"length":28,"segments":2,"thickness":2,"pose":"spread","rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Stubby","count":6,"length":13,"segments":1,"thickness":3,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Mantis","count":6,"length":26,"segments":3,"thickness":2.2,"pose":"forward","rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Eight-Pack","count":8,"length":20,"segments":2,"thickness":1.8,"pose":"spread","rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Bristled","count":6,"length":18,"segments":2,"thickness":1.5,"pose":"splayed","rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Smooth","count":6,"length":22,"segments":1,"thickness":2.5,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"}
+  ];
+  // LEG_BANK_AUTOGEN_END
+
+  // ── Antenna bank. ──────────────────────────────────────────────────
+  // Procedural — no PNG art. Each entry is { name, length, curl,
+  // thickness, shape, spread, rarity }. The lab interprets these into
+  // two bezier-curve antennae per bug. Edit assets/antennae/antennae.json
+  // and run `npm run antennae` to push changes here.
+  // ANTENNA_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var ANTENNA_BANK = [
+    {"name":"Threadlike","length":24,"curl":0.4,"thickness":1.5,"shape":"straight","spread":30,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Curled","length":22,"curl":0.8,"thickness":1.6,"shape":"curved","spread":28,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Clubbed","length":26,"curl":0.4,"thickness":1.8,"shape":"club-tipped","spread":32,"rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Feathered","length":28,"curl":0.5,"thickness":2.4,"shape":"feathered","spread":36,"rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Short","length":14,"curl":0.5,"thickness":1.6,"shape":"curved","spread":26,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Long","length":38,"curl":0.4,"thickness":1.2,"shape":"straight","spread":42,"rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Elbowed","length":24,"curl":0.5,"thickness":2,"shape":"bent","spread":30,"rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Bristle","length":20,"curl":0.3,"thickness":1.5,"shape":"straight","spread":24,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"}
+  ];
+  // ANTENNA_BANK_AUTOGEN_END
 
   // ── Head bank. ─────────────────────────────────────────────────────
   // PNG silhouettes of bug heads (face on the right, neck on the left).
@@ -280,19 +316,43 @@
       + '" width="' + wW + '" height="' + wH + '" />'
       + '</g>';
 
-    // Legs: 6 thin lines, 3 per side, fanning from the underside.
+    // Legs: read params from LEG_BANK and draw `count` line strokes
+    // (count/2 per side) emerging from the body's underside and topside.
+    // Each leg's tip angles outward based on `pose` and leg index;
+    // length and thickness come directly from the bank entry.
     var legs = '';
-    var legAttach = [cx - bodyHalfLen * 0.5, cx, cx + bodyHalfLen * 0.5];
-    for (var i = 0; i < 3; i++) {
-      var ax = legAttach[i];
-      var bend = 14 + (t.leg * 2 % 12);
-      legs += ''
-        + '<line x1="' + ax + '" y1="' + (cy + bodyHalfW * 0.85)
-        + '" x2="' + (ax - 10 + i * 10) + '" y2="' + (cy + bodyHalfW * 0.85 + bend)
-        + '" stroke="' + dark + '" stroke-width="2.5" stroke-linecap="round" />'
-        + '<line x1="' + ax + '" y1="' + (cy - bodyHalfW * 0.85)
-        + '" x2="' + (ax - 10 + i * 10) + '" y2="' + (cy - bodyHalfW * 0.85 - bend)
-        + '" stroke="' + dark + '" stroke-width="2.5" stroke-linecap="round" />';
+    var legEntry = (LEG_BANK.length > 0)
+      ? LEG_BANK[t.leg % LEG_BANK.length]
+      : { count: 6, length: 22, segments: 1, thickness: 2.5, pose: 'spread' };
+    var legCount = legEntry.count || 6;
+    var pairs = Math.max(1, Math.floor(legCount / 2));
+    var legLen = legEntry.length || 22;
+    var legThick = legEntry.thickness || 2.5;
+    var legPose = legEntry.pose || 'spread';
+    for (var lp = 0; lp < pairs; lp++) {
+      var t01 = pairs === 1 ? 0.5 : (lp / (pairs - 1));
+      var legAx = cx - bodyHalfLen * 0.6 + bodyHalfLen * 1.2 * t01;
+      // Tip x-offset varies with pose and position. 'forward' tilts all
+      // tips toward the head end; 'spread' fans them outward (rear legs
+      // angle back, front legs angle forward); 'low' keeps tips below
+      // attachment; 'splayed' fans more aggressively than 'spread'.
+      var fan = 0;
+      if (legPose === 'forward') fan = 12;
+      else if (legPose === 'spread') fan = -14 + 28 * t01;
+      else if (legPose === 'splayed') fan = -22 + 44 * t01;
+      else if (legPose === 'low') fan = 0;
+      var tipDx = fan;
+      var tipDy = legLen;
+      var topAttachY = cy - bodyHalfW * 0.85;
+      var botAttachY = cy + bodyHalfW * 0.85;
+      legs += '<line x1="' + legAx + '" y1="' + botAttachY
+        + '" x2="' + (legAx + tipDx) + '" y2="' + (botAttachY + tipDy)
+        + '" stroke="' + dark + '" stroke-width="' + legThick
+        + '" stroke-linecap="round" />'
+        + '<line x1="' + legAx + '" y1="' + topAttachY
+        + '" x2="' + (legAx + tipDx) + '" y2="' + (topAttachY - tipDy)
+        + '" stroke="' + dark + '" stroke-width="' + legThick
+        + '" stroke-linecap="round" />';
     }
 
     // Head: PNG from HEAD_BANK at body's right-edge attachment.
@@ -327,21 +387,44 @@
         + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
     }
 
-    // Antennae: two curved paths emerging from the front of the head.
-    // Start at the head's front edge, curve up-and-back, ending past
-    // the head tip. Distances scaled to head size so larger heads get
-    // proportionally longer antennae.
-    var antStart = hx + headW * 0.3; // front edge of head
-    var antTip = hx + headW * 0.9;   // well past head front
+    // Antennae: read params from ANTENNA_BANK. Two bezier curves emerge
+    // from the head front, fanning up-and-out at the entry's `spread`
+    // angle. `curl` controls how much the bezier midpoint pulls back
+    // toward the head; higher curl gives more recurve.
+    var antEntry = (ANTENNA_BANK.length > 0)
+      ? ANTENNA_BANK[t.antenna % ANTENNA_BANK.length]
+      : { length: 24, curl: 0.4, thickness: 1.8, shape: 'straight', spread: 30 };
+    var antLen = antEntry.length || 24;
+    var antCurl = (antEntry.curl !== undefined) ? antEntry.curl : 0.4;
+    var antThick = antEntry.thickness || 1.8;
+    var antSpread = antEntry.spread || 30;
+    var antStartX = hx + headW * 0.3; // emerge from head front
+    var antRad = antSpread * Math.PI / 180;
+    // Tip points "up and slightly forward" for top antenna, mirrored
+    // for bottom. Direction is +x slightly, -y mostly (so it sweeps up).
+    var topDx = Math.sin(antRad) * antLen;
+    var topDy = -Math.cos(antRad) * antLen;
+    var topTipX = antStartX + topDx;
+    var topTipY = (cy - 4) + topDy;
+    // Bezier control: pull back toward the head (so the curve recurves)
+    // by `curl` factor.
+    var topCtrlX = antStartX + topDx * (1 - antCurl);
+    var topCtrlY = (cy - 4) + topDy * antCurl;
+    var botTipX = antStartX + topDx;
+    var botTipY = (cy + 4) - topDy;
+    var botCtrlX = antStartX + topDx * (1 - antCurl);
+    var botCtrlY = (cy + 4) - topDy * antCurl;
     var antennae = ''
-      + '<path d="M' + antStart + ' ' + (cy - 4)
-      + ' Q' + (antTip - 4) + ' ' + (cy - 22)
-      + ', ' + antTip + ' ' + (cy - 26)
-      + '" stroke="' + dark + '" stroke-width="1.8" fill="none" stroke-linecap="round" />'
-      + '<path d="M' + antStart + ' ' + (cy + 4)
-      + ' Q' + (antTip - 4) + ' ' + (cy + 22)
-      + ', ' + antTip + ' ' + (cy + 26)
-      + '" stroke="' + dark + '" stroke-width="1.8" fill="none" stroke-linecap="round" />';
+      + '<path d="M' + antStartX + ' ' + (cy - 4)
+      + ' Q' + topCtrlX + ' ' + topCtrlY
+      + ', ' + topTipX + ' ' + topTipY
+      + '" stroke="' + dark + '" stroke-width="' + antThick
+      + '" fill="none" stroke-linecap="round" />'
+      + '<path d="M' + antStartX + ' ' + (cy + 4)
+      + ' Q' + botCtrlX + ' ' + botCtrlY
+      + ', ' + botTipX + ' ' + botTipY
+      + '" stroke="' + dark + '" stroke-width="' + antThick
+      + '" fill="none" stroke-linecap="round" />';
 
     // Pattern: simple stripes across body, count derived from pattern byte.
     var pattern = '';
@@ -417,6 +500,8 @@
   window.WING_BANK = WING_BANK;
   window.BODY_BANK = BODY_BANK;
   window.HEAD_BANK = HEAD_BANK;
+  window.LEG_BANK = LEG_BANK;
+  window.ANTENNA_BANK = ANTENNA_BANK;
   window.hexToRGB = hexToRGB;
 })();
 </script>

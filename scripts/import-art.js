@@ -39,14 +39,17 @@ if (!layerName || !LAYERS[layerName]) {
   process.exit(1);
 }
 var cfg = LAYERS[layerName];
+var IS_PROCEDURAL = cfg.kind === 'procedural';
 
 var LAYER_DIR = path.join(ROOT, 'assets', cfg.dirName);
 var RAW_DIR = path.join(LAYER_DIR, 'raw');
 var JSON_PATH = path.join(LAYER_DIR, cfg.catalogFile);
-var FILE_RE = new RegExp('^' + cfg.filePrefix + '-(\\d{2,})\\.png$');
+var FILE_RE = cfg.filePrefix
+  ? new RegExp('^' + cfg.filePrefix + '-(\\d{2,})\\.png$')
+  : null;
 
 fs.mkdirSync(LAYER_DIR, { recursive: true });
-fs.mkdirSync(RAW_DIR, { recursive: true });
+if (!IS_PROCEDURAL) fs.mkdirSync(RAW_DIR, { recursive: true });
 
 // ── 1. Load existing catalog so we preserve user-edited metadata. ─────
 var existing = [];
@@ -170,13 +173,22 @@ function patchLab(catalog) {
       + '` around the ' + cfg.bankConst + ' declaration so this script can patch it.');
   }
   var indent = '  ';
-  var entries = catalog.map(function(w){
-    return indent + indent + '{ file: ' + JSON.stringify(w.file)
-      + ', name: ' + JSON.stringify(w.name || '')
-      + ', tintable: ' + (w.tintable === false ? 'false' : 'true')
-      + ', attachment: [' + (w.attachment ? w.attachment.join(', ') : cfg.defaultAttachment.join(', '))
-      + '] }';
-  }).join(',\n');
+  var entries;
+  if (IS_PROCEDURAL) {
+    // Procedural entries vary in shape per layer. JSON.stringify each
+    // one rather than format specific fields.
+    entries = catalog.map(function(e){
+      return indent + indent + JSON.stringify(e);
+    }).join(',\n');
+  } else {
+    entries = catalog.map(function(w){
+      return indent + indent + '{ file: ' + JSON.stringify(w.file)
+        + ', name: ' + JSON.stringify(w.name || '')
+        + ', tintable: ' + (w.tintable === false ? 'false' : 'true')
+        + ', attachment: [' + (w.attachment ? w.attachment.join(', ') : cfg.defaultAttachment.join(', '))
+        + '] }';
+    }).join(',\n');
+  }
   var block = sentinelStart + ' — managed by scripts/import-art.js (do not edit by hand)\n'
     + indent + 'var ' + cfg.bankConst + ' = [\n'
     + entries + '\n'
@@ -197,6 +209,26 @@ function patchLab(catalog) {
 // ── Run. ───────────────────────────────────────────────────────────────
 (async function(){
   console.log('=== import-art (' + layerName + ') ===');
+  if (IS_PROCEDURAL) {
+    // Procedural layer: skip raw/ + PNG ops. Read JSON, patch lab.
+    if (!fs.existsSync(JSON_PATH)) {
+      throw new Error(cfg.catalogFile + ' not found. Run `node scripts/gen-' + layerName
+        + '.js` to seed initial entries.');
+    }
+    var catalog = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8'));
+    var labChanged = patchLab(catalog);
+    console.log('');
+    console.log('  catalog: ' + catalog.length + ' ' + cfg.displayName + '(s)');
+    catalog.forEach(function(e){
+      console.log('    - ' + (e.name || '').padEnd(20) + ' '
+        + (e.rarity || 'common'));
+    });
+    console.log('');
+    console.log('  ' + cfg.catalogFile + ': source of truth');
+    console.log('  bug-lab.html: ' + (labChanged ? 'patched' : 'already current'));
+    return;
+  }
+
   var imported = await processRaw();
   var catalog = rebuildCatalog(imported);
   var labChanged = patchLab(catalog);

@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Threadlike",
+    "length": 24,
+    "curl": 0.4,
+    "thickness": 1.5,
+    "shape": "straight",
+    "spread": 30,
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Curled",
+    "length": 22,
+    "curl": 0.8,
+    "thickness": 1.6,
+    "shape": "curved",
+    "spread": 28,
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Clubbed",
+    "length": 26,
+    "curl": 0.4,
+    "thickness": 1.8,
+    "shape": "club-tipped",
+    "spread": 32,
+    "rarity": "uncommon",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Feathered",
+    "length": 28,
+    "curl": 0.5,
+    "thickness": 2.4,
+    "shape": "feathered",
+    "spread": 36,
+    "rarity": "rare",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Short",
+    "length": 14,
+    "curl": 0.5,
+    "thickness": 1.6,
+    "shape": "curved",
+    "spread": 26,
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Long",
+    "length": 38,
+    "curl": 0.4,
+    "thickness": 1.2,
+    "shape": "straight",
+    "spread": 42,
+    "rarity": "uncommon",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Elbowed",
+    "length": 24,
+    "curl": 0.5,
+    "thickness": 2,
+    "shape": "bent",
+    "spread": 30,
+    "rarity": "rare",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "name": "Bristle",
+    "length": 20,
+    "curl": 0.3,
+    "thickness": 1.5,
+    "shape": "straight",
+    "spread": 24,
+    "rarity": "common",
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  }
+]

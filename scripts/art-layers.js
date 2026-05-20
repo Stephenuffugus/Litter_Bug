@@ -63,4 +63,26 @@ module.exports = {
     displayName: 'pattern',
     tintColorRGB: [0.290, 0.227, 0.180], // dark brown, for pattern preview
   },
+
+  // Procedural layers: JSON-only banks (no PNG art).
+  // import-art.js sees `kind: 'procedural'` and skips raw/ + PNG ops;
+  // it just rewrites the bank from the JSON catalog.
+  legs: {
+    kind: 'procedural',
+    dirName: 'legs',
+    bankConst: 'LEG_BANK',
+    sentinelStart: 'LEG_BANK_AUTOGEN_START',
+    sentinelEnd: 'LEG_BANK_AUTOGEN_END',
+    catalogFile: 'legs.json',
+    displayName: 'leg-set',
+  },
+  antennae: {
+    kind: 'procedural',
+    dirName: 'antennae',
+    bankConst: 'ANTENNA_BANK',
+    sentinelStart: 'ANTENNA_BANK_AUTOGEN_START',
+    sentinelEnd: 'ANTENNA_BANK_AUTOGEN_END',
+    catalogFile: 'antennae.json',
+    displayName: 'antenna-set',
+  },
 };

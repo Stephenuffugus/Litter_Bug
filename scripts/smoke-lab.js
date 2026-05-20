@@ -295,6 +295,55 @@ function runChecks(){
     return { ok: hasDef && hasUse, detail: 'def=' + hasDef + ' use=' + hasUse };
   });
 
+  // Procedural banks: legs and antennae. Both are JSON-only catalogs
+  // patched into the lab as data-driven inline SVG.
+  check('LEG_BANK populated with shape params', function(){
+    var b = window.LEG_BANK;
+    if (!Array.isArray(b) || b.length === 0) return { ok: false, detail: 'len=' + (b && b.length) };
+    var bad = [];
+    b.forEach(function(e, i){
+      if (typeof e.name !== 'string') bad.push('[' + i + '].name');
+      if (typeof e.count !== 'number') bad.push('[' + i + '].count');
+      if (typeof e.length !== 'number') bad.push('[' + i + '].length');
+      if (typeof e.thickness !== 'number') bad.push('[' + i + '].thickness');
+    });
+    return { ok: bad.length === 0,
+      detail: bad.length ? 'bad: ' + bad.join(',') : b.length + ' entries, params valid' };
+  });
+  check('legs.json matches LEG_BANK (same count)', function(){
+    var fs2 = require('fs');
+    var pathMod = require('path');
+    var p = pathMod.join(ROOT, 'assets', 'legs', 'legs.json');
+    if (!fs2.existsSync(p)) return { ok: false, detail: 'legs.json missing' };
+    var catalog = JSON.parse(fs2.readFileSync(p, 'utf8'));
+    var bank = window.LEG_BANK || [];
+    return { ok: catalog.length === bank.length,
+      detail: 'catalog=' + catalog.length + ' bank=' + bank.length };
+  });
+  check('ANTENNA_BANK populated with shape params', function(){
+    var b = window.ANTENNA_BANK;
+    if (!Array.isArray(b) || b.length === 0) return { ok: false, detail: 'len=' + (b && b.length) };
+    var bad = [];
+    b.forEach(function(e, i){
+      if (typeof e.name !== 'string') bad.push('[' + i + '].name');
+      if (typeof e.length !== 'number') bad.push('[' + i + '].length');
+      if (typeof e.curl !== 'number') bad.push('[' + i + '].curl');
+      if (typeof e.thickness !== 'number') bad.push('[' + i + '].thickness');
+    });
+    return { ok: bad.length === 0,
+      detail: bad.length ? 'bad: ' + bad.join(',') : b.length + ' entries, params valid' };
+  });
+  check('antennae.json matches ANTENNA_BANK (same count)', function(){
+    var fs2 = require('fs');
+    var pathMod = require('path');
+    var p = pathMod.join(ROOT, 'assets', 'antennae', 'antennae.json');
+    if (!fs2.existsSync(p)) return { ok: false, detail: 'antennae.json missing' };
+    var catalog = JSON.parse(fs2.readFileSync(p, 'utf8'));
+    var bank = window.ANTENNA_BANK || [];
+    return { ok: catalog.length === bank.length,
+      detail: 'catalog=' + catalog.length + ' bank=' + bank.length };
+  });
+
   // 10. Non-tintable wings should NOT emit a filter attribute on their
   // <g> wrapper. Catches regressions where _generateBugSVG forgets to
   // honor the flag. We mutate (NOT reassign) the bank's first entry so
