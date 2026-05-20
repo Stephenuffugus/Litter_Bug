@@ -344,6 +344,42 @@ function runChecks(){
       detail: 'catalog=' + catalog.length + ' bank=' + bank.length };
   });
 
+  // Patterns: PNG overlay layer.
+  check('patterns.json matches PATTERN_BANK (same files, same count)', function(){
+    return catalogMatchesBank('patterns', 'patterns', 'patterns.json', 'PATTERN_BANK');
+  });
+  check('PATTERN_BANK exposed with correct shape', function(){
+    var b = window.PATTERN_BANK;
+    if (!Array.isArray(b) || b.length === 0) {
+      return { ok: false, detail: 'len=' + (b && b.length) };
+    }
+    var bad = [];
+    b.forEach(function(e, i){
+      if (!e || typeof e.file !== 'string') bad.push('[' + i + '].file');
+      else if (typeof e.tintable !== 'boolean') bad.push('[' + i + '].tintable');
+    });
+    return { ok: bad.length === 0,
+      detail: bad.length ? 'bad: ' + bad.join(',') : b.length + ' entries, shape valid' };
+  });
+  check('all PATTERN_BANK files exist on disk', function(){
+    var b = window.PATTERN_BANK || [];
+    var fs2 = require('fs');
+    var pathMod = require('path');
+    var missing = [];
+    for (var i = 0; i < b.length; i++) {
+      var f = b[i] && b[i].file;
+      if (!f) continue;
+      if (!fs2.existsSync(pathMod.join(ROOT, 'assets', 'patterns', f))) missing.push(f);
+    }
+    return { ok: missing.length === 0,
+      detail: missing.length ? 'missing: ' + missing.join(',') : 'all ' + b.length + ' present' };
+  });
+  check('_generateBugSVG renders pattern PNG from assets/patterns/', function(){
+    var svg = window._generateBugSVG(testHash, 160);
+    var m = svg.match(/<image href="assets\/patterns\/(pattern-\d+\.png)"/);
+    return { ok: !!m, detail: m ? 'using ' + m[1] : 'no pattern image found' };
+  });
+
   // 10. Non-tintable wings should NOT emit a filter attribute on their
   // <g> wrapper. Catches regressions where _generateBugSVG forgets to
   // honor the flag. We mutate (NOT reassign) the bank's first entry so

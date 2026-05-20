@@ -50,8 +50,8 @@
   <div id="grid" class="grid"></div>
 </main>
 <footer>
-  All anatomy is catalog-driven. Bodies, wings, and heads are PNG
-  sprites in <code>assets/</code> tinted per bug. Legs and antennae
+  All anatomy is catalog-driven. Bodies, wings, heads, and patterns are
+  PNG sprites in <code>assets/</code> tinted per bug. Legs and antennae
   are inline SVG drawn from <code>legs.json</code> / <code>antennae.json</code>
   shape params. Same seed string always produces the same bug. Open
   <code>view-source:</code> to see <code>_generateBugSVG</code>.
@@ -199,6 +199,24 @@
     {"name":"Bristle","length":20,"curl":0.3,"thickness":1.5,"shape":"straight","spread":24,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"}
   ];
   // ANTENNA_BANK_AUTOGEN_END
+
+  // ── Pattern bank. ──────────────────────────────────────────────────
+  // PNG overlays applied on top of the body silhouette. 200x100
+  // normalized (matches body). Tinted to bug's dark color so markings
+  // read as shadows on the body surface.
+  // Managed by `node scripts/import-art.js patterns` / `npm run patterns`.
+  // PATTERN_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var PATTERN_BANK = [
+    { file: "pattern-01.png", name: "Stripes Vertical", tintable: true, attachment: [100, 50] },
+    { file: "pattern-02.png", name: "Bands", tintable: true, attachment: [100, 50] },
+    { file: "pattern-03.png", name: "Spots", tintable: true, attachment: [100, 50] },
+    { file: "pattern-04.png", name: "Eyespots", tintable: true, attachment: [100, 50] },
+    { file: "pattern-05.png", name: "Speckled", tintable: true, attachment: [100, 50] },
+    { file: "pattern-06.png", name: "Dashes", tintable: true, attachment: [100, 50] },
+    { file: "pattern-07.png", name: "Swirl", tintable: true, attachment: [100, 50] },
+    { file: "pattern-08.png", name: "Chevrons", tintable: true, attachment: [100, 50] }
+  ];
+  // PATTERN_BANK_AUTOGEN_END
 
   // ── Head bank. ─────────────────────────────────────────────────────
   // PNG silhouettes of bug heads (face on the right, neck on the left).
@@ -426,14 +444,18 @@
       + '" stroke="' + dark + '" stroke-width="' + antThick
       + '" fill="none" stroke-linecap="round" />';
 
-    // Pattern: simple stripes across body, count derived from pattern byte.
+    // Pattern: PNG from PATTERN_BANK overlaid on the body. Same draw
+    // dims as the body so the markings align. Tinted to dark (reusing
+    // the head tint filter — same color, no extra defs needed).
     var pattern = '';
-    var stripes = 2 + (t.pattern % 4);
-    for (var j = 1; j <= stripes; j++) {
-      var sx = cx - bodyHalfLen + (bodyHalfLen * 2) * (j / (stripes + 1));
-      pattern += '<line x1="' + sx + '" y1="' + (cy - bodyHalfW * 0.85)
-        + '" x2="' + sx + '" y2="' + (cy + bodyHalfW * 0.85)
-        + '" stroke="' + dark + '" stroke-width="2" opacity="0.5" />';
+    if (PATTERN_BANK.length > 0) {
+      var patEntry = PATTERN_BANK[t.pattern % PATTERN_BANK.length];
+      var patHref = 'assets/patterns/' + patEntry.file;
+      var patTintAttr = (patEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
+      pattern = '<image href="' + patHref + '"'
+        + ' x="' + bodyX + '" y="' + bodyY
+        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"'
+        + patTintAttr + ' opacity="0.65" />';
     }
 
     return ''
@@ -502,6 +524,7 @@
   window.HEAD_BANK = HEAD_BANK;
   window.LEG_BANK = LEG_BANK;
   window.ANTENNA_BANK = ANTENNA_BANK;
+  window.PATTERN_BANK = PATTERN_BANK;
   window.hexToRGB = hexToRGB;
 })();
 </script>

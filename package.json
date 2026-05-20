@@ -20,7 +20,7 @@
     "antennae": "node scripts/import-art.js antennae",
     "antennae:gen": "node scripts/gen-antennae.js && node scripts/import-art.js antennae",
     "art": "npm run wings && npm run bodies && npm run heads && npm run legs && npm run antennae",
-    "art:contact": "npm run wings:contact && npm run bodies:contact && npm run heads:contact",
+    "art:contact": "npm run wings:contact && npm run bodies:contact && npm run heads:contact && npm run patterns:contact",
     "check": "npm run smoke"
   },
   "dependencies": {

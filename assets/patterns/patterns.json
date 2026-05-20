@@ -1,0 +1,98 @@
+[
+  {
+    "file": "pattern-01.png",
+    "name": "Stripes Vertical",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "pattern-02.png",
+    "name": "Bands",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "pattern-03.png",
+    "name": "Spots",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "pattern-04.png",
+    "name": "Eyespots",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "pattern-05.png",
+    "name": "Speckled",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "pattern-06.png",
+    "name": "Dashes",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "pattern-07.png",
+    "name": "Swirl",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "pattern-08.png",
+    "name": "Chevrons",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      100,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  }
+]
