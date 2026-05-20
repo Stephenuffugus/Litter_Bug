@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "lint": "eslint --ext .html index.html",
+    "lint:summary": "eslint --ext .html --format json index.html > /tmp/eslint-report.json; node scripts/lint-summary.js",
+    "smoke": "node scripts/smoke.js",
+    "check": "npm run smoke"
+  },
+  "dependencies": {
+    "puppeteer": "^24.43.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-plugin-html": "^8.1.4",
+    "jsdom": "^29.1.1"
+  }
+}
