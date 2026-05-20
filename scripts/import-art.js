@@ -1,51 +1,59 @@
 #!/usr/bin/env node
 /*
- * import-wings.js
+ * import-art.js <layer>
  *
- * The art pipeline for bug wings. Three jobs:
+ * The generic art-import pipeline. Takes a layer name (wings / bodies /
+ * heads / patterns — see scripts/art-layers.js for the registry) and:
  *
- * 1. Process anything in `assets/wings/raw/`. Each PNG there gets
- *    normalized to 256x128 transparent, assigned the next available
- *    wing-NN slot, and moved into `assets/wings/`. The raw file is
- *    deleted so the drop-folder stays clean.
+ * 1. Processes anything in `assets/<layer>/raw/`. Each PNG gets
+ *    normalized to the layer's target dimensions, assigned the next
+ *    available `<prefix>-NN.png` slot, and moved into the layer dir.
+ *    The raw file is deleted so the drop-folder stays clean.
  *
- * 2. Rebuild `assets/wings/wings.json` from whatever wing-NN.png files
- *    live in `assets/wings/`. Existing metadata (name, rarity, tintable,
- *    attachment) is preserved across re-imports; only newly-imported
- *    wings get default metadata seeded.
+ * 2. Rebuilds `assets/<layer>/<layer>.json` from whatever
+ *    `<prefix>-NN.png` files live in the layer dir. Existing metadata
+ *    (name, rarity, tintable, attachment) is preserved across
+ *    re-imports; only newly imported files get default metadata.
  *
- * 3. Patch the `WING_BANK` block in `bug-lab.html` so the lab matches
- *    the catalog. The patched block lives between two sentinel comments
- *    so this script can find it and rewrite it idempotently.
+ * 3. Patches the `<BANK_CONST>` block in `bug-lab.html` so the lab
+ *    matches the catalog. The patched block lives between sentinel
+ *    comments so this script can find and rewrite it idempotently.
  *
- * Run: `npm run wings` or `node scripts/import-wings.js`
+ * Examples:
+ *   node scripts/import-art.js wings
+ *   node scripts/import-art.js bodies
+ *   npm run wings   (same as the first)
  */
 var fs = require('fs');
 var path = require('path');
 var sharp = require('sharp');
+var LAYERS = require('./art-layers');
 
 var ROOT = path.join(__dirname, '..');
-var WINGS_DIR = path.join(ROOT, 'assets', 'wings');
-var RAW_DIR = path.join(WINGS_DIR, 'raw');
-var JSON_PATH = path.join(WINGS_DIR, 'wings.json');
 var LAB_PATH = path.join(ROOT, 'bug-lab.html');
 
-var TARGET_W = 256;
-var TARGET_H = 128;
-var DEFAULT_ATTACHMENT = [24, 64]; // px in normalized image
+var layerName = process.argv[2];
+if (!layerName || !LAYERS[layerName]) {
+  console.error('Usage: node scripts/import-art.js <layer>');
+  console.error('Available layers: ' + Object.keys(LAYERS).join(', '));
+  process.exit(1);
+}
+var cfg = LAYERS[layerName];
 
-var SENTINEL_START = '// WING_BANK_AUTOGEN_START — managed by scripts/import-wings.js (do not edit by hand)';
-var SENTINEL_END = '// WING_BANK_AUTOGEN_END';
+var LAYER_DIR = path.join(ROOT, 'assets', cfg.dirName);
+var RAW_DIR = path.join(LAYER_DIR, 'raw');
+var JSON_PATH = path.join(LAYER_DIR, cfg.catalogFile);
+var FILE_RE = new RegExp('^' + cfg.filePrefix + '-(\\d{2,})\\.png$');
 
-fs.mkdirSync(WINGS_DIR, { recursive: true });
+fs.mkdirSync(LAYER_DIR, { recursive: true });
 fs.mkdirSync(RAW_DIR, { recursive: true });
 
-// ── 1. Load existing wings.json so we preserve user-edited metadata. ──
+// ── 1. Load existing catalog so we preserve user-edited metadata. ─────
 var existing = [];
 if (fs.existsSync(JSON_PATH)) {
   try { existing = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8')); }
   catch (e) {
-    console.error('  ! wings.json failed to parse; starting fresh:', e.message);
+    console.error('  ! ' + cfg.catalogFile + ' failed to parse; starting fresh:', e.message);
     existing = [];
   }
 }
@@ -54,22 +62,20 @@ existing.forEach(function(w){ if (w && w.file) existingByFile[w.file] = w; });
 
 // ── 2. Process raw/ drops. ────────────────────────────────────────────
 async function nextSlot() {
-  // Find the lowest unused wing-NN.png index, starting at 01.
   var used = {};
-  fs.readdirSync(WINGS_DIR).forEach(function(f){
-    var m = f.match(/^wing-(\d{2,})\.png$/);
+  fs.readdirSync(LAYER_DIR).forEach(function(f){
+    var m = f.match(FILE_RE);
     if (m) used[parseInt(m[1], 10)] = true;
   });
   for (var i = 1; i <= 999; i++) if (!used[i]) return i;
-  throw new Error('exhausted wing slots');
+  throw new Error('exhausted ' + cfg.filePrefix + ' slots');
 }
 
 function slotName(idx) {
-  return 'wing-' + String(idx).padStart(2, '0') + '.png';
+  return cfg.filePrefix + '-' + String(idx).padStart(2, '0') + '.png';
 }
 
 function nameFromRawFile(filename) {
-  // dragonfly-iridescent.png  →  "Dragonfly Iridescent"
   var base = filename.replace(/\.[^.]+$/, '');
   return base.split(/[-_\s]+/)
     .filter(Boolean)
@@ -78,10 +84,8 @@ function nameFromRawFile(filename) {
 }
 
 async function normalize(srcPath, destPath) {
-  // Fit the source into TARGET_W x TARGET_H, pad with transparent,
-  // ensure RGBA, write as PNG with max compression.
   await sharp(srcPath)
-    .resize(TARGET_W, TARGET_H, {
+    .resize(cfg.dimensions[0], cfg.dimensions[1], {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
@@ -102,7 +106,7 @@ async function processRaw() {
     var raw = rawFiles[i];
     var idx = await nextSlot();
     var slot = slotName(idx);
-    var destPath = path.join(WINGS_DIR, slot);
+    var destPath = path.join(LAYER_DIR, slot);
     await normalize(path.join(RAW_DIR, raw), destPath);
     fs.unlinkSync(path.join(RAW_DIR, raw));
     imported.push({ slot: slot, name: nameFromRawFile(raw), srcName: raw });
@@ -111,13 +115,12 @@ async function processRaw() {
   return imported;
 }
 
-// ── 3. Rebuild wings.json from disk + imported list. ──────────────────
+// ── 3. Rebuild catalog from disk + imported list. ─────────────────────
 function rebuildCatalog(imported) {
-  var files = fs.readdirSync(WINGS_DIR)
-    .filter(function(f){ return /^wing-\d{2,}\.png$/.test(f); })
+  var files = fs.readdirSync(LAYER_DIR)
+    .filter(function(f){ return FILE_RE.test(f); })
     .sort();
 
-  // Default seed per newly-imported file.
   var seededByFile = {};
   imported.forEach(function(it){
     seededByFile[it.slot] = {
@@ -125,7 +128,7 @@ function rebuildCatalog(imported) {
       name: it.name,
       rarity: 'common',
       tintable: true,
-      attachment: DEFAULT_ATTACHMENT.slice(),
+      attachment: cfg.defaultAttachment.slice(),
       source: 'raw-import',
       addedAt: new Date().toISOString().slice(0, 10)
     };
@@ -133,20 +136,18 @@ function rebuildCatalog(imported) {
 
   var catalog = files.map(function(file){
     if (existingByFile[file]) {
-      // Preserve all user-edited fields. Just make sure file matches.
       var prev = existingByFile[file];
       prev.file = file;
       return prev;
     }
     if (seededByFile[file]) return seededByFile[file];
-    // File on disk that we don't know about — seed minimal defaults.
     return {
       file: file,
       name: file.replace(/\.png$/, '').replace(/-/g, ' ')
         .replace(/\b\w/g, function(c){ return c.toUpperCase(); }),
       rarity: 'common',
       tintable: true,
-      attachment: DEFAULT_ATTACHMENT.slice(),
+      attachment: cfg.defaultAttachment.slice(),
       source: 'detected-on-disk',
       addedAt: new Date().toISOString().slice(0, 10)
     };
@@ -156,31 +157,32 @@ function rebuildCatalog(imported) {
   return catalog;
 }
 
-// ── 4. Patch the lab's WING_BANK block. ───────────────────────────────
+// ── 4. Patch the lab's bank block. ────────────────────────────────────
 function patchLab(catalog) {
   var src = fs.readFileSync(LAB_PATH, 'utf8');
-  var startIdx = src.indexOf(SENTINEL_START);
-  var endIdx = src.indexOf(SENTINEL_END);
+  var sentinelStart = '// ' + cfg.sentinelStart;
+  var sentinelEnd = '// ' + cfg.sentinelEnd;
+  var startIdx = src.indexOf(sentinelStart);
+  var endIdx = src.indexOf(sentinelEnd);
   if (startIdx < 0 || endIdx < 0 || endIdx < startIdx) {
-    throw new Error('WING_BANK sentinel comments not found in bug-lab.html. '
-      + 'Add them around the WING_BANK declaration so this script can patch it.');
+    throw new Error(cfg.bankConst + ' sentinel comments not found in bug-lab.html. '
+      + 'Add `// ' + cfg.sentinelStart + '` and `// ' + cfg.sentinelEnd
+      + '` around the ' + cfg.bankConst + ' declaration so this script can patch it.');
   }
-  // Inject a new block between the sentinels.
-  var indent = '  '; // match surrounding two-space indent
+  var indent = '  ';
   var entries = catalog.map(function(w){
     return indent + indent + '{ file: ' + JSON.stringify(w.file)
       + ', name: ' + JSON.stringify(w.name || '')
       + ', tintable: ' + (w.tintable === false ? 'false' : 'true')
-      + ', attachment: [' + (w.attachment ? w.attachment.join(', ') : '24, 64')
+      + ', attachment: [' + (w.attachment ? w.attachment.join(', ') : cfg.defaultAttachment.join(', '))
       + '] }';
   }).join(',\n');
-  var block = SENTINEL_START + '\n'
-    + indent + 'var WING_BANK = [\n'
+  var block = sentinelStart + ' — managed by scripts/import-art.js (do not edit by hand)\n'
+    + indent + 'var ' + cfg.bankConst + ' = [\n'
     + entries + '\n'
     + indent + '];\n'
-    + indent + SENTINEL_END;
+    + indent + sentinelEnd;
 
-  // Replace everything between the sentinel lines (inclusive).
   var before = src.slice(0, startIdx);
   var afterRegion = src.slice(endIdx);
   var newlineAfter = afterRegion.indexOf('\n');
@@ -194,20 +196,20 @@ function patchLab(catalog) {
 
 // ── Run. ───────────────────────────────────────────────────────────────
 (async function(){
-  console.log('=== import-wings ===');
+  console.log('=== import-art (' + layerName + ') ===');
   var imported = await processRaw();
   var catalog = rebuildCatalog(imported);
   var labChanged = patchLab(catalog);
   console.log('');
-  console.log('  catalog: ' + catalog.length + ' wing(s)');
+  console.log('  catalog: ' + catalog.length + ' ' + cfg.displayName + '(s)');
   catalog.forEach(function(w){
     console.log('    - ' + w.file + '  ' + (w.name || '').padEnd(20)
-      + ' ' + w.rarity + (w.tintable === false ? '  [colored]' : '  [tintable]'));
+      + ' ' + (w.rarity || 'common') + (w.tintable === false ? '  [colored]' : '  [tintable]'));
   });
   console.log('');
-  console.log('  wings.json: written');
+  console.log('  ' + cfg.catalogFile + ': written');
   console.log('  bug-lab.html: ' + (labChanged ? 'patched' : 'already current'));
 })().catch(function(e){
-  console.error('import-wings failed:', e && e.message || e);
+  console.error('import-art failed:', e && e.message || e);
   process.exit(1);
 });

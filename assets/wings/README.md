@@ -32,7 +32,7 @@ the in-game color tint will overwrite your colors.
    display name: `dragonfly-iridescent.png` → "Dragonfly Iridescent".
 3. From the repo root:
    ```
-   node scripts/import-wings.js
+   node scripts/import-art.js wings
    ```
 4. The script:
    - normalizes the PNG to 256×128 transparent
@@ -59,7 +59,7 @@ silhouette you write by hand), edit `scripts/gen-wings.js`, add an
 entry to its `WINGS` array, then run:
 
 ```
-node scripts/gen-wings.js && node scripts/import-wings.js
+node scripts/gen-wings.js && node scripts/import-art.js wings
 ```
 
 That regenerates the placeholder PNG and refreshes the catalog.
@@ -131,4 +131,17 @@ from someone else: keep the receipt.
   slots; renaming will desync `wings.json` and `bug-lab.html`.
 - `wings.json` is the source of truth for metadata. The lab's
   `WING_BANK` is generated from it. Edit `wings.json`, then run
-  `node scripts/import-wings.js` to re-patch the lab.
+  `node scripts/import-art.js wings` (or `npm run wings`) to re-patch
+  the lab.
+
+## See also
+
+The same drop-folder pipeline applies to other PNG layers:
+
+- `assets/bodies/` — bug body silhouettes
+- `assets/heads/` — head silhouettes
+- `assets/patterns/` — surface texture overlays
+
+Each has its own README. The mechanics (drop in `raw/`, run
+`npm run <layer>`, review `contact-sheet.png`, commit) are identical.
+Run `npm run art` to import all layers at once.

@@ -129,10 +129,11 @@
   //               wing attaches to the body. Used to align the rotated
   //               wing on the bug's thorax. Default [24, 64].
   //
-  // This block is REWRITTEN by `node scripts/import-wings.js`. Edit
-  // wings.json instead, or drop new art into assets/wings/raw/ and run
-  // the import script. Manual edits between the sentinels will be lost.
-  // WING_BANK_AUTOGEN_START — managed by scripts/import-wings.js (do not edit by hand)
+  // This block is REWRITTEN by `node scripts/import-art.js wings`
+  // (or `npm run wings`). Edit wings.json instead, or drop new art
+  // into assets/wings/raw/ and run the import script. Manual edits
+  // between the sentinels will be lost.
+  // WING_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
   var WING_BANK = [
     { file: "wing-01.png", name: "Rounded", tintable: true, attachment: [24, 64] },
     { file: "wing-02.png", name: "Pointed", tintable: true, attachment: [24, 64] },
