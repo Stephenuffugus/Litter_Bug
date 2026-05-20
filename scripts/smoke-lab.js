@@ -143,26 +143,88 @@ function runChecks(){
     return { ok: cards.length === 6, detail: 'count=' + cards.length };
   });
 
-  // 7. WING_BANK is exposed and has 8 entries (placeholder size).
-  check('WING_BANK exposed with 8 entries', function(){
+  // 7. WING_BANK is exposed and has the right shape.
+  check('WING_BANK exposed with 8 entries of {file,name,tintable,attachment}', function(){
     var b = window.WING_BANK;
-    return { ok: Array.isArray(b) && b.length === 8,
-      detail: 'len=' + (b && b.length) };
+    if (!Array.isArray(b) || b.length !== 8) {
+      return { ok: false, detail: 'len=' + (b && b.length) };
+    }
+    var bad = [];
+    for (var i = 0; i < b.length; i++) {
+      var e = b[i];
+      if (!e || typeof e.file !== 'string') { bad.push('[' + i + '].file'); continue; }
+      if (typeof e.name !== 'string') bad.push('[' + i + '].name');
+      if (typeof e.tintable !== 'boolean') bad.push('[' + i + '].tintable');
+      if (!Array.isArray(e.attachment) || e.attachment.length !== 2) {
+        bad.push('[' + i + '].attachment');
+      }
+    }
+    return { ok: bad.length === 0,
+      detail: bad.length ? 'missing fields: ' + bad.join(',') : 'all fields present' };
   });
 
-  // 8. All wing PNG files referenced by WING_BANK exist on disk.
-  // Catches the case where the bank lists a file we never generated.
+  // 8. Every WING_BANK file exists on disk.
   check('all WING_BANK files exist on disk', function(){
     var b = window.WING_BANK || [];
     var fs2 = require('fs');
     var pathMod = require('path');
     var missing = [];
     for (var i = 0; i < b.length; i++) {
-      var p = pathMod.join(ROOT, 'assets', 'wings', b[i]);
-      if (!fs2.existsSync(p)) missing.push(b[i]);
+      var f = b[i] && b[i].file;
+      if (!f) { missing.push('[' + i + '] (no .file)'); continue; }
+      var p = pathMod.join(ROOT, 'assets', 'wings', f);
+      if (!fs2.existsSync(p)) missing.push(f);
     }
     return { ok: missing.length === 0,
       detail: missing.length ? 'missing: ' + missing.join(',') : 'all ' + b.length + ' present' };
+  });
+
+  // 9. wings.json is the source of truth; its entries should match the
+  // bank patched into the lab. If they drift, someone edited one but
+  // forgot to re-run import-wings.
+  check('wings.json matches WING_BANK (same files, same count)', function(){
+    var fs2 = require('fs');
+    var pathMod = require('path');
+    var jsonPath = pathMod.join(ROOT, 'assets', 'wings', 'wings.json');
+    if (!fs2.existsSync(jsonPath)) {
+      return { ok: false, detail: 'wings.json missing — run scripts/import-wings.js' };
+    }
+    var catalog;
+    try { catalog = JSON.parse(fs2.readFileSync(jsonPath, 'utf8')); }
+    catch (e) { return { ok: false, detail: 'wings.json parse error: ' + e.message }; }
+    var bank = window.WING_BANK || [];
+    if (catalog.length !== bank.length) {
+      return { ok: false, detail: 'catalog=' + catalog.length + ' bank=' + bank.length };
+    }
+    for (var i = 0; i < catalog.length; i++) {
+      if (catalog[i].file !== bank[i].file) {
+        return { ok: false, detail: '[' + i + '] catalog=' + catalog[i].file
+          + ' bank=' + bank[i].file + ' — run scripts/import-wings.js' };
+      }
+    }
+    return { ok: true, detail: catalog.length + ' entries aligned' };
+  });
+
+  // 10. Non-tintable wings should NOT emit a filter attribute on their
+  // <g> wrapper. Catches regressions where _generateBugSVG forgets to
+  // honor the flag. We mutate (NOT reassign) the bank's first entry so
+  // the IIFE's closed-over reference sees the change.
+  check('_generateBugSVG honors tintable=false (no filter attr)', function(){
+    var bank = window.WING_BANK;
+    var orig = bank[0].tintable;
+    try {
+      bank[0].tintable = false;
+      // Forge a hash whose byte 8 = 0x00 so wing index = 0 → wing-01,
+      // the one we just toggled.
+      var h = testHash.substr(0, 16) + '00' + testHash.substr(18);
+      var svg = window._generateBugSVG(h, 160);
+      var m = svg.match(/<g transform="rotate\(165[^"]+"([^>]*)>/);
+      var noFilter = m && !/filter=/.test(m[1]);
+      return { ok: !!noFilter,
+        detail: m ? 'g attrs="' + m[1].trim() + '"' : 'g not found' };
+    } finally {
+      bank[0].tintable = orig;
+    }
   });
 
   // ── Output ───────────────────────────────────────────────────────────

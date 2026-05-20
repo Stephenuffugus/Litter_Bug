@@ -50,10 +50,11 @@
   <div id="grid" class="grid"></div>
 </main>
 <footer>
-  Renderer is placeholder. Bodies, heads, legs, and antennae are inline SVG.
-  Wings will swap to PNG sprites once the bank exists. Each seed string
-  produces the same bug every time. Open <code>view-source:</code> to see
-  <code>_generateBugSVG</code>.
+  Bodies, heads, legs, and antennae are inline SVG. Wings are PNG
+  sprites from <code>assets/wings/</code> (catalog in
+  <code>wings.json</code>), tinted per bug via feColorMatrix. Each seed
+  string produces the same bug every time. Open
+  <code>view-source:</code> to see <code>_generateBugSVG</code>.
 </footer>
 <script>
 (function(){
@@ -117,14 +118,32 @@
     '#3e5a3e', '#b8985a', '#5a6e4a', '#8a9178'
   ];
 
-  // ── Wing bank. PNG silhouettes, white on transparent. ──────────────
-  // The bug-lab tints them per-bug via feColorMatrix at render time.
-  // Overwrite these files in assets/wings/ to swap in real art; no code
-  // change needed here as long as filenames stay the same.
+  // ── Wing bank. ─────────────────────────────────────────────────────
+  // Catalog of available wings + their metadata. Each entry:
+  //   file:       PNG filename in assets/wings/
+  //   name:       human-readable name shown in UI / contact sheets
+  //   tintable:   true = white silhouette gets feColorMatrix-tinted to
+  //               the bug's accent color; false = render as-is (colored
+  //               art delivered by the artist).
+  //   attachment: [x, y] in PNG pixels (256x128 normalized) where the
+  //               wing attaches to the body. Used to align the rotated
+  //               wing on the bug's thorax. Default [24, 64].
+  //
+  // This block is REWRITTEN by `node scripts/import-wings.js`. Edit
+  // wings.json instead, or drop new art into assets/wings/raw/ and run
+  // the import script. Manual edits between the sentinels will be lost.
+  // WING_BANK_AUTOGEN_START — managed by scripts/import-wings.js (do not edit by hand)
   var WING_BANK = [
-    'wing-01.png', 'wing-02.png', 'wing-03.png', 'wing-04.png',
-    'wing-05.png', 'wing-06.png', 'wing-07.png', 'wing-08.png'
+    { file: "wing-01.png", name: "Rounded", tintable: true, attachment: [24, 64] },
+    { file: "wing-02.png", name: "Pointed", tintable: true, attachment: [24, 64] },
+    { file: "wing-03.png", name: "Elongated", tintable: true, attachment: [24, 64] },
+    { file: "wing-04.png", name: "Lobed", tintable: true, attachment: [24, 64] },
+    { file: "wing-05.png", name: "Triangular", tintable: true, attachment: [24, 64] },
+    { file: "wing-06.png", name: "Crescent", tintable: true, attachment: [24, 64] },
+    { file: "wing-07.png", name: "Swept", tintable: true, attachment: [24, 64] },
+    { file: "wing-08.png", name: "Compound", tintable: true, attachment: [24, 64] }
   ];
+  // WING_BANK_AUTOGEN_END
 
   // ── _generateBugSVG(hash, size). ────────────────────────────────────
   // Draws an insect facing right inside a viewBox of 200x200.
@@ -171,28 +190,28 @@
       + '" rx="' + (bodyHalfLen * 0.45) + '" ry="' + (bodyHalfW * 0.85)
       + '" fill="' + secondary + '" opacity="0.55" />';
 
-    // Wings: two PNG sprites tinted to the bug's accent color.
-    // Picked deterministically from the wing bank by traits.wing.
-    // Each wing PNG is 256x128 with attachment at (24, 64) in PNG space.
-    // We render at width wW, height wH, place so attachment lands on
-    // the body's thorax, then rotate to fan up-back and down-back.
-    var wingFile = WING_BANK[t.wing % WING_BANK.length];
-    var wingHref = 'assets/wings/' + wingFile;
+    // Wings: PNG sprites from the bank, picked by traits.wing.
+    // tintable=true wings get the feColorMatrix filter (silhouettes →
+    // bug's accent color). tintable=false wings render as authored.
+    // Per-wing attachment lets art with off-center origins still align
+    // on the thorax.
+    var wing = WING_BANK[t.wing % WING_BANK.length];
+    var wingHref = 'assets/wings/' + wing.file;
     var wW = 140 * t.wingScale;
     var wH = 70 * t.wingScale;
     var attachX = cx - bodyHalfLen * 0.15;
     var attachY = cy;
-    // PNG attachment is at 24/256 = 0.094 of width, 64/128 = 0.5 of height.
-    var px = attachX - wW * 0.094;
-    var py = attachY - wH * 0.5;
+    var ax = (wing.attachment && wing.attachment[0]) || 24;
+    var ay = (wing.attachment && wing.attachment[1]) || 64;
+    var px = attachX - wW * (ax / 256);
+    var py = attachY - wH * (ay / 128);
+    var tintAttr = (wing.tintable === false) ? '' : (' filter="url(#' + tintId + ')"');
     var wings = ''
-      + '<g transform="rotate(165 ' + attachX + ' ' + attachY + ')" '
-      + 'filter="url(#' + tintId + ')" opacity="0.75">'
+      + '<g transform="rotate(165 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
       + '<image href="' + wingHref + '" x="' + px + '" y="' + py
       + '" width="' + wW + '" height="' + wH + '" />'
       + '</g>'
-      + '<g transform="rotate(195 ' + attachX + ' ' + attachY + ')" '
-      + 'filter="url(#' + tintId + ')" opacity="0.75">'
+      + '<g transform="rotate(195 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
       + '<image href="' + wingHref + '" x="' + px + '" y="' + py
       + '" width="' + wW + '" height="' + wH + '" />'
       + '</g>';

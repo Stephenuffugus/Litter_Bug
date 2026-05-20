@@ -1,0 +1,98 @@
+[
+  {
+    "file": "wing-01.png",
+    "name": "Rounded",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "wing-02.png",
+    "name": "Pointed",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "wing-03.png",
+    "name": "Elongated",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "wing-04.png",
+    "name": "Lobed",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "wing-05.png",
+    "name": "Triangular",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "wing-06.png",
+    "name": "Crescent",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "wing-07.png",
+    "name": "Swept",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "wing-08.png",
+    "name": "Compound",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      24,
+      64
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  }
+]

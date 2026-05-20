@@ -3,6 +3,9 @@
     "lint": "eslint --ext .html index.html",
     "lint:summary": "eslint --ext .html --format json index.html > /tmp/eslint-report.json; node scripts/lint-summary.js",
     "smoke": "node scripts/smoke.js && node scripts/smoke-lab.js",
+    "wings": "node scripts/import-wings.js",
+    "wings:gen": "node scripts/gen-wings.js && node scripts/import-wings.js",
+    "wings:contact": "node scripts/contact-sheet.js",
     "check": "npm run smoke"
   },
   "dependencies": {
