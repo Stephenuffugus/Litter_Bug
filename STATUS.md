@@ -2,8 +2,8 @@
 
 # Litter Bug — STATUS
 
-_Snapshot generated 2026-05-20T23:05:35.097Z_  
-_Branch: `main` · HEAD: `2396f42`_
+_Snapshot generated 2026-05-20T23:31:52.303Z_  
+_Branch: `main` · HEAD: `caf6448`_
 
 ## Art banks
 
@@ -20,7 +20,7 @@ _Branch: `main` · HEAD: `2396f42`_
 
 ## Smoke
 
-**47 pass, 0 fail** ✓
+**55 pass, 0 fail** ✓
 
 ## Assets on disk
 
@@ -31,6 +31,7 @@ _Branch: `main` · HEAD: `2396f42`_
 ## Recent commits
 
 ```
+caf6448 add ROADMAP.md, status script, and live status strip in bug-lab
 2396f42 add patterns layer: PNG overlay between body and head
 ec37c01 add legs + antennae as procedural (JSON-only) banks
 9d865c8 add heads layer: PNG silhouettes, dark-tinted, HEAD_BANK in lab
@@ -40,7 +41,6 @@ c63a5d2 wing pipeline: drop folder, catalog, contact sheet, AI prompts
 53a59c5 bug-lab: render wings as PNG sprites tinted per palette
 03ebea5 add bug-lab.html: first procedural bug renderer (placeholder)
 0f93112 park Stripe tip-jar PHP under deferred/v1.1-web-tipjar/
-3d4d354 CLAUDE.md: rewrite for Litter Bug as its own game
 ```
 
 ## What's next

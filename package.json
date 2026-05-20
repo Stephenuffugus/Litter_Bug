@@ -2,7 +2,7 @@
   "scripts": {
     "lint": "eslint --ext .html index.html",
     "lint:summary": "eslint --ext .html --format json index.html > /tmp/eslint-report.json; node scripts/lint-summary.js",
-    "smoke": "node scripts/smoke.js && node scripts/smoke-lab.js",
+    "smoke": "node scripts/smoke.js && node scripts/smoke-lab.js && node scripts/smoke-preview.js",
     "wings": "node scripts/import-art.js wings",
     "wings:gen": "node scripts/gen-wings.js && node scripts/import-art.js wings",
     "wings:contact": "node scripts/contact-sheet.js wings",

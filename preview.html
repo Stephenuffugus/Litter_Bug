@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Litter Bug / preview</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; background: #0d100c; color: #e8dcc8;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 14px 16px 6px; border-bottom: 1px solid #1c1f1a;
+    position: sticky; top: 0; z-index: 10; background: #0d100c; }
+  h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
+  .sub { margin-top: 2px; font-size: 12px; color: #8a9178; }
+  .status { margin-top: 8px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; color: #6f7766; line-height: 1.5;
+    display: flex; gap: 10px; flex-wrap: wrap; }
+  .status .pill { display: inline-flex; gap: 4px; align-items: baseline;
+    padding: 2px 7px; background: #15191a; border: 1px solid #1f231d;
+    border-radius: 10px; }
+  .status .pill .have { color: #c8a84b; }
+  .status .pill.done .have { color: #7ab356; }
+  .status .pill .name { color: #8a9178; }
+  .status .smoke.ok .have { color: #7ab356; }
+  .controls { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;
+    align-items: center; }
+  .controls button { padding: 8px 12px; background: #1d251c; color: #e8dcc8;
+    border: 1px solid #3a4634; border-radius: 8px; font-size: 13px;
+    min-height: 36px; min-width: 36px; cursor: pointer; }
+  .controls button.active { background: #2a3527; border-color: #7ab356; color: #c8e8b0; }
+  .controls button:active { background: #2a3527; }
+  .controls .label { font-size: 12px; color: #8a9178; margin: 0 4px 0 8px; }
+  main { padding: 12px 14px 80px; }
+  .grid { display: grid; gap: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+  .cell { background: #131614; border: 1px solid #1f231d; border-radius: 8px;
+    padding: 6px; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; }
+  .cell svg { width: 100%; height: auto; display: block; }
+  .cell .seed { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9.5px; color: #6f7766; text-align: center;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    width: 100%; }
+  footer { padding: 10px 16px 24px; color: #6f7766; font-size: 12px;
+    border-top: 1px solid #1c1f1a; }
+  footer code { background: #15191a; padding: 1px 5px; border-radius: 4px; }
+  .meta { margin-top: 4px; font-size: 11px; color: #8a9178; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Litter Bug / preview</h1>
+  <div class="sub">Stable-seed grid for eyeballing variety across the banks. Same engine as the lab.</div>
+  <div class="status" id="status" aria-label="art bank progress"></div>
+  <div class="controls" aria-label="grid controls">
+    <span class="label">count</span>
+    <button data-count="24">24</button>
+    <button data-count="60" class="active">60</button>
+    <button data-count="120">120</button>
+    <button data-count="240">240</button>
+    <span class="label">seeds</span>
+    <button id="mode-stable" class="active">stable</button>
+    <button id="mode-random">random</button>
+    <button id="refresh">refresh</button>
+  </div>
+  <div class="meta" id="meta"></div>
+</header>
+<main>
+  <div id="grid" class="grid"></div>
+</main>
+<footer>
+  Stable mode renders <code>preview-0001</code> through <code>preview-N</code>
+  so the same bugs always appear in the same order. Random mode picks fresh
+  seeds each time. Catalogs (<code>wings.json</code> / <code>bodies.json</code>
+  / etc.) are the source of truth; this page patches itself when you run
+  <code>npm run art</code>.
+</footer>
+<script>
+(function(){
+  'use strict';
+
+  // ── Hash a string to SHA-256 hex via WebCrypto. ─────────────────────
+  async function sha256Hex(s) {
+    var enc = new TextEncoder().encode(s);
+    var buf = await crypto.subtle.digest('SHA-256', enc);
+    var bytes = new Uint8Array(buf);
+    var out = '';
+    for (var i = 0; i < bytes.length; i++) {
+      var h = bytes[i].toString(16);
+      out += h.length === 1 ? '0' + h : h;
+    }
+    return out;
+  }
+
+  // ── Read hash bytes / nibbles. ──────────────────────────────────────
+  function hb(hash, n) { return parseInt(hash.substr(n * 2, 2), 16); }
+  function hc(hash, n) { return parseInt(hash.substr(n, 1), 16); }
+
+  // ── Hex color to {r,g,b} as 0..1 floats for feColorMatrix. ──────────
+  function hexToRGB(hex) {
+    var h = hex.replace('#', '');
+    return {
+      r: parseInt(h.substr(0, 2), 16) / 255,
+      g: parseInt(h.substr(2, 2), 16) / 255,
+      b: parseInt(h.substr(4, 2), 16) / 255
+    };
+  }
+
+  // ── Map a hash to insect traits. ────────────────────────────────────
+  function hashToBugTraits(hash) {
+    return {
+      body:      hb(hash,  0) % 30,
+      head:      hb(hash,  4) % 25,
+      wing:      hb(hash,  8) % 40,
+      leg:      hb(hash, 12) % 20,
+      antenna:   hb(hash, 14) % 15,
+      pattern:   hb(hash, 16) % 50,
+      palette:   [hc(hash, 18), hc(hash, 19), hc(hash, 20), hc(hash, 21)],
+      behavior:  hb(hash, 22) % 12,
+      bodyLen:   80 + (hb(hash, 1) % 40),
+      bodyW:     40 + (hb(hash, 2) % 30),
+      wingScale: 0.85 + ((hb(hash, 9) % 30) / 100),
+      headSize:  18 + (hb(hash, 5) % 12)
+    };
+  }
+
+  var PAL = [
+    '#3a4634', '#7ab356', '#c8a84b', '#e8dcc8',
+    '#a85a3a', '#4a3a2e', '#2a3a4a', '#8a6f4a',
+    '#5a8c3a', '#d4842a', '#a0c4e8', '#6b4f3a',
+    '#3e5a3e', '#b8985a', '#5a6e4a', '#8a9178'
+  ];
+
+  // The bank blocks below are patched by `npm run <layer>`. Don't edit
+  // by hand. Edit the catalog JSONs (assets/<layer>/<layer>.json) and
+  // re-run the import script.
+
+  // WING_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var WING_BANK = [
+    { file: "wing-01.png", name: "Rounded", tintable: true, attachment: [24, 64] },
+    { file: "wing-02.png", name: "Pointed", tintable: true, attachment: [24, 64] },
+    { file: "wing-03.png", name: "Elongated", tintable: true, attachment: [24, 64] },
+    { file: "wing-04.png", name: "Lobed", tintable: true, attachment: [24, 64] },
+    { file: "wing-05.png", name: "Triangular", tintable: true, attachment: [24, 64] },
+    { file: "wing-06.png", name: "Crescent", tintable: true, attachment: [24, 64] },
+    { file: "wing-07.png", name: "Swept", tintable: true, attachment: [24, 64] },
+    { file: "wing-08.png", name: "Compound", tintable: true, attachment: [24, 64] }
+  ];
+  // WING_BANK_AUTOGEN_END
+
+  // BODY_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var BODY_BANK = [
+    { file: "body-01.png", name: "Oval", tintable: true, attachment: [200, 50] },
+    { file: "body-02.png", name: "Slender", tintable: true, attachment: [200, 50] },
+    { file: "body-03.png", name: "Plump", tintable: true, attachment: [200, 50] },
+    { file: "body-04.png", name: "Segmented", tintable: true, attachment: [200, 50] },
+    { file: "body-05.png", name: "Tapered", tintable: true, attachment: [200, 50] },
+    { file: "body-06.png", name: "Round", tintable: true, attachment: [200, 50] },
+    { file: "body-07.png", name: "Elongated", tintable: true, attachment: [200, 50] },
+    { file: "body-08.png", name: "Compact", tintable: true, attachment: [200, 50] }
+  ];
+  // BODY_BANK_AUTOGEN_END
+
+  // LEG_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var LEG_BANK = [
+    {"name":"Sprinter","count":6,"length":22,"segments":2,"thickness":2.5,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Crouched","count":6,"length":16,"segments":2,"thickness":2.8,"pose":"low","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Long-Reach","count":6,"length":28,"segments":2,"thickness":2,"pose":"spread","rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Stubby","count":6,"length":13,"segments":1,"thickness":3,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Mantis","count":6,"length":26,"segments":3,"thickness":2.2,"pose":"forward","rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Eight-Pack","count":8,"length":20,"segments":2,"thickness":1.8,"pose":"spread","rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Bristled","count":6,"length":18,"segments":2,"thickness":1.5,"pose":"splayed","rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Smooth","count":6,"length":22,"segments":1,"thickness":2.5,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"}
+  ];
+  // LEG_BANK_AUTOGEN_END
+
+  // ANTENNA_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var ANTENNA_BANK = [
+    {"name":"Threadlike","length":24,"curl":0.4,"thickness":1.5,"shape":"straight","spread":30,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Curled","length":22,"curl":0.8,"thickness":1.6,"shape":"curved","spread":28,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Clubbed","length":26,"curl":0.4,"thickness":1.8,"shape":"club-tipped","spread":32,"rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Feathered","length":28,"curl":0.5,"thickness":2.4,"shape":"feathered","spread":36,"rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Short","length":14,"curl":0.5,"thickness":1.6,"shape":"curved","spread":26,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Long","length":38,"curl":0.4,"thickness":1.2,"shape":"straight","spread":42,"rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Elbowed","length":24,"curl":0.5,"thickness":2,"shape":"bent","spread":30,"rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Bristle","length":20,"curl":0.3,"thickness":1.5,"shape":"straight","spread":24,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"}
+  ];
+  // ANTENNA_BANK_AUTOGEN_END
+
+  // PATTERN_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var PATTERN_BANK = [
+    { file: "pattern-01.png", name: "Stripes Vertical", tintable: true, attachment: [100, 50] },
+    { file: "pattern-02.png", name: "Bands", tintable: true, attachment: [100, 50] },
+    { file: "pattern-03.png", name: "Spots", tintable: true, attachment: [100, 50] },
+    { file: "pattern-04.png", name: "Eyespots", tintable: true, attachment: [100, 50] },
+    { file: "pattern-05.png", name: "Speckled", tintable: true, attachment: [100, 50] },
+    { file: "pattern-06.png", name: "Dashes", tintable: true, attachment: [100, 50] },
+    { file: "pattern-07.png", name: "Swirl", tintable: true, attachment: [100, 50] },
+    { file: "pattern-08.png", name: "Chevrons", tintable: true, attachment: [100, 50] }
+  ];
+  // PATTERN_BANK_AUTOGEN_END
+
+  // HEAD_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var HEAD_BANK = [
+    { file: "head-01.png", name: "Round", tintable: true, attachment: [0, 48] },
+    { file: "head-02.png", name: "Triangular", tintable: true, attachment: [0, 48] },
+    { file: "head-03.png", name: "Bulbous", tintable: true, attachment: [0, 48] },
+    { file: "head-04.png", name: "Squared", tintable: true, attachment: [0, 48] },
+    { file: "head-05.png", name: "Pointed", tintable: true, attachment: [0, 48] },
+    { file: "head-06.png", name: "Broad", tintable: true, attachment: [0, 48] },
+    { file: "head-07.png", name: "Compact", tintable: true, attachment: [0, 48] },
+    { file: "head-08.png", name: "Lobed", tintable: true, attachment: [0, 48] }
+  ];
+  // HEAD_BANK_AUTOGEN_END
+
+  // ── _generateBugSVG(hash, size). ────────────────────────────────────
+  // Same renderer as bug-lab.html. Duplicated here so preview.html is
+  // self-contained; both files have matching sentinel blocks so the
+  // import script keeps them in sync.
+  function _generateBugSVG(hash, size) {
+    var t = hashToBugTraits(hash);
+    var uid = hash.substr(0, 8);
+    var cx = 100, cy = 100;
+
+    var primary = PAL[t.palette[0]];
+    var secondary = PAL[t.palette[1]];
+    var accent = PAL[t.palette[2]];
+    var dark = PAL[t.palette[3] % 8];
+    var primaryRGB = hexToRGB(primary);
+    var accentRGB = hexToRGB(accent);
+    var darkRGB = hexToRGB(dark);
+
+    var bodyTintId = 'bt-' + uid;
+    var wingTintId = 'wt-' + uid;
+    var headTintId = 'ht-' + uid;
+    function tintFilter(id, rgb) {
+      return '<filter id="' + id + '" x="-5%" y="-5%" width="110%" height="110%">'
+        + '<feColorMatrix type="matrix" values="'
+        + rgb.r + ' 0 0 0 0  '
+        + '0 ' + rgb.g + ' 0 0 0  '
+        + '0 0 ' + rgb.b + ' 0 0  '
+        + '0 0 0 1 0"/>'
+        + '</filter>';
+    }
+    var defs = '<defs>'
+      + tintFilter(bodyTintId, primaryRGB)
+      + tintFilter(wingTintId, accentRGB)
+      + tintFilter(headTintId, darkRGB)
+      + '</defs>';
+
+    var bodyScale = 0.92 + ((hb(hash, 1) % 17) / 100);
+    var bodyDrawW = 160 * bodyScale;
+    var bodyDrawH = 80 * bodyScale;
+    var bodyX = cx - bodyDrawW / 2;
+    var bodyY = cy - bodyDrawH / 2;
+    var bodyHalfLen = bodyDrawW / 2;
+    var bodyHalfW = bodyDrawH / 2;
+    var body = '';
+    if (BODY_BANK.length > 0) {
+      var bodyEntry = BODY_BANK[t.body % BODY_BANK.length];
+      var bodyHref = 'assets/bodies/' + bodyEntry.file;
+      var bodyTintAttr = (bodyEntry.tintable === false) ? '' : (' filter="url(#' + bodyTintId + ')"');
+      body = '<image href="' + bodyHref + '" x="' + bodyX + '" y="' + bodyY
+        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"' + bodyTintAttr + ' />';
+    } else {
+      body = '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + bodyHalfLen
+        + '" ry="' + bodyHalfW + '" fill="' + primary + '" />';
+    }
+
+    var wing = WING_BANK[t.wing % WING_BANK.length];
+    var wingHref = 'assets/wings/' + wing.file;
+    var wW = 140 * t.wingScale;
+    var wH = 70 * t.wingScale;
+    var attachX = cx - bodyHalfLen * 0.15;
+    var attachY = cy;
+    var ax = (wing.attachment && wing.attachment[0]) || 24;
+    var ay = (wing.attachment && wing.attachment[1]) || 64;
+    var px = attachX - wW * (ax / 256);
+    var py = attachY - wH * (ay / 128);
+    var tintAttr = (wing.tintable === false) ? '' : (' filter="url(#' + wingTintId + ')"');
+    var wings = '<g transform="rotate(165 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
+      + '<image href="' + wingHref + '" x="' + px + '" y="' + py + '" width="' + wW + '" height="' + wH + '" />'
+      + '</g>'
+      + '<g transform="rotate(195 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
+      + '<image href="' + wingHref + '" x="' + px + '" y="' + py + '" width="' + wW + '" height="' + wH + '" />'
+      + '</g>';
+
+    var legs = '';
+    var legEntry = (LEG_BANK.length > 0)
+      ? LEG_BANK[t.leg % LEG_BANK.length]
+      : { count: 6, length: 22, segments: 1, thickness: 2.5, pose: 'spread' };
+    var legCount = legEntry.count || 6;
+    var pairs = Math.max(1, Math.floor(legCount / 2));
+    var legLen = legEntry.length || 22;
+    var legThick = legEntry.thickness || 2.5;
+    var legPose = legEntry.pose || 'spread';
+    for (var lp = 0; lp < pairs; lp++) {
+      var t01 = pairs === 1 ? 0.5 : (lp / (pairs - 1));
+      var legAx = cx - bodyHalfLen * 0.6 + bodyHalfLen * 1.2 * t01;
+      var fan = 0;
+      if (legPose === 'forward') fan = 12;
+      else if (legPose === 'spread') fan = -14 + 28 * t01;
+      else if (legPose === 'splayed') fan = -22 + 44 * t01;
+      else if (legPose === 'low') fan = 0;
+      var tipDx = fan;
+      var tipDy = legLen;
+      var topAttachY = cy - bodyHalfW * 0.85;
+      var botAttachY = cy + bodyHalfW * 0.85;
+      legs += '<line x1="' + legAx + '" y1="' + botAttachY
+        + '" x2="' + (legAx + tipDx) + '" y2="' + (botAttachY + tipDy)
+        + '" stroke="' + dark + '" stroke-width="' + legThick + '" stroke-linecap="round" />'
+        + '<line x1="' + legAx + '" y1="' + topAttachY
+        + '" x2="' + (legAx + tipDx) + '" y2="' + (topAttachY - tipDy)
+        + '" stroke="' + dark + '" stroke-width="' + legThick + '" stroke-linecap="round" />';
+    }
+
+    var headW = 40 + (hb(hash, 5) % 12);
+    var headH = headW;
+    var bodyAttachX = cx + bodyHalfLen;
+    var bodyAttachY = cy;
+    var hx = bodyAttachX + headW * 0.35;
+    var head = '';
+    if (HEAD_BANK.length > 0) {
+      var headEntry = HEAD_BANK[t.head % HEAD_BANK.length];
+      var headHref = 'assets/heads/' + headEntry.file;
+      var hax = (headEntry.attachment && headEntry.attachment[0]) || 0;
+      var hay = (headEntry.attachment && headEntry.attachment[1]) || 48;
+      var headX = bodyAttachX - headW * (hax / 96);
+      var headY = bodyAttachY - headH * (hay / 96);
+      var headTintAttr = (headEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
+      head = '<image href="' + headHref + '" x="' + headX + '" y="' + headY
+        + '" width="' + headW + '" height="' + headH + '"' + headTintAttr + ' />'
+        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    } else {
+      head = '<circle cx="' + hx + '" cy="' + cy + '" r="' + (headW / 2) + '" fill="' + dark + '" />'
+        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    }
+
+    var antEntry = (ANTENNA_BANK.length > 0)
+      ? ANTENNA_BANK[t.antenna % ANTENNA_BANK.length]
+      : { length: 24, curl: 0.4, thickness: 1.8, shape: 'straight', spread: 30 };
+    var antLen = antEntry.length || 24;
+    var antCurl = (antEntry.curl !== undefined) ? antEntry.curl : 0.4;
+    var antThick = antEntry.thickness || 1.8;
+    var antSpread = antEntry.spread || 30;
+    var antStartX = hx + headW * 0.3;
+    var antRad = antSpread * Math.PI / 180;
+    var topDx = Math.sin(antRad) * antLen;
+    var topDy = -Math.cos(antRad) * antLen;
+    var topTipX = antStartX + topDx;
+    var topTipY = (cy - 4) + topDy;
+    var topCtrlX = antStartX + topDx * (1 - antCurl);
+    var topCtrlY = (cy - 4) + topDy * antCurl;
+    var botTipX = antStartX + topDx;
+    var botTipY = (cy + 4) - topDy;
+    var botCtrlX = antStartX + topDx * (1 - antCurl);
+    var botCtrlY = (cy + 4) - topDy * antCurl;
+    var antennae = '<path d="M' + antStartX + ' ' + (cy - 4)
+      + ' Q' + topCtrlX + ' ' + topCtrlY + ', ' + topTipX + ' ' + topTipY
+      + '" stroke="' + dark + '" stroke-width="' + antThick + '" fill="none" stroke-linecap="round" />'
+      + '<path d="M' + antStartX + ' ' + (cy + 4)
+      + ' Q' + botCtrlX + ' ' + botCtrlY + ', ' + botTipX + ' ' + botTipY
+      + '" stroke="' + dark + '" stroke-width="' + antThick + '" fill="none" stroke-linecap="round" />';
+
+    var pattern = '';
+    if (PATTERN_BANK.length > 0) {
+      var patEntry = PATTERN_BANK[t.pattern % PATTERN_BANK.length];
+      var patHref = 'assets/patterns/' + patEntry.file;
+      var patTintAttr = (patEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
+      pattern = '<image href="' + patHref + '" x="' + bodyX + '" y="' + bodyY
+        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"' + patTintAttr + ' opacity="0.65" />';
+    }
+
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"'
+      + ' width="' + size + '" height="' + size + '">'
+      + defs + wings + legs + body + pattern + head + antennae
+      + '</svg>';
+  }
+
+  // ── Grid state + render. ────────────────────────────────────────────
+  var state = { count: 60, mode: 'stable', randomSalt: 0 };
+
+  function seedFor(i) {
+    if (state.mode === 'stable') {
+      return 'preview-' + String(i + 1).padStart(4, '0');
+    }
+    // Random mode: include a salt so refresh produces a fresh set.
+    return 'rand-' + state.randomSalt + '-' + i;
+  }
+
+  var grid = document.getElementById('grid');
+  var meta = document.getElementById('meta');
+
+  async function renderGrid() {
+    var t0 = performance.now();
+    var pieces = [];
+    var seeds = [];
+    for (var i = 0; i < state.count; i++) {
+      seeds.push(seedFor(i));
+    }
+    // Hash all seeds in parallel.
+    var hashes = await Promise.all(seeds.map(sha256Hex));
+    for (var j = 0; j < state.count; j++) {
+      var hash = hashes[j];
+      var svg = _generateBugSVG(hash, 96);
+      pieces.push('<div class="cell">'
+        + svg
+        + '<div class="seed" title="' + seeds[j] + '">' + seeds[j] + '</div>'
+        + '</div>');
+    }
+    grid.innerHTML = pieces.join('');
+    var dt = (performance.now() - t0).toFixed(0);
+    meta.textContent = state.count + ' bugs · ' + state.mode + ' seeds · rendered in '
+      + dt + 'ms';
+  }
+
+  // ── Controls. ───────────────────────────────────────────────────────
+  function setActiveCount(n) {
+    state.count = n;
+    document.querySelectorAll('.controls [data-count]').forEach(function(b){
+      b.classList.toggle('active', parseInt(b.dataset.count, 10) === n);
+    });
+    renderGrid();
+  }
+  function setMode(m) {
+    state.mode = m;
+    document.getElementById('mode-stable').classList.toggle('active', m === 'stable');
+    document.getElementById('mode-random').classList.toggle('active', m === 'random');
+    if (m === 'random') state.randomSalt = Date.now();
+    renderGrid();
+  }
+  document.querySelectorAll('.controls [data-count]').forEach(function(b){
+    b.addEventListener('click', function(){
+      setActiveCount(parseInt(b.dataset.count, 10));
+    });
+  });
+  document.getElementById('mode-stable').addEventListener('click', function(){ setMode('stable'); });
+  document.getElementById('mode-random').addEventListener('click', function(){ setMode('random'); });
+  document.getElementById('refresh').addEventListener('click', function(){
+    if (state.mode === 'random') state.randomSalt = Date.now();
+    renderGrid();
+  });
+
+  // Expose for console poking + smoke harness.
+  window._generateBugSVG = _generateBugSVG;
+  window.hashToBugTraits = hashToBugTraits;
+  window.sha256Hex = sha256Hex;
+  window.WING_BANK = WING_BANK;
+  window.BODY_BANK = BODY_BANK;
+  window.HEAD_BANK = HEAD_BANK;
+  window.LEG_BANK = LEG_BANK;
+  window.ANTENNA_BANK = ANTENNA_BANK;
+  window.PATTERN_BANK = PATTERN_BANK;
+  window.previewState = state;
+  window.renderPreview = renderGrid;
+
+  // Status strip — same as the lab.
+  try {
+    if (typeof fetch === 'function') {
+      fetch('assets/status.json', { cache: 'no-store' })
+        .then(function(r){ if (!r.ok) throw new Error('no status'); return r.json(); })
+        .then(function(s){
+          var el = document.getElementById('status');
+          if (!el) return;
+          var html = '';
+          (s.layers || []).forEach(function(l){
+            var done = l.have >= l.target;
+            html += '<span class="pill' + (done ? ' done' : '') + '">'
+              + '<span class="have">' + l.have + '/' + l.target + '</span>'
+              + '<span class="name">' + l.name + '</span>'
+              + '</span>';
+          });
+          if (s.smoke) {
+            var ok = s.smoke.fail === 0;
+            html += '<span class="pill smoke ' + (ok ? 'ok' : 'bad') + '">'
+              + '<span class="have">' + s.smoke.pass
+              + (s.smoke.fail ? '/' + (s.smoke.pass + s.smoke.fail) : '')
+              + (ok ? ' ✓' : ' ✗') + '</span>'
+              + '<span class="name">smoke</span>'
+              + '</span>';
+          }
+          el.innerHTML = html;
+        })
+        .catch(function(){ /* status.json not present; that's fine */ });
+    }
+  } catch (e) { /* ignore */ }
+
+  // Initial render.
+  renderGrid();
+})();
+</script>
+</body>
+</html>

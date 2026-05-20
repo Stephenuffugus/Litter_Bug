@@ -30,7 +30,12 @@ var sharp = require('sharp');
 var LAYERS = require('./art-layers');
 
 var ROOT = path.join(__dirname, '..');
-var LAB_PATH = path.join(ROOT, 'bug-lab.html');
+// Files that may contain bank sentinel blocks. Each is patched
+// independently. Add new consumer files here as they land.
+var PATCH_PATHS = [
+  path.join(ROOT, 'bug-lab.html'),
+  path.join(ROOT, 'preview.html')
+];
 
 var layerName = process.argv[2];
 if (!layerName || !LAYERS[layerName]) {
@@ -160,23 +165,15 @@ function rebuildCatalog(imported) {
   return catalog;
 }
 
-// ── 4. Patch the lab's bank block. ────────────────────────────────────
-function patchLab(catalog) {
-  var src = fs.readFileSync(LAB_PATH, 'utf8');
+// ── 4. Patch the bank block in every file that has the sentinels. ────
+// Files without the sentinels are skipped silently — a new consumer
+// can opt in by adding its own sentinel block.
+function buildBlock(catalog) {
   var sentinelStart = '// ' + cfg.sentinelStart;
   var sentinelEnd = '// ' + cfg.sentinelEnd;
-  var startIdx = src.indexOf(sentinelStart);
-  var endIdx = src.indexOf(sentinelEnd);
-  if (startIdx < 0 || endIdx < 0 || endIdx < startIdx) {
-    throw new Error(cfg.bankConst + ' sentinel comments not found in bug-lab.html. '
-      + 'Add `// ' + cfg.sentinelStart + '` and `// ' + cfg.sentinelEnd
-      + '` around the ' + cfg.bankConst + ' declaration so this script can patch it.');
-  }
   var indent = '  ';
   var entries;
   if (IS_PROCEDURAL) {
-    // Procedural entries vary in shape per layer. JSON.stringify each
-    // one rather than format specific fields.
     entries = catalog.map(function(e){
       return indent + indent + JSON.stringify(e);
     }).join(',\n');
@@ -189,34 +186,62 @@ function patchLab(catalog) {
         + '] }';
     }).join(',\n');
   }
-  var block = sentinelStart + ' — managed by scripts/import-art.js (do not edit by hand)\n'
+  return sentinelStart + ' — managed by scripts/import-art.js (do not edit by hand)\n'
     + indent + 'var ' + cfg.bankConst + ' = [\n'
     + entries + '\n'
     + indent + '];\n'
     + indent + sentinelEnd;
+}
 
+function patchOne(filePath, block) {
+  if (!fs.existsSync(filePath)) return 'missing';
+  var src = fs.readFileSync(filePath, 'utf8');
+  var sentinelStart = '// ' + cfg.sentinelStart;
+  var sentinelEnd = '// ' + cfg.sentinelEnd;
+  var startIdx = src.indexOf(sentinelStart);
+  var endIdx = src.indexOf(sentinelEnd);
+  if (startIdx < 0 || endIdx < 0 || endIdx < startIdx) return 'no-sentinels';
   var before = src.slice(0, startIdx);
   var afterRegion = src.slice(endIdx);
   var newlineAfter = afterRegion.indexOf('\n');
   var after = newlineAfter >= 0 ? afterRegion.slice(newlineAfter + 1) : '';
   var patched = before + block + '\n' + after;
+  if (patched === src) return 'unchanged';
+  fs.writeFileSync(filePath, patched);
+  return 'patched';
+}
 
-  if (patched === src) return false;
-  fs.writeFileSync(LAB_PATH, patched);
-  return true;
+function patchAll(catalog) {
+  var block = buildBlock(catalog);
+  var results = [];
+  PATCH_PATHS.forEach(function(p){
+    var status = patchOne(p, block);
+    results.push({ path: p, status: status });
+  });
+  // At least one file must have the sentinels; otherwise the layer is
+  // unwired everywhere.
+  var anyPatchable = results.some(function(r){
+    return r.status === 'patched' || r.status === 'unchanged';
+  });
+  if (!anyPatchable) {
+    throw new Error(cfg.bankConst + ' sentinel comments not found in any patch target. '
+      + 'Add `// ' + cfg.sentinelStart + '` and `// ' + cfg.sentinelEnd
+      + '` around the ' + cfg.bankConst + ' declaration in bug-lab.html or preview.html.');
+  }
+  return results;
 }
 
 // ── Run. ───────────────────────────────────────────────────────────────
 (async function(){
   console.log('=== import-art (' + layerName + ') ===');
   if (IS_PROCEDURAL) {
-    // Procedural layer: skip raw/ + PNG ops. Read JSON, patch lab.
+    // Procedural layer: skip raw/ + PNG ops. Read JSON, patch consumers.
     if (!fs.existsSync(JSON_PATH)) {
       throw new Error(cfg.catalogFile + ' not found. Run `node scripts/gen-' + layerName
         + '.js` to seed initial entries.');
     }
     var catalog = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8'));
-    var labChanged = patchLab(catalog);
+    var results = patchAll(catalog);
     console.log('');
     console.log('  catalog: ' + catalog.length + ' ' + cfg.displayName + '(s)');
     catalog.forEach(function(e){
@@ -225,13 +250,15 @@ function patchLab(catalog) {
     });
     console.log('');
     console.log('  ' + cfg.catalogFile + ': source of truth');
-    console.log('  bug-lab.html: ' + (labChanged ? 'patched' : 'already current'));
+    results.forEach(function(r){
+      console.log('  ' + path.relative(ROOT, r.path) + ': ' + r.status);
+    });
     return;
   }
 
   var imported = await processRaw();
   var catalog = rebuildCatalog(imported);
-  var labChanged = patchLab(catalog);
+  var results = patchAll(catalog);
   console.log('');
   console.log('  catalog: ' + catalog.length + ' ' + cfg.displayName + '(s)');
   catalog.forEach(function(w){
@@ -240,7 +267,9 @@ function patchLab(catalog) {
   });
   console.log('');
   console.log('  ' + cfg.catalogFile + ': written');
-  console.log('  bug-lab.html: ' + (labChanged ? 'patched' : 'already current'));
+  results.forEach(function(r){
+    console.log('  ' + path.relative(ROOT, r.path) + ': ' + r.status);
+  });
 })().catch(function(e){
   console.error('import-art failed:', e && e.message || e);
   process.exit(1);
