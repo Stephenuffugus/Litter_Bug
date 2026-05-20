@@ -1,0 +1,98 @@
+[
+  {
+    "file": "body-01.png",
+    "name": "Oval",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "body-02.png",
+    "name": "Slender",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "body-03.png",
+    "name": "Plump",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "body-04.png",
+    "name": "Segmented",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "body-05.png",
+    "name": "Tapered",
+    "rarity": "common",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "body-06.png",
+    "name": "Round",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "body-07.png",
+    "name": "Elongated",
+    "rarity": "uncommon",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  },
+  {
+    "file": "body-08.png",
+    "name": "Compact",
+    "rarity": "rare",
+    "tintable": true,
+    "attachment": [
+      200,
+      50
+    ],
+    "source": "placeholder-procedural",
+    "addedAt": "2026-05-20"
+  }
+]

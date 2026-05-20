@@ -86,7 +86,8 @@ function runChecks(){
     }
     var hasOpen = /<svg[\s>]/.test(svg);
     var hasClose = /<\/svg>/.test(svg);
-    var hasBody = /<ellipse/.test(svg);
+    // Body can be an <image> (PNG from BODY_BANK) or a fallback <ellipse>.
+    var hasBody = /<image[^>]+href="assets\/bodies\//.test(svg) || /<ellipse/.test(svg);
     var hasLegs = /<line/.test(svg);
     var hasHead = /<circle/.test(svg);
     var hasAntennae = /<path /.test(svg);
@@ -110,6 +111,19 @@ function runChecks(){
     var hasFilterUse = /filter="url\(#wt-[0-9a-f]{8}\)"/.test(svg);
     return { ok: hasFilterDef && hasFilterUse,
       detail: 'def=' + hasFilterDef + ' use=' + hasFilterUse };
+  });
+
+  // 2c. Body PNG is pulled from BODY_BANK and primary-tinted.
+  check('_generateBugSVG renders body PNG from assets/bodies/', function(){
+    var svg = window._generateBugSVG(testHash, 160);
+    var m = svg.match(/<image href="assets\/bodies\/(body-\d+\.png)"/);
+    return { ok: !!m, detail: m ? 'using ' + m[1] : 'no body image found' };
+  });
+  check('_generateBugSVG defines a per-bug body tint filter (bt-)', function(){
+    var svg = window._generateBugSVG(testHash, 160);
+    var hasDef = /<filter id="bt-[0-9a-f]{8}"/.test(svg);
+    var hasUse = /filter="url\(#bt-[0-9a-f]{8}\)"/.test(svg);
+    return { ok: hasDef && hasUse, detail: 'def=' + hasDef + ' use=' + hasUse };
   });
 
   // 3. Determinism: same hash should produce identical SVG.
@@ -179,30 +193,63 @@ function runChecks(){
       detail: missing.length ? 'missing: ' + missing.join(',') : 'all ' + b.length + ' present' };
   });
 
-  // 9. wings.json is the source of truth; its entries should match the
-  // bank patched into the lab. If they drift, someone edited one but
-  // forgot to re-run import-wings.
-  check('wings.json matches WING_BANK (same files, same count)', function(){
+  // 9. Catalog JSONs are the source of truth; bank arrays in the lab
+  // must match them exactly. If they drift, someone edited one but
+  // forgot to re-run `npm run <layer>`.
+  function catalogMatchesBank(layer, dirName, catalogFile, bankConst) {
     var fs2 = require('fs');
     var pathMod = require('path');
-    var jsonPath = pathMod.join(ROOT, 'assets', 'wings', 'wings.json');
+    var jsonPath = pathMod.join(ROOT, 'assets', dirName, catalogFile);
     if (!fs2.existsSync(jsonPath)) {
-      return { ok: false, detail: 'wings.json missing — run scripts/import-wings.js' };
+      return { ok: false, detail: catalogFile + ' missing — run `npm run ' + layer + '`' };
     }
     var catalog;
     try { catalog = JSON.parse(fs2.readFileSync(jsonPath, 'utf8')); }
-    catch (e) { return { ok: false, detail: 'wings.json parse error: ' + e.message }; }
-    var bank = window.WING_BANK || [];
+    catch (e) { return { ok: false, detail: catalogFile + ' parse error: ' + e.message }; }
+    var bank = window[bankConst] || [];
     if (catalog.length !== bank.length) {
       return { ok: false, detail: 'catalog=' + catalog.length + ' bank=' + bank.length };
     }
     for (var i = 0; i < catalog.length; i++) {
       if (catalog[i].file !== bank[i].file) {
         return { ok: false, detail: '[' + i + '] catalog=' + catalog[i].file
-          + ' bank=' + bank[i].file + ' — run scripts/import-wings.js' };
+          + ' bank=' + bank[i].file + ' — run `npm run ' + layer + '`' };
       }
     }
     return { ok: true, detail: catalog.length + ' entries aligned' };
+  }
+  check('wings.json matches WING_BANK (same files, same count)', function(){
+    return catalogMatchesBank('wings', 'wings', 'wings.json', 'WING_BANK');
+  });
+  check('bodies.json matches BODY_BANK (same files, same count)', function(){
+    return catalogMatchesBank('bodies', 'bodies', 'bodies.json', 'BODY_BANK');
+  });
+  check('BODY_BANK exposed with correct shape', function(){
+    var b = window.BODY_BANK;
+    if (!Array.isArray(b) || b.length === 0) {
+      return { ok: false, detail: 'len=' + (b && b.length) };
+    }
+    var bad = [];
+    b.forEach(function(e, i){
+      if (!e || typeof e.file !== 'string') bad.push('[' + i + '].file');
+      else if (typeof e.tintable !== 'boolean') bad.push('[' + i + '].tintable');
+      else if (!Array.isArray(e.attachment)) bad.push('[' + i + '].attachment');
+    });
+    return { ok: bad.length === 0,
+      detail: bad.length ? 'bad: ' + bad.join(',') : b.length + ' entries, shape valid' };
+  });
+  check('all BODY_BANK files exist on disk', function(){
+    var b = window.BODY_BANK || [];
+    var fs2 = require('fs');
+    var pathMod = require('path');
+    var missing = [];
+    for (var i = 0; i < b.length; i++) {
+      var f = b[i] && b[i].file;
+      if (!f) continue;
+      if (!fs2.existsSync(pathMod.join(ROOT, 'assets', 'bodies', f))) missing.push(f);
+    }
+    return { ok: missing.length === 0,
+      detail: missing.length ? 'missing: ' + missing.join(',') : 'all ' + b.length + ' present' };
   });
 
   // 10. Non-tintable wings should NOT emit a filter attribute on their

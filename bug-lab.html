@@ -50,11 +50,11 @@
   <div id="grid" class="grid"></div>
 </main>
 <footer>
-  Bodies, heads, legs, and antennae are inline SVG. Wings are PNG
-  sprites from <code>assets/wings/</code> (catalog in
-  <code>wings.json</code>), tinted per bug via feColorMatrix. Each seed
-  string produces the same bug every time. Open
-  <code>view-source:</code> to see <code>_generateBugSVG</code>.
+  Heads, legs, and antennae are inline SVG. Bodies and wings are PNG
+  sprites from <code>assets/</code> (catalogs in
+  <code>bodies.json</code> / <code>wings.json</code>), each tinted per
+  bug via feColorMatrix. Each seed string produces the same bug every
+  time. Open <code>view-source:</code> to see <code>_generateBugSVG</code>.
 </footer>
 <script>
 (function(){
@@ -146,50 +146,89 @@
   ];
   // WING_BANK_AUTOGEN_END
 
+  // ── Body bank. ─────────────────────────────────────────────────────
+  // PNG silhouettes of bug bodies (top-down, head end on the right).
+  // 200x100 normalized; attachment at right edge (200, 50) is where
+  // the head bolts on. Tinted to bug's primary color at render time.
+  // Managed by `node scripts/import-art.js bodies` / `npm run bodies`.
+  // BODY_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var BODY_BANK = [
+    { file: "body-01.png", name: "Oval", tintable: true, attachment: [200, 50] },
+    { file: "body-02.png", name: "Slender", tintable: true, attachment: [200, 50] },
+    { file: "body-03.png", name: "Plump", tintable: true, attachment: [200, 50] },
+    { file: "body-04.png", name: "Segmented", tintable: true, attachment: [200, 50] },
+    { file: "body-05.png", name: "Tapered", tintable: true, attachment: [200, 50] },
+    { file: "body-06.png", name: "Round", tintable: true, attachment: [200, 50] },
+    { file: "body-07.png", name: "Elongated", tintable: true, attachment: [200, 50] },
+    { file: "body-08.png", name: "Compact", tintable: true, attachment: [200, 50] }
+  ];
+  // BODY_BANK_AUTOGEN_END
+
   // ── _generateBugSVG(hash, size). ────────────────────────────────────
-  // Draws an insect facing right inside a viewBox of 200x200.
-  // Layers (back-to-front): defs (tint filter) → wings (PNG)
-  //   → legs → body → pattern → head → antennae.
-  // This is a v0 placeholder. Real anatomy banks replace each switch
-  // except wings, which are real PNGs from assets/wings/ (also still
-  // placeholders, but the pipeline that swaps them is final).
+  // Draws an insect facing right inside a viewBox of 220x200.
+  // Layers (back-to-front): defs (tint filters) → wings (PNG)
+  //   → legs → body (PNG, primary-tinted) → pattern → head → antennae.
+  // Bodies and wings are PNG-driven; heads / patterns will join when
+  // their banks land. Legs and antennae are inline SVG line art.
   function _generateBugSVG(hash, size) {
     var t = hashToBugTraits(hash);
     var uid = hash.substr(0, 8);
     var cx = 100, cy = 100;
-    var bodyHalfLen = t.bodyLen / 2;
-    var bodyHalfW = t.bodyW / 2;
 
     var primary = PAL[t.palette[0]];
     var secondary = PAL[t.palette[1]];
     var accent = PAL[t.palette[2]];
-    var dark = PAL[t.palette[3] % 8]; // bias toward darker half
-    var rgb = hexToRGB(accent);
+    var dark = PAL[t.palette[3] % 8];
+    var primaryRGB = hexToRGB(primary);
+    var accentRGB = hexToRGB(accent);
 
-    // Defs: per-bug wing tint filter. Multiplies the PNG channels by the
-    // accent color so a white silhouette becomes `accent` everywhere it
-    // had alpha. Unique id per hash prevents two bugs on the same page
-    // sharing a filter and clobbering each other.
-    var tintId = 'wt-' + uid;
+    // Defs: two per-bug tint filters. `bt-<uid>` tints body PNGs to
+    // the bug's primary color; `wt-<uid>` tints wings to accent.
+    // Unique IDs per hash so multiple bugs on the page don't share
+    // and clobber each other.
+    var bodyTintId = 'bt-' + uid;
+    var wingTintId = 'wt-' + uid;
+    function tintFilter(id, rgb) {
+      return '<filter id="' + id + '" x="-5%" y="-5%" width="110%" height="110%">'
+        + '<feColorMatrix type="matrix" values="'
+        + rgb.r + ' 0 0 0 0  '
+        + '0 ' + rgb.g + ' 0 0 0  '
+        + '0 0 ' + rgb.b + ' 0 0  '
+        + '0 0 0 1 0"/>'
+        + '</filter>';
+    }
     var defs = ''
       + '<defs>'
-      + '<filter id="' + tintId + '" x="-5%" y="-5%" width="110%" height="110%">'
-      + '<feColorMatrix type="matrix" values="'
-      + rgb.r + ' 0 0 0 0  '
-      + '0 ' + rgb.g + ' 0 0 0  '
-      + '0 0 ' + rgb.b + ' 0 0  '
-      + '0 0 0 1 0'
-      + '"/>'
-      + '</filter>'
+      + tintFilter(bodyTintId, primaryRGB)
+      + tintFilter(wingTintId, accentRGB)
       + '</defs>';
 
-    // Body: ellipse with a subtle taper via two stacked ellipses.
-    var body = ''
-      + '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + bodyHalfLen
-      + '" ry="' + bodyHalfW + '" fill="' + primary + '" />'
-      + '<ellipse cx="' + (cx + bodyHalfLen * 0.5) + '" cy="' + cy
-      + '" rx="' + (bodyHalfLen * 0.45) + '" ry="' + (bodyHalfW * 0.85)
-      + '" fill="' + secondary + '" opacity="0.55" />';
+    // Body. PNG from BODY_BANK rendered at 160x80, centered horizontally
+    // around the bug's body axis (cx=100, cy=100). Hash drives a small
+    // scale variation so not every bug is identical-sized.
+    var bodyScale = 0.92 + ((hb(hash, 1) % 17) / 100); // 0.92..1.08
+    var bodyDrawW = 160 * bodyScale;
+    var bodyDrawH = 80 * bodyScale;
+    var bodyX = cx - bodyDrawW / 2;
+    var bodyY = cy - bodyDrawH / 2;
+    var bodyHalfLen = bodyDrawW / 2;
+    var bodyHalfW = bodyDrawH / 2;
+    var body = '';
+    if (BODY_BANK.length > 0) {
+      var bodyEntry = BODY_BANK[t.body % BODY_BANK.length];
+      var bodyHref = 'assets/bodies/' + bodyEntry.file;
+      var bodyTintAttr = (bodyEntry.tintable === false) ? '' : (' filter="url(#' + bodyTintId + ')"');
+      body = '<image href="' + bodyHref + '"'
+        + ' x="' + bodyX + '" y="' + bodyY
+        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"'
+        + bodyTintAttr + ' />';
+    } else {
+      // Fallback for the brief window between adding sentinels and
+      // running the import script. Should not be hit in normal use.
+      body = '<ellipse cx="' + cx + '" cy="' + cy
+        + '" rx="' + bodyHalfLen + '" ry="' + bodyHalfW
+        + '" fill="' + primary + '" />';
+    }
 
     // Wings: PNG sprites from the bank, picked by traits.wing.
     // tintable=true wings get the feColorMatrix filter (silhouettes →
@@ -206,7 +245,7 @@
     var ay = (wing.attachment && wing.attachment[1]) || 64;
     var px = attachX - wW * (ax / 256);
     var py = attachY - wH * (ay / 128);
-    var tintAttr = (wing.tintable === false) ? '' : (' filter="url(#' + tintId + ')"');
+    var tintAttr = (wing.tintable === false) ? '' : (' filter="url(#' + wingTintId + ')"');
     var wings = ''
       + '<g transform="rotate(165 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
       + '<image href="' + wingHref + '" x="' + px + '" y="' + py
@@ -318,11 +357,12 @@
                   'litter-bug-004', 'litter-bug-005', 'litter-bug-006'];
   STARTERS.forEach(addBug);
 
-  // Expose for console poking.
+  // Expose for console poking + smoke harness.
   window._generateBugSVG = _generateBugSVG;
   window.hashToBugTraits = hashToBugTraits;
   window.sha256Hex = sha256Hex;
   window.WING_BANK = WING_BANK;
+  window.BODY_BANK = BODY_BANK;
   window.hexToRGB = hexToRGB;
 })();
 </script>
