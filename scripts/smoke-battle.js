@@ -149,7 +149,7 @@ check('previewFoeMove is deterministic and drives the foe (telegraph)', function
 
 check('resolveRound emits a structured event stream', function () {
   var st = B.startBattle(cb('ev1'), cb('ev2'), 4, 4), rounds = 0, sawHit = false, bad = 0;
-  var kinds = ['hit', 'miss', 'status', 'dot', 'skip', 'ko'];
+  var kinds = ['hit', 'miss', 'status', 'dot', 'skip', 'ko', 'break'];
   while (!st.over && rounds < 60) {
     B.playerRound(st, rounds % 4); rounds++;
     if (!Array.isArray(st.events)) { bad++; break; }
@@ -159,6 +159,71 @@ check('resolveRound emits a structured event stream', function () {
     });
   }
   return { ok: bad === 0 && sawHit, detail: bad ? bad + ' bad events' : 'valid events incl. hit dmg/hpAfter' };
+});
+
+check('poise stays in [0, poiseMax] and a broken bug never double-skips', function () {
+  var bad = 0;
+  function bestIdx(self, foe) {
+    var bi = 0, bs = -1;
+    self.moves.forEach(function (m, i) {
+      var s = m.kind === 'attack' ? m.pow * (m.multi || 1) * E.typeMatchupDual(m.type, foe.type, foe.type2) * (m.stab ? 1.4 : 1) : 0.3;
+      if (s > bs) { bs = s; bi = i; }
+    });
+    return bi;
+  }
+  for (var i = 0; i < 200; i++) {
+    var st = B.startBattle(cb('po' + i), cb('po2' + i), 12, 12), g = 0, prevSkip = { a: false, b: false };
+    if (st.a.poise !== st.a.poiseMax || st.b.poise !== st.b.poiseMax) bad++;
+    while (!st.over && g++ < 100) {
+      B.playerRound(st, bestIdx(st.a, st.b));
+      if (st.a.poise < 0 || st.a.poise > st.a.poiseMax || st.b.poise < 0 || st.b.poise > st.b.poiseMax) bad++;
+      var skipThis = { a: false, b: false };
+      (st.events || []).forEach(function (e) { if (e.kind === 'skip' && e.reason === 'break') skipThis[e.side] = true; });
+      // a break-skip must not repeat for the same side on consecutive rounds (guard reforms)
+      if (skipThis.a && prevSkip.a) bad++;
+      if (skipThis.b && prevSkip.b) bad++;
+      prevSkip = skipThis;
+    }
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' poise violations' : 'poise bounded, no double-break-skip (200 battles)' };
+});
+
+check('Poise/Break mechanic is live (breaks occur under type-focused play)', function () {
+  function bestIdx(self, foe) {
+    var bi = 0, bs = -1;
+    self.moves.forEach(function (m, i) {
+      var s = m.kind === 'attack' ? m.pow * (m.multi || 1) * E.typeMatchupDual(m.type, foe.type, foe.type2) * (m.stab ? 1.4 : 1) : 0.3;
+      if (s > bs) { bs = s; bi = i; }
+    });
+    return bi;
+  }
+  var breaks = 0, followSkips = 0;
+  for (var i = 0; i < 300; i++) {
+    var st = B.startBattle(cb('br' + i), cb('br2' + i), 12, 12), g = 0, pendBreak = {};
+    while (!st.over && g++ < 100) {
+      B.playerRound(st, bestIdx(st.a, st.b));
+      (st.events || []).forEach(function (e) {
+        if (e.kind === 'break') { breaks++; pendBreak[e.side] = true; }
+        if (e.kind === 'skip' && e.reason === 'break') { followSkips++; }
+      });
+    }
+  }
+  // breaks must happen, and skips of reason 'break' must also occur (the payoff lands)
+  return { ok: breaks > 0 && followSkips > 0, detail: breaks + ' breaks, ' + followSkips + ' break-skips over 300 battles' };
+});
+
+check('Poise/Break preserves determinism (identical poise trace on replay)', function () {
+  function trace(x, y) {
+    var st = B.startBattle(x, y, 12, 12), out = [], g = 0;
+    while (!st.over && g++ < 100) { B.playerRound(st, 0); out.push(st.a.poise + ':' + st.b.poise + ':' + (st.a.broken ? 1 : 0) + (st.b.broken ? 1 : 0)); }
+    return out.join('|');
+  }
+  var bad = 0;
+  for (var i = 0; i < 60; i++) {
+    var x = cb('pd' + i), y = cb('pd2' + i);
+    if (trace(x, y) !== trace(x, y)) bad++;
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' non-deterministic' : 'poise trace stable across 60 replays' };
 });
 
 // ── Output ─────────────────────────────────────────────────────────────

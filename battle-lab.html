@@ -37,6 +37,11 @@
   .hpchip { position: absolute; inset: 0; width: 100%; background: #6a3b34; border-radius: 6px; transition: width .55s .12s ease; }
   .hpfront { position: absolute; inset: 0; width: 100%; border-radius: 6px; transition: width .3s ease; }
   .hptext { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: #8a9178; margin-top: 2px; }
+  .poisewrap { position: relative; height: 4px; background: #1c211a; border-radius: 3px; margin-top: 3px; }
+  .poisefill { position: absolute; inset: 0; width: 100%; background: #d9a441; border-radius: 3px; transition: width .3s ease; }
+  .poiselbl { font-size: 8.5px; color: #8a7a45; letter-spacing: .05em; margin-top: 1px; text-transform: uppercase; }
+  .foe .poiselbl { text-align: right; }
+  .move .chip { font-size: 9px; color: #d9a441; margin-left: 5px; white-space: nowrap; }
   .status { display: flex; gap: 4px; margin-top: 3px; min-height: 15px; }
   .foe .status { justify-content: flex-end; }
   .st { font-size: 10px; padding: 0 5px; border-radius: 8px; background: #15191a; border: 1px solid #2a2f28; color: #cdbfa6; }
@@ -160,6 +165,8 @@
       + '<div class="row">'+tbadges(f)+'<span class="cls">'+f.cls+'</span></div>'
       + '<div class="hpwrap"><div class="hpchip" id="hpchip-'+side+'" style="width:'+pct+'%"></div><div class="hpfront" id="hpfront-'+side+'" style="width:'+pct+'%;background:'+hpc+'"></div></div>'
       + '<div class="hptext" id="hptext-'+side+'">'+f.hp+' / '+f.maxhp+'</div>'
+      + '<div class="poisewrap"><div class="poisefill" id="poise-'+side+'" style="width:'+Math.round(f.poise/f.poiseMax*100)+'%"></div></div>'
+      + '<div class="poiselbl">guard '+f.poise+'/'+f.poiseMax+'</div>'
       + '<div class="status" id="status-'+side+'">'+statusChips(f)+'</div>' + intent + '</div>';
     return foe ? art + info : info + art;
   }
@@ -170,14 +177,17 @@
     return you.moves.map(function (m, i) {
       var pip = m.stab ? '<span class="pip">&#10022;</span>' : '';
       var l2, glyph = '';
+      var chipTag = '';
       if (m.kind==='attack'){
         var db = BAT.damageBand(you, foe, m);
         var ew = effWord(db.mult);
         glyph = ew.g ? '<span class="glyph '+ew.c+'">'+ew.g+'</span>' : '';
         l2 = '<span class="tbadge" style="background:'+(TYPE_COLOR[m.type]||'#8a9178')+'">'+m.type+'</span> '+db.min+'-'+db.max+' &middot; '+BAT.hitPercent(you,foe,m)+'%';
+        var chip = (db.mult>1?2:0) + (m.stab?0:1);
+        if (chip>0) chipTag = '<span class="chip">&#128737; guard -'+chip+'</span>';
       } else l2 = 'status';
       var first = BAT.previewOrder(state, i) ? '<span class="first">&#9656; you first</span>' : '';
-      return '<button class="move" data-i="'+i+'"><div class="mn">'+m.name+pip+glyph+'</div>'
+      return '<button class="move" data-i="'+i+'"><div class="mn">'+m.name+pip+glyph+chipTag+'</div>'
         + '<div class="l2">'+l2+'</div><div class="l3">'+(m.desc||'')+' '+first+'</div></button>';
     }).join('');
   }
@@ -220,7 +230,8 @@
   function flash(side, big){ var art=document.getElementById('art-'+side); if(!art)return; art.classList.add('hit','recoil'); setTimeout(function(){art.classList.remove('hit','recoil');},400);
     var ar=document.getElementById('arena'); ar.classList.add(big?'shakeBig':'shake'); setTimeout(function(){ar.classList.remove('shake','shakeBig');},260); }
   function callout(txt, cls){ var c=document.getElementById('callout'); c.textContent=txt; c.style.color=cls||'#7ab356'; c.classList.remove('show'); void c.offsetWidth; c.classList.add('show'); }
-  function refreshStatus(){ document.getElementById('status-a').innerHTML=statusChips(state.a); document.getElementById('status-b').innerHTML=statusChips(state.b); }
+  function setPoise(side){ var f=side==='a'?state.a:state.b, el=document.getElementById('poise-'+side); if(el) el.style.width=Math.round(f.poise/f.poiseMax*100)+'%'; }
+  function refreshStatus(){ document.getElementById('status-a').innerHTML=statusChips(state.a); document.getElementById('status-b').innerHTML=statusChips(state.b); setPoise('a'); setPoise('b'); }
 
   async function playEvents(evs){
     animating = true;
@@ -233,13 +244,15 @@
           var big = e.crit || e.mult>1;
           flash(e.target, big); buzz(big?30:12);
           setHP(e.target, e.hpAfter);
+          if (typeof e.poise==='number' && e.poiseMax){ var pe=document.getElementById('poise-'+e.target); if(pe) pe.style.width=Math.round(e.poise/e.poiseMax*100)+'%'; }
           popDmg(e.target, e.dmg, e.crit, e.mult);
           if (e.mult>1) callout('Super effective!','#7ab356'); else if (e.mult<1) callout('Not very effective','#c86a4b'); else if (e.crit) callout('Critical!','#f0b048');
         } else popDmg(e.target, 'Miss', false, 1);
         await sleep(e.kind==='hit'? (big?560:460) : 320);
       } else if (e.kind==='status'){ refreshStatus(); callout(cap(e.eff),'#b487ac'); await sleep(360); }
       else if (e.kind==='dot'){ setHP(e.side, e.hpAfter); popDmg(e.side, e.dmg, false, 1); await sleep(340); }
-      else if (e.kind==='skip'){ callout('seized!','#c86a4b'); await sleep(320); }
+      else if (e.kind==='break'){ var pb=document.getElementById('poise-'+e.side); if(pb) pb.style.width='100%'; flash(e.side, true); buzz(45); callout('Guard broken!','#d9a441'); await sleep(500); }
+      else if (e.kind==='skip'){ callout(e.reason==='break'?'reeling!':'seized!','#c86a4b'); await sleep(320); }
       else if (e.kind==='ko'){ buzz(60); await sleep(480); }
       refreshStatus();
     }

@@ -41,6 +41,11 @@
 
   // ── Fighter ─────────────────────────────────────────────────────────
   function leveledStat(v, level) { return Math.round(v * (1 + LEVEL_STEP * ((level || 1) - 1))); }
+  // Poise budget per class (plus a small DEF nudge). Chips are flat 1-3 per
+  // hit over a ~5 round battle, so poise is class-driven (single digits), not
+  // DEF-scaled, or it could never break. Defensive classes hold guard longer.
+  var POISE_CLASS = { Bulwark: 12, Sentinel: 10, Trickster: 8, Skirmisher: 7, Venomancer: 7, Aggressor: 6, Ambusher: 6, Swarm: 6 };
+
   function buildFighter(cb, level) {
     level = level || 1;
     var s = ENG.bugStats(cb);
@@ -61,14 +66,19 @@
       c.stab = (c.kind === "attack") && (c.type === primary || (type2 && c.type === type2));
       return c;
     });
-    var hp = stat(s.stats.hp, "hp");
+    var hp = stat(s.stats.hp, "hp"), defv = stat(s.stats.def, "def");
+    // Poise: a stagger meter. Super-effective and coverage hits chip it; at 0
+    // the bug's guard breaks and it loses its next action, then poise reforms.
+    // Tanky/defensive classes hold more poise. Pure integer state, no rng.
+    var poiseMax = (POISE_CLASS[s.cls] || 7) + Math.round(defv / 50);
     return {
       cb: cb, name: ENG.bugName(cb), type: primary, type2: type2, cls: s.cls, kit: s.kit,
       level: level, nature: nat, maxhp: hp, hp: hp,
-      atk: stat(s.stats.atk, "atk"), def: stat(s.stats.def, "def"), spd: stat(s.stats.spd, "spd"),
+      atk: stat(s.stats.atk, "atk"), def: defv, spd: stat(s.stats.spd, "spd"),
       acc: stat(s.stats.acc, "acc"), eva: stat(s.stats.eva, "eva"), power: s.power,
       moves: moves, stages: { atk: 0, def: 0, spd: 0, acc: 0, eva: 0 },
-      corrode: 0, smolder: 0, rustlock: false, guard: false
+      corrode: 0, smolder: 0, rustlock: false, guard: false,
+      poiseMax: poiseMax, poise: poiseMax, broken: false
     };
   }
   function stageMul(st) { st = Math.max(-6, Math.min(6, st)); return st >= 0 ? (2 + st) / 2 : 2 / (2 - st); }
@@ -167,8 +177,16 @@
       log.push(att.name + " used " + move.name + " for " + total + " damage."
         + (se > 1 ? " Super effective!" : "") + (landed > 1 ? " (" + landed + " hits)" : ""));
       if (move.eff === "corrode" && def.corrode <= 0 && !immune(def, "corrode")) { def.corrode = 4; log.push(def.name + " is corroding!"); }
+      // poise: super-effective hits chip 2, off-type coverage hits chip 1.
+      var chip = (se > 1 ? 2 : 0) + (!move.stab ? 1 : 0);
+      var broke = false;
+      if (chip > 0 && def.hp > 0 && def.poiseMax) {
+        def.poise = Math.max(0, def.poise - chip);
+        if (def.poise === 0 && !def.broken) { def.broken = true; def.poise = def.poiseMax; broke = true; log.push(def.name + "'s guard breaks! It reels."); }
+      }
       ev.push({ kind: "hit", by: byL, target: deL, move: move.name, dmg: total, hits: landed,
-        crit: anyCrit, mult: se, hpAfter: def.hp });
+        crit: anyCrit, mult: se, hpAfter: def.hp, poise: def.poise, poiseMax: def.poiseMax });
+      if (broke) ev.push({ kind: "break", side: deL });
     } else {
       if (hits > 1) log.push(att.name + " used " + move.name + " but missed.");
       ev.push({ kind: "miss", by: byL, target: deL, move: move.name });
@@ -230,6 +248,11 @@
     for (var i = 0; i < order.length; i++) {
       var att = order[i][0], def = order[i][1], mv2 = order[i][2];
       if (att.hp <= 0) continue;
+      if (att.broken) {
+        att.broken = false;
+        log.push(att.name + " is reeling from a broken guard and cannot act!");
+        ev.push({ kind: "skip", side: sideOf(att), reason: "break" }); continue;
+      }
       if (att.rustlock && rng() < 0.25) {
         log.push(att.name + " is rust-locked and seizes up!");
         ev.push({ kind: "skip", side: sideOf(att), reason: "rustlock" }); continue;
