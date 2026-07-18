@@ -286,94 +286,138 @@
   // from the bug's palette scheme. Deterministic, recolorable, needs zero art
   // assets. Faces right, viewBox 200x200. The PNG-bank hybrid is retired as the
   // default; the banks remain exported for an optional future hand-art drop.
+  // ── _generateBugSVG(hash, size): cohesion-rigged procedural bug. ──────
+  // Art-cohesion system (research w1ar100ei): every dimension flows from ONE
+  // master scale S through clamped ratio bands, so head<thorax<abdomen ALWAYS
+  // (no bobbleheads, no pinched-off parts). Shapes are continuous superellipse
+  // families (round..egg..rounded-box) for real silhouette variety. Colored
+  // cel shadows (toward the scheme's dark), pattern clipped to the body, and a
+  // fit-to-canvas pass keep any roll a viable, on-model fighter. Deterministic
+  // (toFixed quantized). Faces right, viewBox 200x200.
   function _generateBugSVG(hash, size) {
-    var t = hashToBugTraits(hash);
+    var t = hashToBugTraits(hash), pal = PALETTES[t.palette] || PALETTES[0];
     var uid = hash.substr(0, 8);
-    var pal = PALETTES[t.palette] || PALETTES[0];
     var primary = pal.primary, secondary = pal.secondary, accent = pal.accent;
 
     function _rgb(h){ h=h.replace('#',''); return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) }; }
     function _hx(o){ var c=function(v){ return ('0'+Math.max(0,Math.min(255,Math.round(v))).toString(16)).slice(-2); }; return '#'+c(o.r)+c(o.g)+c(o.b); }
     function dk(h,f){ var c=_rgb(h); return _hx({ r:c.r*(1-f), g:c.g*(1-f), b:c.b*(1-f) }); }
     function lt(h,f){ var c=_rgb(h); return _hx({ r:c.r+(255-c.r)*f, g:c.g+(255-c.g)*f, b:c.b+(255-c.b)*f }); }
+    function mix(a,b,tt){ var x=_rgb(a),y=_rgb(b); return _hx({ r:x.r+(y.r-x.r)*tt, g:x.g+(y.g-x.g)*tt, b:x.b+(y.b-x.b)*tt }); }
+    function band(i,min,max){ return min + (hb(hash,i)/255)*(max-min); }
+    function q(v){ return v.toFixed(2); }
+    // superellipse closed path; taperRear scales the rear (x<cx) half-width.
+    function bodyPath(cx2,cy2,a,b,n,taperRear,steps){
+      var d='',i,th,ct,st,ax,x,y;
+      for(i=0;i<=steps;i++){ th=(i/steps)*2*Math.PI; ct=Math.cos(th); st=Math.sin(th);
+        ax = ct<0 ? a*taperRear : a;
+        x = cx2 + ax*Math.sign(ct)*Math.pow(Math.abs(ct),2/n);
+        y = cy2 + b*Math.sign(st)*Math.pow(Math.abs(st),2/n);
+        d += (i?'L':'M')+q(x)+' '+q(y)+' '; }
+      return d+'Z';
+    }
 
     var ol = dk(pal.dark, 0.25);
-    var cx = 94, cy = 106;
+    var cx = 97, cy = 108;
 
-    // trait-driven dimensions
-    var abRx = 34 + (t.bodyLen % 40) * 0.5;   // abdomen radii
-    var abRy = 24 + (t.bodyW % 30) * 0.45;
-    var thR  = 18 + (t.head % 8);             // thorax radius
-    var hR   = 15 + (t.headSize % 12);        // head radius
-    var abCx = cx - abRx * 0.55;
-    var thCx = abCx + abRx * 0.55 + thR * 0.6;
-    var hCx  = thCx + thR * 0.5 + hR * 0.7;
-    var hCy  = cy - 2;
+    // one size driver + clamped ratio bands
+    var g = {};
+    g.abRy = band(1, 26, 38);
+    g.abRx = g.abRy * band(2, 1.05, 1.45);
+    g.thR  = Math.min(g.abRy * band(4, 0.60, 0.86), g.abRy * 0.9);
+    g.hR   = Math.min(g.thR * band(5, 0.55, 0.82), g.thR * 0.9);
+    g.eR   = g.hR * band(6, 0.36, 0.5);
+    g.legLen = g.abRy * band(7, 0.9, 1.6);
+    g.antLen = g.hR * band(8, 1.4, 2.6);
+    g.wingSpan = g.abRx * band(9, 0.95, 1.35);
+    g.nAb = band(12, 2.0, 3.3); g.taper = band(13, 0.72, 1.0);
+    g.nTh = band(15, 2.0, 2.7); g.nH = band(16, 2.0, 3.0);
+    g.snout = band(17, 0, g.hR * 0.4);
+    g.wSweep = band(19, -8, 20); g.wDroop = band(20, 0, 14);
+    g.legPairs = band(21, 0, 1) < 0.75 ? 3 : 4;
+    g.femur = band(22, 0.35, 0.6); g.curl = band(23, -0.3, 0.5);
+    g.antCurl = band(24, 0.2, 0.9); g.club = band(26, 2, 5);
+    g.patCount = Math.round(band(27, 2, 5));
+    g.wf = t.wing % 5; g.af = t.antenna % 5; g.pf = t.pattern % 5; g.mand = t.head % 2; g.hfam = t.head % 5;
+    if (g.wf === 4) { g.legLen *= 1.15; g.abRx *= 1.08; }   // wingless compensation
 
-    // soft-cel shading gradient (highlight top-left -> base -> shadow bottom-right)
-    function grad(id, base){ return '<linearGradient id="' + id + '" x1="0.2" y1="0.05" x2="0.85" y2="1">'
-      + '<stop offset="0" stop-color="' + lt(base,0.30) + '"/><stop offset="0.44" stop-color="' + base + '"/>'
-      + '<stop offset="0.46" stop-color="' + base + '"/><stop offset="1" stop-color="' + dk(base,0.32) + '"/></linearGradient>'; }
-    var defs = '<defs>' + grad('gB'+uid, primary) + grad('gT'+uid, secondary) + grad('gH'+uid, secondary) + grad('gW'+uid, lt(accent,0.12)) + '</defs>';
+    // fit-to-canvas: uniform down-scale if the figure would exceed the safe rect
+    function positions(g){
+      var abCx = cx - g.abRx*0.5, thCx = abCx + g.abRx*0.5 + g.thR*0.42, hCx = thCx + g.thR*0.5 + g.hR*0.5;
+      return { abCx:abCx, thCx:thCx, hCx:hCx,
+        left: abCx - g.abRx*g.taper, right: hCx + g.hR + g.snout + (g.mand ? g.hR*0.5 : 0),
+        top: cy - (g.abRy + g.wingSpan*0.72), bottom: cy + g.abRy*0.9 + g.legLen*0.9 };
+    }
+    var p = positions(g), m = 12;
+    var f = Math.min(1, (cx-m)/(cx-p.left), (200-m-cx)/(p.right-cx), (cy-m)/(cy-p.top), (200-m-cy)/(p.bottom-cy));
+    if (f < 0.999) { ['abRy','abRx','thR','hR','eR','legLen','antLen','wingSpan','snout'].forEach(function(k){ g[k]*=f; }); p = positions(g); }
+    var abCx = p.abCx, thCx = p.thCx, hCx = p.hCx, hCy = cy - 2;
 
-    // wings (behind body); family by t.wing%5, 4 = wingless
-    var wf = t.wing % 5, wing = '';
-    if (wf !== 4) {
-      var ws = 0.85 + (t.wing % 20) / 60;
-      var wcol = 'fill="url(#gW'+uid+')" stroke="' + dk(accent,0.4) + '" stroke-width="1.8"';
-      var wx = thCx - 4, wy = cy - 6, d;
-      if (wf === 0) d = 'M '+wx+' '+wy+' Q '+(wx-40*ws)+' '+(wy-64*ws)+' '+(wx+18)+' '+(wy-70*ws)+' Q '+(wx+52*ws)+' '+(wy-58*ws)+' '+(wx+50*ws)+' '+(wy-14)+' Q '+(wx+36)+' '+(wy+2)+' '+wx+' '+wy+' Z';
-      else if (wf === 1) d = 'M '+wx+' '+wy+' Q '+(wx-30*ws)+' '+(wy-70*ws)+' '+(wx+30)+' '+(wy-76*ws)+' L '+(wx+64*ws)+' '+(wy-30)+' Q '+(wx+40)+' '+(wy+2)+' '+wx+' '+wy+' Z';
-      else if (wf === 2) d = 'M '+wx+' '+wy+' Q '+(wx-16)+' '+(wy-58*ws)+' '+(wx+8)+' '+(wy-74*ws)+' Q '+(wx+30)+' '+(wy-80*ws)+' '+(wx+40*ws)+' '+(wy-40)+' Q '+(wx+36)+' '+wy+' '+wx+' '+wy+' Z';
-      else d = 'M '+wx+' '+wy+' Q '+(wx-36*ws)+' '+(wy-60*ws)+' '+(wx+14)+' '+(wy-66*ws)+' Q '+(wx+48*ws)+' '+(wy-52*ws)+' '+(wx+46*ws)+' '+(wy-12)+' Q '+(wx+32)+' '+(wy+2)+' '+wx+' '+wy+' Z';
-      var vein = '<path d="M '+(wx+4)+' '+(wy-4)+' Q '+(wx+14)+' '+(wy-40*ws)+' '+(wx+34)+' '+(wy-52*ws)+'" fill="none" stroke="' + dk(accent,0.32) + '" stroke-width="1.1" opacity="0.6"/>';
-      wing = '<path d="'+d+'" '+wcol+' opacity="0.96"/>' + vein;
-      if (wf === 3) wing = '<path d="'+d+'" transform="translate(-14,6) scale(0.8)" '+wcol+' opacity="0.7"/>' + wing;
+    function shade(id, base){ return '<linearGradient id="'+id+uid+'" x1="0.2" y1="0.05" x2="0.85" y2="1">'
+      + '<stop offset="0" stop-color="'+lt(base,0.30)+'"/><stop offset="0.44" stop-color="'+base+'"/>'
+      + '<stop offset="0.46" stop-color="'+base+'"/><stop offset="1" stop-color="'+mix(base,pal.dark,0.4)+'"/></linearGradient>'; }
+    var abD = bodyPath(abCx, cy, g.abRx, g.abRy, g.nAb, g.taper, 52);
+    var defs = '<defs>' + shade('gB',primary) + shade('gT',secondary) + shade('gH',secondary) + shade('gW',lt(accent,0.12))
+      + '<clipPath id="ca'+uid+'"><path d="'+abD+'"/></clipPath></defs>';
+
+    // wings (behind); family by t.wing%5, 4 = wingless
+    var wing = '';
+    if (g.wf !== 4) {
+      var wsc = g.wingSpan/44, wx = thCx-3, wy = cy - g.thR*0.5, sw = g.wSweep, dr = g.wDroop, d;
+      var wcol = 'fill="url(#gW'+uid+')" stroke="'+dk(accent,0.4)+'" stroke-width="1.8"';
+      if (g.wf===0) d='M '+wx+' '+wy+' Q '+q(wx-38*wsc)+' '+q(wy-58*wsc)+' '+q(wx+16+sw)+' '+q(wy-64*wsc)+' Q '+q(wx+50*wsc)+' '+q(wy-52*wsc)+' '+q(wx+46*wsc)+' '+q(wy-12+dr)+' Q '+q(wx+32)+' '+q(wy+2)+' '+wx+' '+wy+' Z';
+      else if (g.wf===1) d='M '+wx+' '+wy+' Q '+q(wx-28*wsc)+' '+q(wy-64*wsc)+' '+q(wx+28+sw)+' '+q(wy-70*wsc)+' L '+q(wx+58*wsc)+' '+q(wy-26+dr)+' Q '+q(wx+36)+' '+q(wy+2)+' '+wx+' '+wy+' Z';
+      else if (g.wf===2) d='M '+wx+' '+wy+' Q '+q(wx-14)+' '+q(wy-54*wsc)+' '+q(wx+8+sw)+' '+q(wy-68*wsc)+' Q '+q(wx+28)+' '+q(wy-72*wsc)+' '+q(wx+38*wsc)+' '+q(wy-34+dr)+' Q '+q(wx+34)+' '+wy+' '+wx+' '+wy+' Z';
+      else d='M '+wx+' '+wy+' Q '+q(wx-34*wsc)+' '+q(wy-54*wsc)+' '+q(wx+12+sw)+' '+q(wy-60*wsc)+' Q '+q(wx+46*wsc)+' '+q(wy-48*wsc)+' '+q(wx+42*wsc)+' '+q(wy-10+dr)+' Q '+q(wx+30)+' '+q(wy+2)+' '+wx+' '+wy+' Z';
+      wing = '<path d="'+d+'" '+wcol+' opacity="0.96"/>'
+        + '<path d="M '+q(wx+2)+' '+q(wy-4)+' Q '+q(wx+10)+' '+q(wy-30*wsc)+' '+q(wx+24)+' '+q(wy-38*wsc)+'" fill="none" stroke="'+lt(accent,0.5)+'" stroke-width="1.3" opacity="0.55"/>';
+      if (g.wf===3) wing = '<path d="'+d+'" transform="translate(-12,6) scale(0.8)" '+wcol+' opacity="0.7"/>' + wing;
     }
 
-    // legs: 3 jointed pairs; far (drawn before body) + near (after)
-    var ll = 14 + (t.leg % 14), lw = 2.6 + (t.leg % 3) * 0.5;
-    var bases = [thCx - thR*0.7, thCx, thCx + thR*0.5];
-    function legPath(bx, dir, len){ var kx = bx + dir*len*0.35, ky = cy + abRy*0.5 + len*0.5, fx = kx + dir*len*0.5, fy = ky + len*0.7; return 'M '+bx+' '+(cy+abRy*0.35)+' L '+kx+' '+ky+' L '+fx+' '+fy; }
-    var farLegs = '', nearLegs = '';
-    for (var li = 0; li < bases.length; li++) {
-      farLegs  += '<path d="'+legPath(bases[li]-3,-1,ll*0.95)+'" fill="none" stroke="' + dk(ol,-0.25) + '" stroke-width="'+lw+'" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>';
-      nearLegs += '<path d="'+legPath(bases[li],(li===0?-1:1),ll)+'" fill="none" stroke="'+ol+'" stroke-width="'+(lw+0.4)+'" stroke-linecap="round" stroke-linejoin="round"/>';
+    // legs (jointed, taper): far behind body + near in front
+    var legW = 2.6 + (t.leg%3)*0.4; if (g.legPairs===4) legW *= 0.9;
+    var bases = []; for (var li=0; li<g.legPairs; li++){ var t01 = g.legPairs===1?0.5:li/(g.legPairs-1); bases.push(thCx - g.thR*0.7 + (g.abRx*0.5+g.thR)*(-0.2+t01*0.5)); }
+    function legPath(bx,dir,len){ var kx=bx+dir*len*0.35*(0.5+g.femur), ky=cy+g.abRy*0.5+len*0.5, fx=kx+dir*len*(0.4+g.curl*0.3), fy=ky+len*0.7; return 'M '+q(bx)+' '+q(cy+g.abRy*0.35)+' L '+q(kx)+' '+q(ky)+' L '+q(fx)+' '+q(fy); }
+    var farLegs='', nearLegs='';
+    for (var bi=0; bi<bases.length; bi++){
+      farLegs += '<path d="'+legPath(bases[bi]-3,-1,g.legLen*0.95)+'" fill="none" stroke="'+dk(ol,-0.25)+'" stroke-width="'+legW+'" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>';
+      nearLegs += '<path d="'+legPath(bases[bi],(bi===0?-1:1),g.legLen)+'" fill="none" stroke="'+ol+'" stroke-width="'+(legW+0.4)+'" stroke-linecap="round" stroke-linejoin="round"/>';
     }
 
-    // body
-    var abdomen = '<ellipse cx="'+abCx+'" cy="'+cy+'" rx="'+abRx+'" ry="'+abRy+'" fill="url(#gB'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
-    var thorax  = '<ellipse cx="'+thCx+'" cy="'+(cy-1)+'" rx="'+thR+'" ry="'+(thR*0.95)+'" fill="url(#gT'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
+    // abdomen + clipped pattern
+    var abdomen = '<path d="'+abD+'" fill="url(#gB'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
+    var pc = mix(primary, pal.dark, 0.4), pat = '';
+    if (g.pf===1){ for (var s=0;s<g.patCount;s++) pat += '<circle cx="'+q(abCx-g.abRx*0.3+s*(g.abRx*0.5/g.patCount))+'" cy="'+q(cy-6+((s%2)*12))+'" r="'+q(5-s*0.4)+'" fill="'+pc+'" opacity="0.5"/>'; }
+    else if (g.pf===2){ for (var s2=0;s2<g.patCount;s2++) pat += '<path d="M '+q(abCx-g.abRx*0.4+s2*10)+' '+q(cy-g.abRy*0.7)+' Q '+q(abCx-g.abRx*0.4+s2*10-2)+' '+q(cy)+' '+q(abCx-g.abRx*0.4+s2*10+2)+' '+q(cy+g.abRy*0.7)+'" fill="none" stroke="'+pc+'" stroke-width="2.4" opacity="0.5"/>'; }
+    else if (g.pf===3){ for (var s3=0;s3<Math.min(3,g.patCount);s3++) pat += '<path d="M '+q(abCx-g.abRx*0.7)+' '+q(cy-8+s3*13)+' Q '+q(abCx)+' '+q(cy-4+s3*13)+' '+q(abCx+g.abRx*0.6)+' '+q(cy-8+s3*13)+'" fill="none" stroke="'+pc+'" stroke-width="2.6" opacity="0.45"/>'; }
+    else if (g.pf===0){ pat = '<circle cx="'+q(abCx)+'" cy="'+q(cy)+'" r="'+q(g.abRy*0.45)+'" fill="'+pc+'" opacity="0.4"/>'; }
+    pat = '<g clip-path="url(#ca'+uid+')">'+pat+'</g>';
 
-    // pattern by t.pattern%5
-    var pf = t.pattern % 5, pat = '', pc = dk(primary, 0.34);
-    if (pf === 1) { for (var s1=0;s1<3;s1++) pat += '<circle cx="'+(abCx-10+s1*14)+'" cy="'+(cy-6+((s1%2)*12))+'" r="'+(5-s1*0.5)+'" fill="'+pc+'" opacity="0.5"/>'; }
-    else if (pf === 2) { for (var s2=0;s2<3;s2++) pat += '<path d="M '+(abCx-16+s2*14)+' '+(cy-abRy*0.7)+' Q '+(abCx-18+s2*14)+' '+cy+' '+(abCx-14+s2*14)+' '+(cy+abRy*0.7)+'" fill="none" stroke="'+pc+'" stroke-width="2.4" opacity="0.5"/>'; }
-    else if (pf === 3) { for (var s3=0;s3<2;s3++) pat += '<path d="M '+(abCx-abRx*0.7)+' '+(cy-8+s3*16)+' Q '+abCx+' '+(cy-4+s3*16)+' '+(abCx+abRx*0.6)+' '+(cy-8+s3*16)+'" fill="none" stroke="'+pc+'" stroke-width="2.6" opacity="0.45"/>'; }
-    else if (pf === 0) { pat = '<circle cx="'+abCx+'" cy="'+cy+'" r="'+(abRy*0.5)+'" fill="'+pc+'" opacity="0.4"/>'; }
+    // thorax (superellipse)
+    var thorax = '<path d="'+bodyPath(thCx, cy-1, g.thR, g.thR*0.95, g.nTh, 1, 40)+'" fill="url(#gT'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
+    // un-tinted dorsal highlight
+    var hl = '<circle cx="'+q(thCx-g.thR*0.35)+'" cy="'+q(cy-g.thR*0.4)+'" r="'+q(g.thR*0.16)+'" fill="#ffffff" opacity="0.35"/>';
 
-    // head + eye + mandible
-    var head = '<circle cx="'+hCx+'" cy="'+hCy+'" r="'+hR+'" fill="url(#gH'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
-    var eR = hR * (0.4 + (t.head % 3) * 0.06);
-    var eye = '<ellipse cx="'+(hCx+hR*0.35)+'" cy="'+(hCy-hR*0.25)+'" rx="'+(eR*0.85)+'" ry="'+eR+'" fill="'+dk(pal.dark,0.05)+'" stroke="'+ol+'" stroke-width="1.4"/>'
-      + '<circle cx="'+(hCx+hR*0.2)+'" cy="'+(hCy-hR*0.45)+'" r="'+(eR*0.32)+'" fill="#fdfdfa"/>';
-    var mand = (t.head % 2) ? '<path d="M '+(hCx+hR*0.8)+' '+(hCy+hR*0.4)+' q 7 3 5 9" fill="none" stroke="'+ol+'" stroke-width="2.4" stroke-linecap="round"/>' : '';
+    // antennae (pair) by t.antenna%5
+    var af = g.af, aoy = hCy - g.hR*0.8;
+    function antenna(ox, k, op){ var d2, tip='', L=g.antLen*k;
+      if (af===0){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.6)+' '+q(aoy-L*0.6)+' '+q(ox+L)+' '+q(aoy-L); }
+      else if (af===1){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.7)+' '+q(aoy-L*0.4)+' '+q(ox+L*0.6)+' '+q(aoy-L)+' Q '+q(ox+L*0.5)+' '+q(aoy-L*1.2)+' '+q(ox+L*0.8)+' '+q(aoy-L*1.25); }
+      else if (af===2){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.5)+' '+q(aoy-L*0.6)+' '+q(ox+L*0.85)+' '+q(aoy-L); tip='<circle cx="'+q(ox+L*0.85)+'" cy="'+q(aoy-L)+'" r="'+q(g.club*0.7)+'" fill="'+ol+'" opacity="'+op+'"/>'; }
+      else if (af===3){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.45)+' '+q(aoy-L*0.6)+' '+q(ox+L*0.7)+' '+q(aoy-L); for (var b=1;b<=4;b++) tip += '<path d="M '+q(ox+L*0.15+b*L*0.13)+' '+q(aoy-b*L*0.22)+' l '+q(L*0.16)+' '+q(-L*0.1)+'" stroke="'+ol+'" stroke-width="1.2" stroke-linecap="round" opacity="'+op+'"/>'; }
+      else { d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.7)+' '+q(aoy-L*0.7)+' '+q(ox+L*1.2)+' '+q(aoy-L*0.85); }
+      return '<path d="'+d2+'" fill="none" stroke="'+ol+'" stroke-width="2.2" stroke-linecap="round" opacity="'+op+'"/>'+tip; }
+    var antPair = antenna(hCx + g.hR*0.05, 0.85, 0.6) + antenna(hCx + g.hR*0.28, 1.0, 1.0);
 
-    // antennae by t.antenna%5, a clean pair (far + near)
-    var af = t.antenna % 5, aoy = hCy - hR*0.8;
-    function antenna(ox, k, op){
-      var d2, tip = '';
-      if (af === 0) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+18*k)+' '+(aoy-18*k)+' '+(ox+30*k)+' '+(aoy-30*k); }
-      else if (af === 1) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+22*k)+' '+(aoy-14*k)+' '+(ox+18*k)+' '+(aoy-30*k)+' Q '+(ox+14*k)+' '+(aoy-38*k)+' '+(ox+24*k)+' '+(aoy-40*k); }
-      else if (af === 2) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+16*k)+' '+(aoy-20*k)+' '+(ox+26*k)+' '+(aoy-32*k); tip = '<circle cx="'+(ox+26*k)+'" cy="'+(aoy-32*k)+'" r="3.2" fill="'+ol+'" opacity="'+op+'"/>'; }
-      else if (af === 3) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+14*k)+' '+(aoy-20*k)+' '+(ox+22*k)+' '+(aoy-34*k); for (var b=1;b<=4;b++) tip += '<path d="M '+(ox+4*k+b*4*k)+' '+(aoy-b*7*k)+' l '+(5*k)+' '+(-3*k)+'" stroke="'+ol+'" stroke-width="1.2" stroke-linecap="round" opacity="'+op+'"/>'; }
-      else { d2 = 'M '+ox+' '+aoy+' Q '+(ox+26*k)+' '+(aoy-24*k)+' '+(ox+44*k)+' '+(aoy-30*k); }
-      return '<path d="'+d2+'" fill="none" stroke="'+ol+'" stroke-width="2.2" stroke-linecap="round" opacity="'+op+'"/>' + tip;
-    }
-    var antPair = antenna(hCx + hR*0.05, 0.85, 0.6) + antenna(hCx + hR*0.28, 1.0, 1.0);
+    // head (superellipse, forward-stretched for snouted families) + eye + mandible
+    var headA = g.hR * (1 + (g.hfam < 2 ? g.snout/g.hR : 0));
+    var head = '<path d="'+bodyPath(hCx, hCy, headA, g.hR, g.nH, 1, 36)+'" fill="url(#gH'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
+    var eye = '<ellipse cx="'+q(hCx+g.hR*0.35)+'" cy="'+q(hCy-g.hR*0.25)+'" rx="'+q(g.eR*0.85)+'" ry="'+q(g.eR)+'" fill="'+dk(pal.dark,0.05)+'" stroke="'+ol+'" stroke-width="1.4"/>'
+      + '<circle cx="'+q(hCx+g.hR*0.2)+'" cy="'+q(hCy-g.hR*0.45)+'" r="'+q(g.eR*0.32)+'" fill="#fdfdfa"/>';
+    var mand = g.mand ? '<path d="M '+q(hCx+headA*0.85)+' '+q(hCy+g.hR*0.4)+' q 7 3 5 9" fill="none" stroke="'+ol+'" stroke-width="2.4" stroke-linecap="round"/>' : '';
 
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
-      + defs + wing + farLegs + abdomen + pat + nearLegs + thorax + antPair + head + eye + mand + '</svg>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="'+size+'" height="'+size+'">'
+      + defs + wing + farLegs + abdomen + pat + nearLegs + thorax + hl + antPair + head + eye + mand + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
