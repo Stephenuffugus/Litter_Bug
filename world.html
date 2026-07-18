@@ -139,6 +139,8 @@
   .tglink { color: #7ab356; cursor: pointer; text-decoration: underline; font-size: 10px; margin-left: 6px; }
   .fmatch { font-size: 11px; color: #9aa48c; line-height: 1.45; margin: 6px 0; }
   .fmatch b { color: #cdbfa6; } .fmatch .up { color: #7ab356; } .fmatch .down { color: #c86a4b; }
+  .ob { text-align: left; font-size: 13px; line-height: 1.5; color: #cdbfa6; margin: 6px 0 2px; }
+  .ob p { margin: 9px 0; } .ob b { color: #c8a84b; }
   .tgmodal { position: fixed; inset: 0; background: rgba(6,8,6,.8); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
   .tgmodal.show { display: flex; }
   .tgcard { background: #131614; border: 1px solid #2a2f28; border-radius: 16px; padding: 16px 18px; max-width: 340px; width: 100%; max-height: 86vh; overflow-y: auto; }
@@ -527,11 +529,32 @@
     document.getElementById('mClose').addEventListener('click', hideModal);
   }
 
+  // first-run guide (shown once ever)
+  var ONBOARD_KEY = 'litterbug_onboarded_v1';
+  function onboard() {
+    document.getElementById('card').innerHTML = '<h2>Welcome to Litter Bug</h2>'
+      + '<div class="ob">'
+      + '<p><b>Claim ground.</b> Tap an open cell to place one of your bugs and hold it.</p>'
+      + '<p><b>Fight for it.</b> Tap a wild cell (colored border) to battle its defender. Win and the cell is yours, and your bug gains XP and grows new parts.</p>'
+      + '<p><b>Grow the economy.</b> Held cells earn scrap over time. Spend scrap to breed two bugs into a new one.</p>'
+      + '<p><b>Defend.</b> Rival factions raid your cells while you are away. Beat their new defender to reclaim the red cells.</p>'
+      + '<p>Roll more bugs any time in the Mint Lab.</p>'
+      + '</div><button id="obClose">Start playing</button>';
+    showModal();
+    document.getElementById('obClose').addEventListener('click', function () {
+      try { localStorage.setItem(ONBOARD_KEY, '1'); } catch (e) {}
+      hideModal();
+    });
+  }
+  var firstRun = false;
+  try { firstRun = !localStorage.getItem(ONBOARD_KEY); } catch (e) {}
+
   // rivals raid your cells while you are away; resolve on load
   var awayTick = W.worldTick(vault, now());
   if (awayTick.raids.length) save(vault);
   renderRoster(); renderMap();
-  if (awayTick.raids.length) showAway(awayTick);
+  if (firstRun) onboard();
+  else if (awayTick.raids.length) showAway(awayTick);
   setInterval(renderHUD, 15000);
 })();
 </script>
