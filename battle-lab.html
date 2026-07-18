@@ -103,6 +103,18 @@
   .banner h2.win { color: #7ab356; } .banner h2.lose { color: #c86a4b; } .banner h2.draw { color: #cdbfa6; }
   .banner button { width: 100%; padding: 12px; background: #2a3a1f; color: #d8ecc4; border: 1px solid #7ab356;
     border-radius: 10px; font-size: 15px; cursor: pointer; }
+  .tg { padding: 6px 10px; background: #15191a; color: #9aa48c; border: 1px solid #2a2f28; border-radius: 8px; font-size: 12px; cursor: pointer; }
+  .tgmodal { position: fixed; inset: 0; background: rgba(6,8,6,.8); display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
+  .tgmodal.show { display: flex; }
+  .tgcard { background: #131614; border: 1px solid #2a2f28; border-radius: 16px; padding: 16px 18px; max-width: 340px; width: 100%; max-height: 86vh; overflow-y: auto; }
+  .tgcard h2 { margin: 0 0 6px; font-size: 18px; color: #e8dcc8; }
+  .tgnote { font-size: 11px; color: #8a9178; margin-bottom: 8px; line-height: 1.45; }
+  .tgrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid #1f231d; }
+  .tgrow .tgt { min-width: 54px; }
+  .tgse { font-size: 11px; color: #cdbfa6; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .tglbl { font-size: 8.5px; text-transform: uppercase; letter-spacing: .06em; }
+  .tglbl.up { color: #7ab356; } .tglbl.down { color: #c86a4b; }
+  .tgcard button { width: 100%; margin-top: 12px; padding: 11px; background: #15191a; color: #e8dcc8; border: 1px solid #2a2f28; border-radius: 10px; font-size: 14px; cursor: pointer; }
   @media (prefers-reduced-motion: reduce) {
     .arena.shake, .arena.shakeBig, .art.hit .flash, .art.recoil { animation: none !important; }
   }
@@ -111,6 +123,7 @@
 <body>
 <header>
   <h1>Litter Bug / arena</h1>
+  <button id="typeGuide" class="tg">types</button>
   <div class="pace">
     <button id="spd">1x</button>
     <button id="auto">auto</button>
@@ -125,6 +138,7 @@
   <div class="dmglayer" id="dmglayer"></div>
   <div class="banner" id="banner"><div class="card" id="bcard"></div></div>
 </div>
+<div class="tgmodal" id="tgmodal"><div class="tgcard" id="tgcard"></div></div>
 
 <div class="log" id="log"></div>
 <div class="order" id="order"></div>
@@ -296,6 +310,29 @@
   document.getElementById('arena').addEventListener('click', function(){ if(animating) skipping=true; setTimeout(function(){skipping=false;},30); });
   document.getElementById('newFoe').addEventListener('click', function(){ if(!animating) newBattle(false); });
   document.getElementById('newBoth').addEventListener('click', function(){ if(!animating) newBattle(true); });
+
+  // Type guide, generated from the live chart so it can never drift.
+  function typeGuideHTML(){
+    function badge(t){ return '<span class="tbadge" style="background:'+(TYPE_COLOR[t]||'#8a9178')+'">'+t+'</span>'; }
+    var rows = E.TYPES.map(function(a){
+      var strong=[], weak=[];
+      E.TYPES.forEach(function(dd){ var m=E.typeMatchup(a,dd); if(m>1) strong.push(dd); else if(m<1) weak.push(dd); });
+      return '<div class="tgrow"><div class="tgt">'+badge(a)+'</div>'
+        + '<div class="tgse"><span class="tglbl up">strong</span> '+strong.map(badge).join(' ')+'</div>'
+        + '<div class="tgse"><span class="tglbl down">weak</span> '+weak.map(badge).join(' ')+'</div></div>';
+    }).join('');
+    return '<h2>Type guide</h2>'
+      + '<div class="tgnote">Hitting a type it is weak to is super effective: more damage, and it also chips the foe’s guard. A dual-type foe multiplies both of its matchups.</div>'
+      + rows + '<button id="tgClose">Close</button>';
+  }
+  var tgm = document.getElementById('tgmodal');
+  document.getElementById('typeGuide').addEventListener('click', function(){
+    document.getElementById('tgcard').innerHTML = typeGuideHTML();
+    tgm.classList.add('show');
+    document.getElementById('tgClose').addEventListener('click', function(){ tgm.classList.remove('show'); });
+  });
+  tgm.addEventListener('click', function(e){ if(e.target===this) tgm.classList.remove('show'); });
+
   newBattle(true);
 })();
 </script>
