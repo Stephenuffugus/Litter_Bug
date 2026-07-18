@@ -694,7 +694,9 @@
     var eva = 8 + (winged ? 12 : 0) + (t.leg % 10) * 2;
     var stats = { hp: hp, atk: atk, def: def, spd: spd, acc: acc, eva: eva };
     var power = Math.round(hp * 0.6 + atk * 1.2 + def * 1.0 + spd * 0.9 + acc * 0.5 + eva * 0.7);
-    var cls = CLASSES[t.behavior % CLASSES.length];
+    // class from the raw behaviour byte mod 8 (even distribution; t.behavior
+    // is mod 12 which, mapped mod 8, would over-represent the first 4 classes).
+    var cls = CLASSES[hb(codeblock, 22) % CLASSES.length];
     var tags = [winged ? 'Flying' : 'Grounded'];
     if (t.head % 2) tags.push('Mandibles');
     // Dual-typing: primary comes from the palette (legible), secondary from a

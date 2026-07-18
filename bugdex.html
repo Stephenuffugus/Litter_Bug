@@ -128,6 +128,7 @@
         + E._generateBugSVG(e.bg.cb, 130)
         + '<div class="nm">' + e.id.name + '</div>'
         + '<div class="row"><span class="tbadge" style="background:' + tcol + '">' + e.st.type + '</span>'
+        + (e.st.type2 ? '<span class="tbadge" style="background:' + (TYPE_COLOR[e.st.type2] || '#8a9178') + '">' + e.st.type2 + '</span>' : '')
         + '<span class="rar" style="color:' + RARITY_COLOR[e.st.rarity] + '">' + e.st.rarity + '</span>'
         + '<span class="lv">L' + e.bg.level + '</span></div></div>';
     }).join('');
@@ -148,7 +149,8 @@
       E._generateBugSVG(cb, 170)
       + '<div class="nm">' + id.name + '</div><div class="sp">' + id.species + '</div>'
       + '<div class="dg">' + id.designation + '</div>'
-      + '<div class="meta"><span class="tbadge" style="background:' + tcol + '">' + st.type + '</span> '
+      + '<div class="meta"><span class="tbadge" style="background:' + tcol + '">' + st.type + '</span>'
+      + (st.type2 ? ' <span class="tbadge" style="background:' + (TYPE_COLOR[st.type2] || '#8a9178') + '">' + st.type2 + '</span>' : '') + ' '
       + st.cls + ' · <span style="color:' + RARITY_COLOR[st.rarity] + '">' + st.rarity + '</span> · Lv ' + lv
       + (bg ? ' · ' + bg.wins + ' wins' : '') + '</div>'
       + '<div class="meta" style="color:#8a9178;font-size:11px">' + st.kit + '</div>'

@@ -31,7 +31,7 @@
   var CLASS_MOVES = {
     Aggressor:  [mv("Strike",1.0), mv("Heavy Blow",1.55,{acc:0.85}), mv("Flank Bolt",1.15,{type:"cover"}), mv("Rally",0,{eff:"atkUp"})],
     Bulwark:    [mv("Strike",0.95), mv("Body Check",1.2), mv("Cover Jab",0.9,{type:"cover"}), mv("Fortify",0,{eff:"defUp2"})],
-    Skirmisher: [mv("Quick Jab",0.7,{prio:1,acc:0.98}), mv("Slash",1.0), mv("Cover Dart",0.9,{type:"cover"}), mv("Feint",0,{eff:"accDownEnemy"})],
+    Skirmisher: [mv("Quick Jab",0.75,{prio:1,acc:0.98}), mv("Slash",1.05), mv("Cover Dart",0.95,{type:"cover"}), mv("Feint",0,{eff:"accDownEnemy"})],
     Ambusher:   [mv("Ambush",1.5,{acc:0.85,eff:"critUp"}), mv("Strike",1.0), mv("Cover Strike",1.1,{type:"cover"}), mv("Guard",0,{eff:"guard"})],
     Venomancer: [mv("Venom Bite",0.7,{eff:"corrode"}), mv("Strike",0.9), mv("Cover Spit",0.85,{type:"cover"}), mv("Toxic Spray",0,{eff:"corrode"})],
     Sentinel:   [mv("Strike",0.95), mv("Retaliate",1.25), mv("Cover Ward",0.9,{type:"cover"}), mv("Sweep the Grate",0,{eff:"haze"})],

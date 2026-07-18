@@ -253,13 +253,15 @@
         + '<span class="track"><span class="fill" style="width:' + w + '%;background:' + tcol + '"></span></span>'
         + '<span class="val">' + v + '</span></div>';
     }).join('');
+    var t2 = st.type2 ? ' <span class="tbadge" style="background:' + (TYPE_COLOR[st.type2] || '#8a9178') + '">' + st.type2 + '</span>' : '';
+    var nat = st.nature && st.nature.up ? '  &middot;  +' + st.nature.up + ' -' + st.nature.down : '';
     document.getElementById('fighter').innerHTML =
-      '<div class="fhead"><span class="tbadge" style="background:' + tcol + '">' + st.type + '</span>'
+      '<div class="fhead"><span class="tbadge" style="background:' + tcol + '">' + st.type + '</span>' + t2
       + '<span class="fmeta">' + st.cls + ' &middot; <span class="rar" style="color:'
       + (RARITY_COLOR[st.rarity] || '#cdbfa6') + '">' + st.rarity + '</span> &middot; '
       + '<span class="pwr">PWR ' + st.power + '</span></span></div>'
       + '<div class="fkit">' + st.kit + '</div>' + bars
-      + '<div class="ftags">' + st.tags.join('  &middot;  ') + '</div>';
+      + '<div class="ftags">' + st.tags.join('  &middot;  ') + nat + '</div>';
   }
 
   // Save each newly minted bug into the shared collection (localStorage),

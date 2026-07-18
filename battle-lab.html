@@ -108,8 +108,9 @@
     var tcol = TYPE_COLOR[f.type] || '#8a9178';
     var pct = Math.max(0, Math.round(f.hp / f.maxhp * 100));
     var hpcol = pct > 50 ? '#7ab356' : pct > 22 ? '#d99a2f' : '#c86a4b';
+    var t2 = f.type2 ? ' <span class="tbadge" style="background:' + (TYPE_COLOR[f.type2] || '#8a9178') + '">' + f.type2 + '</span>' : '';
     return '<div class="pname">' + f.name + '</div>'
-      + '<div class="prow"><span class="tbadge" style="background:' + tcol + '">' + f.type + '</span>'
+      + '<div class="prow"><span class="tbadge" style="background:' + tcol + '">' + f.type + '</span>' + t2
       + '<span>' + f.cls + '</span></div>'
       + '<div class="art">' + E._generateBugSVG(f.cb, 120) + '</div>'
       + '<div class="hpwrap"><div class="hptrack"><div class="hpfill" style="width:' + pct + '%;background:' + hpcol + '"></div></div>'
@@ -122,10 +123,10 @@
     return you.moves.map(function (m, i) {
       var desc, eff = '';
       if (m.kind === 'attack') {
-        var mult = window.BUG_ENGINE.typeMatchup(m.type, foe.type);
-        desc = 'PWR ' + Math.round(m.pow * 100) + (m.multi > 1 ? ' x' + m.multi : '');
-        if (mult > 1) eff = ' <span class="eff up">strong</span>';
-        else if (mult < 1) eff = ' <span class="eff down">weak</span>';
+        var mult = window.BUG_ENGINE.typeMatchupDual(m.type, foe.type, foe.type2);
+        desc = m.type + (m.stab ? ' (STAB)' : '') + (m.multi > 1 ? ' x' + m.multi : '');
+        if (mult > 1.05) eff = ' <span class="eff up">' + (mult > 2 ? 'x2.5' : 'strong') + '</span>';
+        else if (mult < 0.95) eff = ' <span class="eff down">' + (mult < 0.5 ? 'x0.4' : 'weak') + '</span>';
       } else {
         desc = 'status';
       }
