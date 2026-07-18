@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Litter Bug / bugdex</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0d100c; color: #e8dcc8;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; }
+  header { padding: 12px 14px 8px; border-bottom: 1px solid #1c1f1a; position: sticky; top: 0;
+    background: #0d100c; z-index: 5; }
+  .top { display: flex; align-items: baseline; gap: 10px; }
+  h1 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: .02em; }
+  .count { font-size: 12px; color: #8a9178; font-family: ui-monospace, Menlo, monospace; }
+  .filters { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; align-items: center; padding-bottom: 2px; }
+  .fchip { flex: 0 0 auto; font-size: 11px; padding: 4px 9px; border-radius: 20px; border: 1px solid #2a2f28;
+    background: #15191a; color: #cdbfa6; cursor: pointer; white-space: nowrap; }
+  .fchip.on { background: #2a3a1f; border-color: #7ab356; color: #d8ecc4; }
+  .fchip.type { color: #0d100c; font-weight: 700; }
+  select { margin-left: auto; background: #15191a; color: #e8dcc8; border: 1px solid #2a2f28;
+    border-radius: 8px; padding: 5px 8px; font-size: 12px; }
+
+  main { padding: 12px 14px 40px; }
+  .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .card { background: #131614; border: 1px solid #1f231d; border-radius: 12px; padding: 8px;
+    cursor: pointer; position: relative; }
+  .card svg { width: 100%; height: auto; display: block; }
+  .card .nm { font-size: 12px; font-weight: 600; color: #c8a84b; margin-top: 4px; line-height: 1.2; }
+  .card .row { display: flex; align-items: center; gap: 5px; margin-top: 3px; flex-wrap: wrap; }
+  .tbadge { font-size: 9.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    padding: 1px 6px; border-radius: 5px; color: #0d100c; }
+  .lv { font-size: 10px; color: #8a9178; font-family: ui-monospace, Menlo, monospace; }
+  .rar { font-size: 10px; font-weight: 600; }
+  .dep { position: absolute; top: 6px; right: 8px; font-size: 9px; color: #c8a84b; }
+  .empty { text-align: center; color: #8a9178; padding: 40px 20px; font-size: 14px; }
+
+  .modal { position: fixed; inset: 0; background: rgba(6,8,6,.75); display: none; align-items: center;
+    justify-content: center; padding: 16px; z-index: 20; }
+  .modal.show { display: flex; }
+  .card2 { background: #131614; border: 1px solid #2a2f28; border-radius: 16px; padding: 16px; max-width: 380px;
+    width: 100%; max-height: 88vh; overflow-y: auto; text-align: center; }
+  .card2 svg { width: 170px; height: 170px; }
+  .card2 .nm { font-size: 19px; font-weight: 600; color: #c8a84b; }
+  .card2 .sp { font-style: italic; font-size: 13px; color: #8a9178; }
+  .card2 .dg { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #6f7766; letter-spacing: .04em; }
+  .card2 .lore { white-space: pre-line; font-style: italic; font-size: 13px; line-height: 1.55; color: #cdbfa6;
+    max-width: 30ch; margin: 8px auto; }
+  .card2 .meta { font-size: 12px; color: #cdbfa6; margin: 6px 0; }
+  .statrow { display: grid; grid-template-columns: 32px 1fr 30px; align-items: center; gap: 8px; margin: 3px 0;
+    font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
+  .statrow .lbl { color: #8a9178; text-align: left; } .statrow .val { color: #cdbfa6; text-align: right; }
+  .track { height: 7px; background: #1c211a; border-radius: 4px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 4px; }
+  .card2 button { width: 100%; padding: 12px; background: #15191a; color: #e8dcc8; border: 1px solid #2a2f28;
+    border-radius: 10px; font-size: 15px; cursor: pointer; margin-top: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>Litter Bug / bugdex</h1><span class="count" id="count"></span></div>
+  <div class="filters" id="filters"></div>
+</header>
+<main><div class="grid" id="grid"></div><div class="empty" id="empty" style="display:none">
+  No bugs yet. Roll some in the Mint Lab and they will appear here.</div></main>
+<div class="modal" id="modal"><div class="card2" id="detail"></div></div>
+
+<script src="bug-engine.js"></script>
+<script src="battle-engine.js"></script>
+<script src="world-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var E = window.BUG_ENGINE, W = window.WORLD_ENGINE;
+  var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f', Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
+  var RARITY_COLOR = { Common:'#8a9178', Uncommon:'#7ab356', Rare:'#4a9ad4', Epic:'#b06fd4', Legendary:'#e0a13c' };
+  var RARITY_ORDER = { Common:0, Uncommon:1, Rare:2, Epic:3, Legendary:4 };
+  var STAT_ORDER = [['HP','hp'],['ATK','atk'],['DEF','def'],['SPD','spd'],['ACC','acc'],['EVA','eva']];
+
+  var vault = W.browserLoad();
+  var deployed = W.deployedMap(vault);
+  var typeFilter = 'All', sortBy = 'power';
+
+  function entries() {
+    var list = vault.bugs.map(function (bg) {
+      var st = E.bugStats(bg.cb), id = E.bugIdentity(bg.cb);
+      return { bg: bg, st: st, id: id };
+    });
+    if (typeFilter !== 'All') list = list.filter(function (e) { return e.st.type === typeFilter; });
+    list.sort(function (a, b) {
+      if (sortBy === 'power') return b.st.power - a.st.power;
+      if (sortBy === 'level') return b.bg.level - a.bg.level;
+      if (sortBy === 'rarity') return RARITY_ORDER[b.st.rarity] - RARITY_ORDER[a.st.rarity];
+      return a.id.name.localeCompare(b.id.name);
+    });
+    return list;
+  }
+
+  function renderFilters() {
+    var f = document.getElementById('filters');
+    var types = ['All'].concat(E.TYPES);
+    f.innerHTML = types.map(function (t) {
+      var on = typeFilter === t;
+      var style = (t !== 'All') ? ' style="background:' + (on ? TYPE_COLOR[t] : '#15191a') + ';' + (on ? 'color:#0d100c' : 'color:' + TYPE_COLOR[t]) + '"' : '';
+      return '<span class="fchip' + (on ? ' on' : '') + (t !== 'All' ? ' type' : '') + '" data-t="' + t + '"' + style + '>' + t + '</span>';
+    }).join('') + '<select id="sort">'
+      + ['power', 'level', 'rarity', 'name'].map(function (s) { return '<option value="' + s + '"' + (s === sortBy ? ' selected' : '') + '>sort: ' + s + '</option>'; }).join('')
+      + '</select>';
+    Array.prototype.forEach.call(f.querySelectorAll('.fchip'), function (el) {
+      el.addEventListener('click', function () { typeFilter = el.getAttribute('data-t'); render(); });
+    });
+    document.getElementById('sort').addEventListener('change', function () { sortBy = this.value; render(); });
+  }
+
+  function render() {
+    renderFilters();
+    var list = entries();
+    document.getElementById('count').textContent = vault.bugs.length + ' collected'
+      + (typeFilter !== 'All' ? ' · ' + list.length + ' ' + typeFilter : '');
+    var grid = document.getElementById('grid');
+    document.getElementById('empty').style.display = vault.bugs.length ? 'none' : 'block';
+    grid.innerHTML = list.map(function (e) {
+      var tcol = TYPE_COLOR[e.st.type];
+      return '<div class="card" data-cb="' + e.bg.cb + '">'
+        + (deployed[e.bg.cb] ? '<span class="dep">deployed</span>' : '')
+        + E._generateBugSVG(e.bg.cb, 130)
+        + '<div class="nm">' + e.id.name + '</div>'
+        + '<div class="row"><span class="tbadge" style="background:' + tcol + '">' + e.st.type + '</span>'
+        + '<span class="rar" style="color:' + RARITY_COLOR[e.st.rarity] + '">' + e.st.rarity + '</span>'
+        + '<span class="lv">L' + e.bg.level + '</span></div></div>';
+    }).join('');
+    Array.prototype.forEach.call(grid.querySelectorAll('.card'), function (el) {
+      el.addEventListener('click', function () { openDetail(el.getAttribute('data-cb')); });
+    });
+  }
+
+  function openDetail(cb) {
+    var bg = W.findBug(vault, cb), st = E.bugStats(cb), id = E.bugIdentity(cb);
+    var lv = bg ? bg.level : 1, ls = W.leveledStats(cb, lv), tcol = TYPE_COLOR[st.type];
+    var bars = STAT_ORDER.map(function (o) {
+      var v = ls[o[1]], w = Math.min(100, Math.round(v / 160 * 100));
+      return '<div class="statrow"><span class="lbl">' + o[0] + '</span><span class="track">'
+        + '<span class="fill" style="width:' + w + '%;background:' + tcol + '"></span></span><span class="val">' + v + '</span></div>';
+    }).join('');
+    document.getElementById('detail').innerHTML =
+      E._generateBugSVG(cb, 170)
+      + '<div class="nm">' + id.name + '</div><div class="sp">' + id.species + '</div>'
+      + '<div class="dg">' + id.designation + '</div>'
+      + '<div class="meta"><span class="tbadge" style="background:' + tcol + '">' + st.type + '</span> '
+      + st.cls + ' · <span style="color:' + RARITY_COLOR[st.rarity] + '">' + st.rarity + '</span> · Lv ' + lv
+      + (bg ? ' · ' + bg.wins + ' wins' : '') + '</div>'
+      + '<div class="meta" style="color:#8a9178;font-size:11px">' + st.kit + '</div>'
+      + '<div style="text-align:left;margin:8px 0">' + bars + '</div>'
+      + '<div class="lore">' + id.lore + '</div>'
+      + '<button id="close">Close</button>';
+    document.getElementById('modal').classList.add('show');
+    document.getElementById('close').addEventListener('click', hide);
+  }
+  function hide() { document.getElementById('modal').classList.remove('show'); }
+  document.getElementById('modal').addEventListener('click', function (e) { if (e.target === this) hide(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
