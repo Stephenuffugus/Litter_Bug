@@ -144,19 +144,24 @@
     return { ok: true, key: key(ix, iy) };
   }
 
-  // Attack a wild-held cell with one of your bugs. Win => claim it (the bug
-  // relocates there as the new defender) + XP. Lose/draw => small XP, no claim.
-  function attackCell(vault, ix, iy, attackerCb, now) {
+  // Attacking a wild-held cell is split so the fight can be run EITHER
+  // auto (attackCell) OR interactively (beginAttack -> play the arena ->
+  // applyAttackResult). beginAttack validates + spends energy; applyAttackResult
+  // grants XP and, on a win, claims the cell (the bug relocates to defend it).
+  function beginAttack(vault, ix, iy, attackerCb, now) {
     var st = cellState(vault, ix, iy);
     if (st.type === "empty") return { ok: false, reason: "nothing to attack" };
     if (st.type === "yours") return { ok: false, reason: "you already hold this" };
     var e = findBug(vault, attackerCb);
     if (!e) return { ok: false, reason: "not your bug" };
     if (!spendEnergy(vault, now, ATTACK_COST)) return { ok: false, reason: "not enough energy" };
-
-    var res = BAT.resolveBattle(attackerCb, st.cb, e.level, st.level);
-    var won = res.winner === "a" && !res.draw;        // draws favor the defender
-    var xp = won ? winXp(st.level) : Math.round(winXp(st.level) * 0.25);
+    return { ok: true, defenderCb: st.cb, defenderLevel: st.level,
+      attackerLevel: e.level, key: key(ix, iy) };
+  }
+  function applyAttackResult(vault, ix, iy, attackerCb, won, defLevel, now) {
+    var e = findBug(vault, attackerCb);
+    if (!e) return { ok: false, reason: "not your bug" };
+    var xp = won ? winXp(defLevel) : Math.round(winXp(defLevel) * 0.25);
     var levelsGained = gainXp(e, xp);
     if (won) {
       e.wins++;
@@ -164,8 +169,18 @@
       if (dep) delete vault.claims[dep];
       vault.claims[key(ix, iy)] = { defenderCb: attackerCb, defenderLevel: e.level, claimedAt: now };
     }
-    return { ok: true, won: won, draw: res.draw, battle: res, xp: xp,
-      levelsGained: levelsGained, newLevel: e.level, key: key(ix, iy) };
+    return { ok: true, won: won, xp: xp, levelsGained: levelsGained, newLevel: e.level, key: key(ix, iy) };
+  }
+  // Auto-resolve convenience (draws favor the defender). Used by tests + the
+  // "quick fight" path.
+  function attackCell(vault, ix, iy, attackerCb, now) {
+    var b = beginAttack(vault, ix, iy, attackerCb, now);
+    if (!b.ok) return b;
+    var res = BAT.resolveBattle(attackerCb, b.defenderCb, b.attackerLevel, b.defenderLevel);
+    var won = res.winner === "a" && !res.draw;
+    var r = applyAttackResult(vault, ix, iy, attackerCb, won, b.defenderLevel, now);
+    r.battle = res; r.draw = res.draw;
+    return r;
   }
 
   function summary(vault) {
@@ -235,7 +250,8 @@
     deployedMap: deployedMap, cellState: cellState,
     isWild: isWild, wildCodeblock: wildCodeblock, wildLevel: wildLevel,
     xpToNext: xpToNext, gainXp: gainXp, winXp: winXp, leveledStats: leveledStats,
-    placeBug: placeBug, attackCell: attackCell, summary: summary,
+    placeBug: placeBug, attackCell: attackCell,
+    beginAttack: beginAttack, applyAttackResult: applyAttackResult, summary: summary,
     pendingScrap: pendingScrap, collectScrap: collectScrap, breedBugs: breedBugs,
     browserSave: browserSave, browserLoad: browserLoad
   };

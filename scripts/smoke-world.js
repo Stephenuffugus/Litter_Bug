@@ -18,6 +18,7 @@
 var path = require('path');
 var W = require(path.join(__dirname, '..', 'world-engine.js'));
 var E = require(path.join(__dirname, '..', 'bug-engine.js'));
+var Bat = require(path.join(__dirname, '..', 'battle-engine.js'));
 var crypto = require('crypto');
 function cbOf(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
 
@@ -227,6 +228,43 @@ check('migrate fills missing fields on an old save', function () {
   var m = W.migrate(old);
   return { ok: m.scrap === 0 && m.lastScrapTs === 0 && m.energy === W.ENERGY_MAX,
     detail: 'scrap/energy defaults added, roster preserved' };
+});
+
+check('interactive attack (begin/apply) matches auto attackCell', function () {
+  function nearestWild(v) {
+    for (var x = -3; x <= 3; x++) for (var y = -3; y <= 3; y++)
+      if (W.cellState(v, x, y).type === 'wild') return [x, y];
+    return null;
+  }
+  // auto path
+  var vA = W.seedStarter(W.newVault());
+  var tw = nearestWild(vA), atk = vA.bugs[1].cb;
+  var auto = W.attackCell(vA, tw[0], tw[1], atk, NOW);
+  // interactive path on a fresh identical vault: begin -> resolve -> apply
+  var vB = W.seedStarter(W.newVault());
+  var beg = W.beginAttack(vB, tw[0], tw[1], vB.bugs[1].cb, NOW);
+  if (!beg.ok) return { ok: false, detail: 'begin failed: ' + beg.reason };
+  var energySpent = W.energyNow(vB, NOW) === W.energyNow(vA, NOW); // both spent 1
+  var res = Bat.resolveBattle(vB.bugs[1].cb, beg.defenderCb, beg.attackerLevel, beg.defenderLevel);
+  var app = W.applyAttackResult(vB, tw[0], tw[1], vB.bugs[1].cb, res.winner === 'a' && !res.draw, beg.defenderLevel, NOW);
+  var sameOutcome = auto.won === app.won && auto.xp === app.xp && auto.newLevel === app.newLevel;
+  var sameClaims = JSON.stringify(vA.claims) === JSON.stringify(vB.claims);
+  return { ok: sameOutcome && sameClaims && energySpent,
+    detail: sameOutcome && sameClaims ? 'split path == auto path (' + (auto.won ? 'won' : 'lost') + ')' : 'diverged' };
+});
+
+check('applyAttackResult: win claims + xp, loss neither', function () {
+  var v = W.seedStarter(W.newVault());
+  var atk = v.bugs[1].cb;
+  var tw = null;
+  for (var x = -3; x <= 3 && !tw; x++) for (var y = -3; y <= 3; y++) if (W.cellState(v, x, y).type === 'wild') { tw = [x, y]; break; }
+  var beg = W.beginAttack(v, tw[0], tw[1], atk, NOW);
+  var before = Object.keys(v.claims).length;
+  var loss = W.applyAttackResult(v, tw[0], tw[1], atk, false, beg.defenderLevel, NOW);
+  var noClaimOnLoss = Object.keys(v.claims).length === before && loss.xp > 0 && !loss.won;
+  var win = W.applyAttackResult(v, tw[0], tw[1], atk, true, beg.defenderLevel, NOW);
+  var claimOnWin = W.cellState(v, tw[0], tw[1]).type === 'yours' && win.won;
+  return { ok: noClaimOnLoss && claimOnWin, detail: 'loss = consolation xp, win = claim' };
 });
 
 // ── Output ─────────────────────────────────────────────────────────────

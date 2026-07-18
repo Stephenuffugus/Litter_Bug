@@ -89,6 +89,27 @@
   .bchip.sel { border-color: #7ab356; background: #141a10; }
   .bchip svg { width: 44px; height: 44px; }
   .bchip .cl { font-size: 9px; color: #8a9178; font-family: ui-monospace, Menlo, monospace; }
+  .bfight { display: flex; align-items: flex-start; justify-content: space-around; gap: 6px; }
+  .bside { flex: 1; text-align: center; } .bside.foe svg { transform: scaleX(-1); }
+  .bside svg { width: 74px; height: 74px; }
+  .bside .bn { font-size: 11px; color: #c8a84b; font-weight: 600; line-height: 1.15; min-height: 26px; }
+  .bside .lv { color: #8a9178; font-weight: 400; }
+  .btrack { height: 8px; background: #1c211a; border-radius: 5px; overflow: hidden; margin-top: 3px; }
+  .bfill { height: 100%; border-radius: 5px; transition: width .3s; }
+  .bhptext { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: #8a9178; margin-top: 2px; }
+  .bvs { align-self: center; color: #6f7766; font-size: 11px; }
+  .blog { background: #10140f; border: 1px solid #1f231d; border-radius: 8px; padding: 6px 9px;
+    height: 96px; overflow-y: auto; font-size: 11.5px; line-height: 1.5; color: #cdbfa6; margin: 8px 0; }
+  .blog .ko { color: #e0a13c; } .blog .se { color: #7ab356; }
+  .bmoves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .bmove { padding: 9px; background: #1d251c; color: #e8dcc8; border: 1px solid #3a4634;
+    border-radius: 8px; font-size: 12.5px; cursor: pointer; min-height: 42px; }
+  .bmove:active { background: #2a3527; }
+  .bresult { text-align: center; padding: 9px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .bresult.win { background: #2a3a1f; color: #d8ecc4; } .bresult.lose { background: #3a201c; color: #f0c4b4; }
+  .bresult.draw { background: #23262a; color: #cdbfa6; }
+  .bquick { width: 100%; background: #15191a; border: 1px solid #2a2f28; color: #8a9178;
+    border-radius: 8px; padding: 8px; font-size: 12px; cursor: pointer; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -114,7 +135,7 @@
 <script>
 (function () {
   'use strict';
-  var E = window.BUG_ENGINE, W = window.WORLD_ENGINE;
+  var E = window.BUG_ENGINE, W = window.WORLD_ENGINE, BAT = window.BATTLE_ENGINE;
   var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f', Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
   var CELL = 96, R = 4, SAVE = 'litterbug_vault_v1';
 
@@ -283,24 +304,74 @@
       return '<div' + c + '>' + l + '</div>';
     }).join('');
   }
-  function openAttack(ix, iy, st) {
-    var atkE = W.findBug(vault, activeCb);
-    var r = W.attackCell(vault, ix, iy, activeCb, now());
-    if (!r.ok) { toast(r.reason); return; }
-    save(vault); renderRoster(); renderMap();
-    var res = r.battle;
-    var cls = r.won ? 'win' : (r.draw ? 'draw' : 'lose');
-    var title = r.won ? 'Territory taken!' : (r.draw ? 'Draw — they hold.' : 'Defeated.');
-    var card = document.getElementById('card');
-    card.innerHTML =
-      '<h2 class="' + cls + '">' + title + '</h2>'
-      + '<div class="fight"><div class="you">' + E._generateBugSVG(activeCb, 84) + '</div>'
-      + '<div class="sub">vs</div><div class="foe">' + E._generateBugSVG(st.cb, 84) + '</div></div>'
-      + '<div class="sub">' + res.aName + ' (L' + atkE.level + ') vs ' + res.bName + ' (L' + st.level + ') — ' + res.rounds + ' rounds</div>'
-      + '<div class="xp">+' + r.xp + ' XP' + (r.levelsGained > 0 ? ' <span class="lvup">Level up! Now L' + r.newLevel + '</span>' : '') + '</div>'
-      + '<div class="log">' + logLines(res.log) + '</div>'
-      + '<button id="mClose">' + (r.won ? 'Onward' : 'Back') + '</button>';
+  // Interactive territory battle: play the fight move by move against the
+  // cell's frozen defender, then claim on a win.
+  function openAttack(ix, iy, cell) {
+    var beg = W.beginAttack(vault, ix, iy, activeCb, now());
+    if (!beg.ok) { toast(beg.reason); return; }
+    save(vault); renderRoster(); renderMap();      // energy spent up front
+    var st = BAT.startBattle(activeCb, beg.defenderCb, beg.attackerLevel, beg.defenderLevel);
+    st._fulllog = ['Your ' + st.a.name + ' challenges ' + st.b.name + ' for the cell.'];
+    renderBattle(ix, iy, beg, st);
     showModal();
+  }
+  function applyBattle(ix, iy, beg, won) {
+    var r = W.applyAttackResult(vault, ix, iy, activeCb, won, beg.defenderLevel, now());
+    save(vault); renderRoster(); renderMap();
+    return r;
+  }
+  function advance(st, idx) { BAT.playerRound(st, idx); st._fulllog = st._fulllog.concat(st.log); }
+  function bestMove(self, foe) {
+    var best = 0, bs = -1;
+    self.moves.forEach(function (m, i) {
+      var s = m.kind === 'attack' ? m.pow * (m.multi || 1) * E.typeMatchupDual(m.type, foe.type, foe.type2) * (m.stab ? 1.4 : 1) : 0.5;
+      if (s > bs) { bs = s; best = i; }
+    });
+    return best;
+  }
+  function bpanel(f, foe) {
+    var tc = TYPE_COLOR[f.type] || '#8a9178';
+    var pct = Math.max(0, Math.round(f.hp / f.maxhp * 100));
+    var hpc = pct > 50 ? '#7ab356' : pct > 22 ? '#d99a2f' : '#c86a4b';
+    var badges = (f.corrode > 0 ? ' &#9763;' : '') + (f.smolder > 0 ? ' &#9832;' : '') + (f.rustlock ? ' &#9202;' : '');
+    var t2 = f.type2 ? '<span class="tbadge" style="background:' + (TYPE_COLOR[f.type2] || '#8a9178') + '">' + f.type2 + '</span>' : '';
+    return '<div class="bside' + (foe ? ' foe' : '') + '">' + E._generateBugSVG(f.cb, 74)
+      + '<div class="bn">' + f.name + ' <span class="lv">L' + f.level + '</span></div>'
+      + '<div style="font-size:9px"><span class="tbadge" style="background:' + tc + '">' + f.type + '</span>' + t2 + '</div>'
+      + '<div class="btrack"><div class="bfill" style="width:' + pct + '%;background:' + hpc + '"></div></div>'
+      + '<div class="bhptext">' + f.hp + '/' + f.maxhp + badges + '</div></div>';
+  }
+  function renderBattle(ix, iy, beg, st) {
+    var a = st.a, b = st.b, over = st.over;
+    var footer;
+    if (over) {
+      if (!st._applied) { st._applied = true; st._r = applyBattle(ix, iy, beg, st.winner === 'a' && !st.draw); }
+      var r = st._r, won = st.winner === 'a' && !st.draw;
+      footer = '<div class="bresult ' + (won ? 'win' : st.draw ? 'draw' : 'lose') + '">'
+        + (won ? 'Territory taken. +' + r.xp + ' XP' + (r.levelsGained > 0 ? ' &middot; Level up to L' + r.newLevel : '')
+          : st.draw ? 'Draw. They hold the cell.' : 'Defeated. +' + r.xp + ' XP') + '</div>'
+        + '<button id="mClose">' + (won ? 'Onward' : 'Back') + '</button>';
+    } else {
+      footer = '<div class="bmoves">' + a.moves.map(function (m, i) {
+        var hint = '';
+        if (m.kind === 'attack') { var mu = E.typeMatchupDual(m.type, b.type, b.type2); hint = mu > 1.05 ? ' &#9650;' : mu < 0.95 ? ' &#9660;' : ''; }
+        return '<button class="bmove" data-i="' + i + '">' + m.name + (m.stab && m.kind === 'attack' ? '*' : '') + hint + '</button>';
+      }).join('') + '</div><button class="bquick" id="bquick">quick resolve</button>';
+    }
+    document.getElementById('card').innerHTML =
+      '<div class="bfight">' + bpanel(a, false) + '<div class="bvs">vs</div>' + bpanel(b, true) + '</div>'
+      + '<div class="blog" id="blog">' + logLines(st._fulllog) + '</div>' + footer;
+    if (over) { var c = document.getElementById('mClose'); if (c) c.addEventListener('click', hideModal); }
+    else {
+      Array.prototype.forEach.call(document.querySelectorAll('.bmove'), function (el) {
+        el.addEventListener('click', function () { advance(st, parseInt(el.getAttribute('data-i'), 10)); renderBattle(ix, iy, beg, st); });
+      });
+      document.getElementById('bquick').addEventListener('click', function () {
+        while (!st.over) advance(st, bestMove(st.a, st.b));
+        renderBattle(ix, iy, beg, st);
+      });
+    }
+    var lg = document.getElementById('blog'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
   function openInfo(ix, iy, st) {
     var e = W.findBug(vault, st.cb);
