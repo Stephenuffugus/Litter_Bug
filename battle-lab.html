@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Litter Bug / arena</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; background: #0d100c; color: #e8dcc8;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; }
+  header { padding: 12px 16px 8px; border-bottom: 1px solid #1c1f1a; }
+  h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
+  .sub { margin-top: 2px; font-size: 12px; color: #8a9178; }
+  main { padding: 12px; max-width: 480px; margin: 0 auto; }
+
+  .arena { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  .panel { background: #131614; border: 1px solid #1f231d; border-radius: 12px; padding: 8px 10px; }
+  .panel.foe { text-align: right; }
+  .pname { font-size: 12.5px; font-weight: 600; color: #c8a84b; line-height: 1.2;
+    min-height: 30px; }
+  .prow { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8a9178; margin-top: 2px; }
+  .foe .prow { justify-content: flex-end; }
+  .tbadge { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    padding: 2px 6px; border-radius: 5px; color: #0d100c; }
+  .art { height: 120px; display: flex; align-items: center; justify-content: center; }
+  .art svg { width: 120px; height: 120px; }
+  .foe .art svg { transform: scaleX(-1); }   /* face each other */
+  .hpwrap { margin-top: 4px; }
+  .hptrack { height: 9px; background: #1c211a; border-radius: 5px; overflow: hidden; }
+  .hpfill { height: 100%; border-radius: 5px; transition: width .35s ease; }
+  .hptext { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #8a9178; margin-top: 2px; }
+  .pois { color: #b487ac; font-size: 10px; }
+
+  .vs { text-align: center; color: #6f7766; font-size: 12px; margin: 8px 0 4px; letter-spacing: .1em; }
+
+  .log { background: #10140f; border: 1px solid #1f231d; border-radius: 10px;
+    padding: 8px 10px; height: 132px; overflow-y: auto; margin: 10px 0;
+    font-size: 12.5px; line-height: 1.5; color: #cdbfa6; }
+  .log div { margin: 1px 0; }
+  .log .rd { color: #6f7766; font-size: 10.5px; letter-spacing: .05em; margin-top: 6px; text-transform: uppercase; }
+  .log .ko { color: #e0a13c; font-weight: 600; }
+  .log .se { color: #7ab356; }
+
+  .moves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .move { text-align: left; padding: 10px 12px; background: #1d251c; color: #e8dcc8;
+    border: 1px solid #3a4634; border-radius: 10px; min-height: 52px; cursor: pointer; }
+  .move:active { background: #2a3527; }
+  .move .mn { font-size: 13.5px; font-weight: 600; }
+  .move .md { font-size: 10.5px; color: #8a9178; margin-top: 2px; }
+  .move .eff { font-weight: 700; }
+  .move .eff.up { color: #7ab356; } .move .eff.down { color: #c86a4b; }
+  .move:disabled { opacity: .4; cursor: default; }
+
+  .banner { text-align: center; padding: 10px; border-radius: 10px; margin: 4px 0 10px;
+    font-size: 15px; font-weight: 600; display: none; }
+  .banner.show { display: block; }
+  .banner.win { background: #2a3a1f; border: 1px solid #7ab356; color: #d8ecc4; }
+  .banner.lose { background: #3a201c; border: 1px solid #c86a4b; color: #f0c4b4; }
+  .banner.draw { background: #23262a; border: 1px solid #6f7766; color: #cdbfa6; }
+
+  .controls { display: flex; gap: 8px; }
+  .controls button { flex: 1; padding: 12px; background: #15191a; color: #e8dcc8;
+    border: 1px solid #2a2f28; border-radius: 10px; min-height: 48px; font-size: 14px; cursor: pointer; }
+  .controls button.primary { background: #2a3a1f; border-color: #7ab356; color: #d8ecc4; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Litter Bug / arena</h1>
+  <div class="sub">Turn-based duel. Pick a move; type advantage does double, the wrong type does half.</div>
+</header>
+<main>
+  <div class="arena">
+    <div class="panel you" id="pYou"></div>
+    <div class="panel foe" id="pFoe"></div>
+  </div>
+  <div class="vs">— vs —</div>
+
+  <div class="banner" id="banner"></div>
+  <div class="log" id="log"></div>
+  <div class="moves" id="moves"></div>
+  <div class="controls" style="margin-top:10px;">
+    <button id="newFoe">New opponent</button>
+    <button id="newBoth" class="primary">Roll new bugs</button>
+  </div>
+</main>
+
+<script src="bug-engine.js"></script>
+<script src="battle-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var E = window.BUG_ENGINE, BAT = window.BATTLE_ENGINE;
+  var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f',
+    Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
+
+  var youCB, foeCB, state, logLines;
+
+  function randomCB() {
+    var b = new Uint8Array(32);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    var s = ''; for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2);
+    return s;
+  }
+
+  function panelHTML(f, foe) {
+    var tcol = TYPE_COLOR[f.type] || '#8a9178';
+    var pct = Math.max(0, Math.round(f.hp / f.maxhp * 100));
+    var hpcol = pct > 50 ? '#7ab356' : pct > 22 ? '#d99a2f' : '#c86a4b';
+    return '<div class="pname">' + f.name + '</div>'
+      + '<div class="prow"><span class="tbadge" style="background:' + tcol + '">' + f.type + '</span>'
+      + '<span>' + f.cls + '</span></div>'
+      + '<div class="art">' + E._generateBugSVG(f.cb, 120) + '</div>'
+      + '<div class="hpwrap"><div class="hptrack"><div class="hpfill" style="width:' + pct + '%;background:' + hpcol + '"></div></div>'
+      + '<div class="hptext">' + f.hp + ' / ' + f.maxhp + ' HP'
+      + (f.poison > 0 ? ' <span class="pois">&#9763; poisoned</span>' : '') + '</div></div>';
+  }
+
+  function movesHTML() {
+    var you = state.a, foe = state.b;
+    return you.moves.map(function (m, i) {
+      var desc, eff = '';
+      if (m.kind === 'attack') {
+        var mult = window.BUG_ENGINE.typeMatchup(m.type, foe.type);
+        desc = 'PWR ' + Math.round(m.pow * 100) + (m.multi > 1 ? ' x' + m.multi : '');
+        if (mult > 1) eff = ' <span class="eff up">2x</span>';
+        else if (mult < 1) eff = ' <span class="eff down">&frac12;x</span>';
+      } else {
+        desc = 'status';
+      }
+      var over = state.over ? ' disabled' : '';
+      return '<button class="move" data-i="' + i + '"' + over + '>'
+        + '<div class="mn">' + m.name + eff + '</div><div class="md">' + desc + '</div></button>';
+    }).join('');
+  }
+
+  function pushLog(lines, roundNo) {
+    var log = document.getElementById('log');
+    if (roundNo) { var r = document.createElement('div'); r.className = 'rd'; r.textContent = 'Round ' + roundNo; log.appendChild(r); }
+    lines.forEach(function (l) {
+      var d = document.createElement('div');
+      if (/is down|succumbs|draw/i.test(l)) d.className = 'ko';
+      else if (/Super effective/.test(l)) d.className = 'se';
+      d.textContent = l;
+      log.appendChild(d);
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function render() {
+    document.getElementById('pYou').innerHTML = panelHTML(state.a, false);
+    document.getElementById('pFoe').innerHTML = panelHTML(state.b, true);
+    document.getElementById('moves').innerHTML = movesHTML();
+    bindMoves();
+    var banner = document.getElementById('banner');
+    if (state.over) {
+      banner.className = 'banner show ' + (state.draw ? 'draw' : state.winner === 'a' ? 'win' : 'lose');
+      banner.textContent = state.draw ? 'Draw. Both bugs fall.'
+        : (state.winner === 'a' ? state.a.name + ' wins!' : state.b.name + ' wins.');
+    } else banner.className = 'banner';
+  }
+
+  function bindMoves() {
+    var btns = document.querySelectorAll('.move');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function () {
+        if (state.over) return;
+        var idx = parseInt(this.getAttribute('data-i'), 10);
+        BAT.playerRound(state, idx);
+        pushLog(state.log, state.round);
+        render();
+      });
+    }
+  }
+
+  function newBattle(freshYou) {
+    if (freshYou || !youCB) youCB = randomCB();
+    foeCB = randomCB();
+    state = BAT.startBattle(youCB, foeCB);
+    logLines = [];
+    document.getElementById('log').innerHTML = '';
+    pushLog([state.a.name + ' (' + state.a.type + ') challenges ' + state.b.name + ' (' + state.b.type + ').'], 0);
+    render();
+  }
+
+  document.getElementById('newFoe').addEventListener('click', function () { newBattle(false); });
+  document.getElementById('newBoth').addEventListener('click', function () { newBattle(true); });
+  newBattle(true);
+})();
+</script>
+</body>
+</html>
