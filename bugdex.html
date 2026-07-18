@@ -54,6 +54,11 @@
     max-width: 30ch; margin: 8px auto; }
   .card2 .fmatch { font-size: 11px; color: #9aa48c; line-height: 1.45; margin: 6px auto; max-width: 32ch; }
   .card2 .fmatch b { color: #cdbfa6; } .card2 .fmatch .up { color: #7ab356; } .card2 .fmatch .down { color: #c86a4b; }
+  .card2 .msetlbl { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: #8a9178; margin: 12px 0 5px; text-align: left; }
+  .card2 .mset { text-align: left; display: flex; flex-direction: column; gap: 5px; }
+  .card2 .mv { background: #10140f; border: 1px solid #1f231d; border-radius: 8px; padding: 6px 9px; }
+  .card2 .mv .mvn { font-size: 12.5px; color: #e8dcc8; font-weight: 600; }
+  .card2 .mv .mvd { font-size: 10.5px; color: #9aa48c; margin-top: 2px; }
   .card2 .meta { font-size: 12px; color: #cdbfa6; margin: 6px 0; }
   .statrow { display: grid; grid-template-columns: 32px 1fr 30px; align-items: center; gap: 8px; margin: 3px 0;
     font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
@@ -91,7 +96,7 @@
 <script>
 (function () {
   'use strict';
-  var E = window.BUG_ENGINE, W = window.WORLD_ENGINE;
+  var E = window.BUG_ENGINE, W = window.WORLD_ENGINE, BAT = window.BATTLE_ENGINE;
   var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f', Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
   var RARITY_COLOR = { Common:'#8a9178', Uncommon:'#7ab356', Rare:'#4a9ad4', Epic:'#b06fd4', Legendary:'#e0a13c' };
   var RARITY_ORDER = { Common:0, Uncommon:1, Rare:2, Epic:3, Legendary:4 };
@@ -167,6 +172,17 @@
     });
   }
 
+  function movesetHTML(code) {
+    if (!BAT || !BAT.buildFighter) return '';
+    var f = BAT.buildFighter(code, 1);
+    var rows = f.moves.map(function (m) {
+      var tb = m.kind === 'attack' ? '<span class="tbadge" style="background:' + (TYPE_COLOR[m.type] || '#8a9178') + '">' + m.type + '</span> ' : '';
+      var stat = m.kind === 'attack' ? ((m.multi > 1 ? m.multi + ' hits' : 'attack') + (m.stab ? ' &middot; STAB' : '')) : 'status';
+      return '<div class="mv"><div class="mvn">' + m.name + (m.stab && m.kind === 'attack' ? ' <span style="color:#c8a84b">&#10022;</span>' : '') + '</div>'
+        + '<div class="mvd">' + tb + stat + (m.desc ? ' &middot; ' + m.desc : '') + '</div></div>';
+    }).join('');
+    return '<div class="msetlbl">Moveset</div><div class="mset">' + rows + '</div>';
+  }
   function matchLine(type) {
     var strong = [], weak = [];
     E.TYPES.forEach(function (d) { var m = E.typeMatchup(type, d); if (m > 1) strong.push(d); else if (m < 1) weak.push(d); });
@@ -199,6 +215,7 @@
       + '<span class="gval" id="gval">' + glabel(actual) + '</span></div>'
       + '<div id="detailBars" style="text-align:left;margin:8px 0">' + barsHTML(actual) + '</div>'
       + matchLine(st.type)
+      + movesetHTML(cb)
       + '<div class="lore">' + id.lore + '</div>'
       + '<button id="close">Close</button>';
     document.getElementById('modal').classList.add('show');
