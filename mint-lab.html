@@ -73,6 +73,8 @@
   .statrow .fill { height: 100%; border-radius: 4px; }
   .statrow .val { color: #cdbfa6; text-align: right; }
   .ftags { margin-top: 7px; font-size: 10.5px; color: #6f7766; letter-spacing: .03em; }
+  .fmatch { margin-top: 8px; font-size: 11px; color: #9aa48c; line-height: 1.45; }
+  .fmatch b { color: #cdbfa6; } .fmatch .up { color: #7ab356; } .fmatch .down { color: #c86a4b; }
   .collnote { font-size: 12px; color: #7ab356; text-align: center; }
   .codeblock { font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 11px; color: #7ab356; word-break: break-all; text-align: center;
@@ -264,7 +266,15 @@
       + (RARITY_COLOR[st.rarity] || '#cdbfa6') + '">' + st.rarity + '</span> &middot; '
       + '<span class="pwr">PWR ' + st.power + '</span></span></div>'
       + '<div class="fkit">' + st.kit + '</div>' + bars
-      + '<div class="ftags">' + st.tags.join('  &middot;  ') + nat + '</div>';
+      + '<div class="ftags">' + st.tags.join('  &middot;  ') + nat + '</div>'
+      + matchLine(st.type);
+  }
+  // Friendly matchup summary for the bug's primary type, from the live chart.
+  function matchLine(type) {
+    var strong = [], weak = [];
+    TYPES.forEach(function (d) { var m = typeMatchup(type, d); if (m > 1) strong.push(d); else if (m < 1) weak.push(d); });
+    return '<div class="fmatch"><b>' + type + '</b> hits are <span class="up">strong vs ' + strong.join(', ')
+      + '</span>, <span class="down">weak vs ' + weak.join(', ') + '</span></div>';
   }
 
   // Save each newly minted bug into the shared collection (localStorage),
