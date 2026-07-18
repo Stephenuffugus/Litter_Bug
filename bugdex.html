@@ -37,6 +37,9 @@
   .rar { font-size: 10px; font-weight: 600; }
   .dep { position: absolute; top: 6px; right: 8px; font-size: 9px; color: #c8a84b; }
   .empty { text-align: center; color: #8a9178; padding: 40px 20px; font-size: 14px; }
+  .statstrip { display: flex; gap: 14px; padding: 8px 0 2px; font-size: 11px; color: #8a9178;
+    font-family: ui-monospace, Menlo, monospace; flex-wrap: wrap; }
+  .statstrip b { color: #c8a84b; }
 
   .modal { position: fixed; inset: 0; background: rgba(6,8,6,.75); display: none; align-items: center;
     justify-content: center; padding: 16px; z-index: 20; }
@@ -76,6 +79,7 @@
 <header>
   <div class="top"><h1>Litter Bug / bugdex</h1><span class="count" id="count"></span></div>
   <div class="filters" id="filters"></div>
+  <div class="statstrip" id="statstrip"></div>
 </header>
 <main><div class="grid" id="grid"></div><div class="empty" id="empty" style="display:none">
   No bugs yet. Roll some in the Mint Lab and they will appear here.</div></main>
@@ -133,6 +137,18 @@
     var list = entries();
     document.getElementById('count').textContent = vault.bugs.length + ' collected'
       + (typeFilter !== 'All' ? ' · ' + list.length + ' ' + typeFilter : '');
+    var strip = document.getElementById('statstrip');
+    if (vault.bugs.length) {
+      var owned = {}, topLvl = 0, totalPwr = 0;
+      vault.bugs.forEach(function (b) {
+        var st = E.bugStats(b.cb);
+        owned[st.type] = 1; if (st.type2) owned[st.type2] = 1;
+        topLvl = Math.max(topLvl, b.level); totalPwr += st.power;
+      });
+      strip.innerHTML = '<span><b>' + Object.keys(owned).length + '</b>/' + E.TYPES.length + ' types</span>'
+        + '<span>top <b>L' + topLvl + '</b></span>'
+        + '<span><b>' + totalPwr + '</b> total power</span>';
+    } else strip.innerHTML = '';
     var grid = document.getElementById('grid');
     document.getElementById('empty').style.display = vault.bugs.length ? 'none' : 'block';
     grid.innerHTML = list.map(function (e) {
