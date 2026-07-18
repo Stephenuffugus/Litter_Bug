@@ -346,10 +346,12 @@
     var segMat = seg.map(function (s, i) { return i === N - 1 ? -1 : Math.floor(R() * mats.length); });
     var antKind = Math.floor(R() * 3), eyeKind = Math.floor(R() * 3);   // head detail, rolled last
     var legKind = Math.floor(R() * 3);   // 0 thin, 1 sturdy, 2 raptorial forelegs
+    var plateKind = (R() < 0.4) ? 1 : 0;   // carapace: dorsal armor plates over each body segment
     var has = function (th) { return growth >= th; };
+    var plated = plateKind && wingKind !== 2;   // no plates under an elytra shell
 
     // fit to canvas (account for the parts that have grown in)
-    var top = Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (has(plan.wings) ? wingUp : 8) - (has(Math.min.apply(0, plan.spines)) ? 10 : 0);
+    var top = Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (has(plan.wings) ? wingUp : 8) - (has(Math.min.apply(0, plan.spines)) ? 10 : 0) - (plated ? 8 : 0);
     var minx = Math.min.apply(0, seg.map(function (s) { return s.x - s.r; })) - (has(plan.tail) ? tailLen * 1.3 + 6 : 4);
     var maxx = Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (has(plan.pincers) ? 16 : 8) + (has(plan.horns) ? 10 : 0) + (has(plan.wings) && wingKind !== 2 ? 16 : 0);
     var bottom = Math.max.apply(0, seg.map(function (s) { return s.y + s.r; })) + 22;
@@ -367,7 +369,7 @@
     var uid = hash.substr(0, 6);
     var matDefs = mats.map(function (m, k) { return grad('gb' + k + uid, m); }).join('');
     var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + '</defs>';
-    var back = '', legs = '', body = '', stitches = '', shell = '', front = '';
+    var back = '', legs = '', body = '', plates = '', stitches = '', shell = '', front = '';
 
     function membrane(ox, oy, sc, op) {
       return '<path d="M ' + q(ox) + ' ' + q(oy)
@@ -414,6 +416,17 @@
     seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? ('gh' + uid) : ('gb' + segMat[i] + uid);
       body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + ')" stroke="' + ol + '" stroke-width="2.4"/>';
       if (i < N - 1) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
+    if (plated) {   // dorsal armor cap over each body segment (not the head)
+      seg.forEach(function (s, i) {
+        if (i === N - 1) return;
+        var pw = s.r * 0.86, pc = mix(mats[segMat[i]], pal.dark, 0.32);
+        plates += '<path d="M ' + q(s.x - pw) + ' ' + q(s.y - s.r * 0.12)
+          + ' Q ' + q(s.x) + ' ' + q(s.y - s.r * 1.24) + ' ' + q(s.x + pw) + ' ' + q(s.y - s.r * 0.12)
+          + ' Q ' + q(s.x) + ' ' + q(s.y + s.r * 0.14) + ' ' + q(s.x - pw) + ' ' + q(s.y - s.r * 0.12) + ' Z"'
+          + ' fill="' + pc + '" stroke="' + ol + '" stroke-width="1.3" stroke-linejoin="round" opacity="0.92"/>';
+        plates += '<path d="M ' + q(s.x - pw * 0.6) + ' ' + q(s.y - s.r * 0.55) + ' Q ' + q(s.x) + ' ' + q(s.y - s.r * 1.02) + ' ' + q(s.x + pw * 0.6) + ' ' + q(s.y - s.r * 0.55) + '" fill="none" stroke="' + lt(mats[segMat[i]], 0.22) + '" stroke-width="1.1" opacity="0.55"/>';
+      });
+    }
 
     var head = seg[N - 1], eR = head.r * 0.42, ax = head.x + head.r * 0.2, ay = head.y - head.r * 0.8;
     if (has(0.12)) {
@@ -458,7 +471,7 @@
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
-      + defs + shadow + back + legs + body + stitches + shell + front + '</svg>';
+      + defs + shadow + back + legs + body + plates + stitches + shell + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
