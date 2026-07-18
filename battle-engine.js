@@ -198,6 +198,18 @@
   // The move the foe will use this round, computed on pre-action state.
   function previewFoeMove(state) { return state.b.moves[aiPick(state.b, state.a)]; }
 
+  // Same ordering resolveRound uses (priority, then effective SPD incl. stages
+  // and rustlock, then lower cb). Exposed read-only so the UI "you first"
+  // telegraph cannot drift from the real turn order. Returns true if the
+  // player (a) acts before the foe (b) when a plays move aMoveIdx.
+  function previewOrder(state, aMoveIdx) {
+    var a = state.a, b = state.b;
+    var aMove = a.moves[aMoveIdx] || a.moves[0], bMove = previewFoeMove(state);
+    if (aMove.prio !== bMove.prio) return aMove.prio > bMove.prio;
+    if (espd(a) !== espd(b)) return espd(a) > espd(b);
+    return a.cb < b.cb;
+  }
+
   // ── One round ───────────────────────────────────────────────────────
   function resolveRound(state, aMoveIdx) {
     if (state.over) return state;
@@ -275,7 +287,7 @@
 
   var _api = { buildFighter: buildFighter, startBattle: startBattle,
     playerRound: playerRound, resolveBattle: resolveBattle,
-    previewFoeMove: previewFoeMove, damageBand: damageBand, hitPercent: hitPercent,
+    previewFoeMove: previewFoeMove, previewOrder: previewOrder, damageBand: damageBand, hitPercent: hitPercent,
     CLASS_MOVES: CLASS_MOVES };
   if (typeof module !== "undefined" && module.exports) module.exports = _api;
   if (typeof window !== "undefined") { window.BATTLE_ENGINE = _api; }

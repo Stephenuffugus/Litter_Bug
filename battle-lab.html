@@ -164,13 +164,6 @@
     return foe ? art + info : info + art;
   }
 
-  function firstMover(myMove, foeMove) {
-    if (myMove.prio !== foeMove.prio) return myMove.prio > foeMove.prio;
-    var ea = state.a.spd, eb = state.b.spd; // resting-stage approximation
-    if (ea !== eb) return ea > eb;
-    return state.a.cb < state.b.cb;
-  }
-
   function movesHTML() {
     if (state.over) return '';
     var you = state.a, foe = state.b, fm = BAT.previewFoeMove(state);
@@ -183,7 +176,7 @@
         glyph = ew.g ? '<span class="glyph '+ew.c+'">'+ew.g+'</span>' : '';
         l2 = '<span class="tbadge" style="background:'+(TYPE_COLOR[m.type]||'#8a9178')+'">'+m.type+'</span> '+db.min+'-'+db.max+' &middot; '+BAT.hitPercent(you,foe,m)+'%';
       } else l2 = 'status';
-      var first = firstMover(m, fm) ? '<span class="first">&#9656; you first</span>' : '';
+      var first = BAT.previewOrder(state, i) ? '<span class="first">&#9656; you first</span>' : '';
       return '<button class="move" data-i="'+i+'"><div class="mn">'+m.name+pip+glyph+'</div>'
         + '<div class="l2">'+l2+'</div><div class="l3">'+(m.desc||'')+' '+first+'</div></button>';
     }).join('');
