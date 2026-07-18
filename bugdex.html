@@ -125,7 +125,7 @@
       var tcol = TYPE_COLOR[e.st.type];
       return '<div class="card" data-cb="' + e.bg.cb + '">'
         + (deployed[e.bg.cb] ? '<span class="dep">deployed</span>' : '')
-        + E._generateBugSVG(e.bg.cb, 130)
+        + E._generateBugSVG(e.bg.cb, 130, e.bg.level)
         + '<div class="nm">' + e.id.name + '</div>'
         + '<div class="row"><span class="tbadge" style="background:' + tcol + '">' + e.st.type + '</span>'
         + (e.st.type2 ? '<span class="tbadge" style="background:' + (TYPE_COLOR[e.st.type2] || '#8a9178') + '">' + e.st.type2 + '</span>' : '')
@@ -146,7 +146,7 @@
         + '<span class="fill" style="width:' + w + '%;background:' + tcol + '"></span></span><span class="val">' + v + '</span></div>';
     }).join('');
     document.getElementById('detail').innerHTML =
-      E._generateBugSVG(cb, 170)
+      E._generateBugSVG(cb, 170, lv)
       + '<div class="nm">' + id.name + '</div><div class="sp">' + id.species + '</div>'
       + '<div class="dg">' + id.designation + '</div>'
       + '<div class="meta"><span class="tbadge" style="background:' + tcol + '">' + st.type + '</span>'

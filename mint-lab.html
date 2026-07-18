@@ -51,6 +51,8 @@
   .bugspecies { font-style: italic; font-size: 13px; color: #8a9178; margin-top: -2px; }
   .bugdesig { font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 10.5px; color: #6f7766; letter-spacing: .04em; }
+  .grownote { text-align: center; font-size: 12px; color: #6f7a68;
+    margin: 2px 0 10px; letter-spacing: .2px; }
   .buglore { white-space: pre-line; text-align: center; font-size: 13.5px;
     line-height: 1.55; color: #cdbfa6; max-width: 32ch; margin: 4px auto 2px;
     font-style: italic; }
@@ -113,6 +115,7 @@
 
     <div id="result" class="result">
       <div class="bugwrap" id="bugwrap"></div>
+      <div class="grownote" id="grownote">Level 1 hatchling. It grows new limbs, wings and armor as you train it.</div>
       <div class="bugname" id="bugname"></div>
       <div class="bugspecies" id="bugspecies"></div>
       <div class="bugdesig" id="bugdesig"></div>
@@ -289,7 +292,7 @@
     promptEl.textContent = 'Trial complete. Your bug:';
 
     var cb = await window.mintCodeblock(DEMO_SALT, trace);
-    var bug = window.bugFromCodeblock(cb, 200);
+    var bug = window.bugFromCodeblock(cb, 200, 1);
 
     document.getElementById('bugwrap').innerHTML = bug.svg;
     document.getElementById('bugname').textContent = bug.identity.name;

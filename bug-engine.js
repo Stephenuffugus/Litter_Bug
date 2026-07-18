@@ -294,130 +294,80 @@
   // cel shadows (toward the scheme's dark), pattern clipped to the body, and a
   // fit-to-canvas pass keep any roll a viable, on-model fighter. Deterministic
   // (toFixed quantized). Faces right, viewBox 200x200.
-  function _generateBugSVG(hash, size) {
+  // ── _generateBugSVG(hash, size, level): grow-assembly bug. ───────────
+  // The codeblock is the GENOME: it rolls a spine of stitch-point segments
+  // plus a vocabulary of parts (legs, wings, dorsal spines, horns, pincers,
+  // stinger tail, extra eyes), each with a rolled growth threshold. LEVEL
+  // decides how much has grown in, so a fresh bug is a simple stitched grub
+  // and a trained one is its full intricate fighter. Same codeblock always
+  // grows the same path. Deterministic, palette-recolored, seams are visible
+  // cross-stitches ("sewn from litter"). Faces right, viewBox 200x200.
+  function _generateBugSVG(hash, size, level) {
+    level = level || 30;
     var t = hashToBugTraits(hash), pal = PALETTES[t.palette] || PALETTES[0];
-    var uid = hash.substr(0, 8);
-    var primary = pal.primary, secondary = pal.secondary, accent = pal.accent;
-
+    var primary = pal.primary, accent = pal.accent, secondary = pal.secondary;
     function _rgb(h){ h=h.replace('#',''); return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) }; }
     function _hx(o){ var c=function(v){ return ('0'+Math.max(0,Math.min(255,Math.round(v))).toString(16)).slice(-2); }; return '#'+c(o.r)+c(o.g)+c(o.b); }
     function dk(h,f){ var c=_rgb(h); return _hx({ r:c.r*(1-f), g:c.g*(1-f), b:c.b*(1-f) }); }
     function lt(h,f){ var c=_rgb(h); return _hx({ r:c.r+(255-c.r)*f, g:c.g+(255-c.g)*f, b:c.b+(255-c.b)*f }); }
     function mix(a,b,tt){ var x=_rgb(a),y=_rgb(b); return _hx({ r:x.r+(y.r-x.r)*tt, g:x.g+(y.g-x.g)*tt, b:x.b+(y.b-x.b)*tt }); }
-    function band(i,min,max){ return min + (hb(hash,i)/255)*(max-min); }
     function q(v){ return v.toFixed(2); }
-    // superellipse closed path; taperRear scales the rear (x<cx) half-width.
-    function bodyPath(cx2,cy2,a,b,n,taperRear,steps){
-      var d='',i,th,ct,st,ax,x,y;
-      for(i=0;i<=steps;i++){ th=(i/steps)*2*Math.PI; ct=Math.cos(th); st=Math.sin(th);
-        ax = ct<0 ? a*taperRear : a;
-        x = cx2 + ax*Math.sign(ct)*Math.pow(Math.abs(ct),2/n);
-        y = cy2 + b*Math.sign(st)*Math.pow(Math.abs(st),2/n);
-        d += (i?'L':'M')+q(x)+' '+q(y)+' '; }
-      return d+'Z';
-    }
+    var R = seededRng(hash + '|grow');
+    var growth = Math.max(0.12, Math.min(1, level / 22));
+    var ol = dk(pal.dark, 0.2), stitchCol = lt(pal.dark, 0.35), spineCol = mix(primary, pal.dark, 0.3);
+    var cx = 100, cy = 110, i, u, x;
 
-    var ol = dk(pal.dark, 0.25);
-    var cx = 97, cy = 108;
+    // roll the full body plan (level-independent)
+    var N = 3 + Math.floor(R() * 4), seg = [], rTail = 13 + R() * 7, rHead = 8 + R() * 4;
+    for (i = 0; i < N; i++) { u = i / (N - 1); seg.push({ r: rTail + (rHead - rTail) * u + (i > 0 && i < N - 1 ? (R() - 0.5) * 4 : 0) }); }
+    x = cx - seg.reduce(function (a, s) { return a + s.r * 1.28; }, 0) / 2 + seg[0].r;
+    for (i = 0; i < N; i++) { seg[i].x = x; seg[i].y = cy + Math.sin(i / (N - 1) * Math.PI) * -4 - (i === N - 1 ? 4 : 0); if (i < N - 1) x += (seg[i].r + seg[i + 1].r) * 0.6; }
+    var thoraxI = N - 2;
+    var plan = {
+      legs: seg.map(function (s, i) { return (i >= 1 && i <= thoraxI) ? 0.12 + R() * 0.5 : (i < 1 ? 0.4 + R() * 0.4 : 999); }),
+      wings: (R() < 0.75) ? 0.42 + R() * 0.25 : 999,
+      horns: (R() < 0.55) ? 0.55 + R() * 0.35 : 999,
+      pincers: (R() < 0.6) ? 0.3 + R() * 0.3 : 999,
+      tail: (R() < 0.5) ? 0.6 + R() * 0.3 : 999,
+      spines: seg.map(function () { return (R() < 0.5) ? 0.35 + R() * 0.5 : 999; }),
+      extraEyes: (R() < 0.4) ? 0.7 + R() * 0.25 : 999
+    };
+    var wSweep = (R() - 0.5) * 16, hornCurl = (R() - 0.5) * 0.6, tailLen = 10 + R() * 8;
+    var has = function (th) { return growth >= th; };
 
-    // one size driver + clamped ratio bands
-    var g = {};
-    g.abRy = band(1, 26, 38);
-    g.abRx = g.abRy * band(2, 1.05, 1.45);
-    g.thR  = Math.min(g.abRy * band(4, 0.60, 0.86), g.abRy * 0.9);
-    g.hR   = Math.min(g.thR * band(5, 0.55, 0.82), g.thR * 0.9);
-    g.eR   = g.hR * band(6, 0.36, 0.5);
-    g.legLen = g.abRy * band(7, 0.9, 1.6);
-    g.antLen = g.hR * band(8, 1.4, 2.6);
-    g.wingSpan = g.abRx * band(9, 0.95, 1.35);
-    g.nAb = band(12, 2.0, 3.3); g.taper = band(13, 0.72, 1.0);
-    g.nTh = band(15, 2.0, 2.7); g.nH = band(16, 2.0, 3.0);
-    g.snout = band(17, 0, g.hR * 0.4);
-    g.wSweep = band(19, -8, 20); g.wDroop = band(20, 0, 14);
-    g.legPairs = band(21, 0, 1) < 0.75 ? 3 : 4;
-    g.femur = band(22, 0.35, 0.6); g.curl = band(23, -0.3, 0.5);
-    g.antCurl = band(24, 0.2, 0.9); g.club = band(26, 2, 5);
-    g.patCount = Math.round(band(27, 2, 5));
-    g.wf = t.wing % 5; g.af = t.antenna % 5; g.pf = t.pattern % 5; g.mand = t.head % 2; g.hfam = t.head % 5;
-    if (g.wf === 4) { g.legLen *= 1.15; g.abRx *= 1.08; }   // wingless compensation
+    // fit to canvas (account for the parts that have grown in)
+    var top = Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (has(plan.wings) ? 40 : 8) - (has(Math.min.apply(0, plan.spines)) ? 10 : 0);
+    var minx = Math.min.apply(0, seg.map(function (s) { return s.x - s.r; })) - (has(plan.tail) ? tailLen : 4);
+    var maxx = Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (has(plan.pincers) ? 14 : 8) + (has(plan.horns) ? 10 : 0);
+    var bottom = Math.max.apply(0, seg.map(function (s) { return s.y + s.r; })) + 22;
+    var w = maxx - minx, h = bottom - top, f = Math.min(1, 176 / w, 182 / h);
+    if (f < 1) { var mmx = (minx + maxx) / 2, mmy = (top + bottom) / 2; seg.forEach(function (s) { s.x = cx + (s.x - mmx) * f; s.y = cy + (s.y - mmy) * f; s.r *= f; }); tailLen *= f; }
 
-    // fit-to-canvas: uniform down-scale if the figure would exceed the safe rect
-    function positions(g){
-      var abCx = cx - g.abRx*0.5, thCx = abCx + g.abRx*0.5 + g.thR*0.42, hCx = thCx + g.thR*0.5 + g.hR*0.5;
-      return { abCx:abCx, thCx:thCx, hCx:hCx,
-        left: abCx - g.abRx*g.taper, right: hCx + g.hR + g.snout + (g.mand ? g.hR*0.5 : 0),
-        top: cy - (g.abRy + g.wingSpan*0.72), bottom: cy + g.abRy*0.9 + g.legLen*0.9 };
-    }
-    var p = positions(g), m = 12;
-    var f = Math.min(1, (cx-m)/(cx-p.left), (200-m-cx)/(p.right-cx), (cy-m)/(cy-p.top), (200-m-cy)/(p.bottom-cy));
-    if (f < 0.999) { ['abRy','abRx','thR','hR','eR','legLen','antLen','wingSpan','snout'].forEach(function(k){ g[k]*=f; }); p = positions(g); }
-    var abCx = p.abCx, thCx = p.thCx, hCx = p.hCx, hCy = cy - 2;
+    function grad(id, base) { return '<linearGradient id="' + id + '" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="' + lt(base, 0.28) + '"/><stop offset="0.5" stop-color="' + base + '"/><stop offset="1" stop-color="' + mix(base, pal.dark, 0.42) + '"/></linearGradient>'; }
+    var uid = hash.substr(0, 6);
+    var defs = '<defs>' + grad('gb' + uid, primary) + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + '</defs>';
+    var back = '', legs = '', body = '', stitches = '', front = '';
 
-    function shade(id, base){ return '<linearGradient id="'+id+uid+'" x1="0.2" y1="0.05" x2="0.85" y2="1">'
-      + '<stop offset="0" stop-color="'+lt(base,0.30)+'"/><stop offset="0.44" stop-color="'+base+'"/>'
-      + '<stop offset="0.46" stop-color="'+base+'"/><stop offset="1" stop-color="'+mix(base,pal.dark,0.4)+'"/></linearGradient>'; }
-    var abD = bodyPath(abCx, cy, g.abRx, g.abRy, g.nAb, g.taper, 52);
-    var defs = '<defs>' + shade('gB',primary) + shade('gT',secondary) + shade('gH',secondary) + shade('gW',lt(accent,0.12))
-      + '<clipPath id="ca'+uid+'"><path d="'+abD+'"/></clipPath></defs>';
+    if (has(plan.wings)) { var sw = seg[thoraxI], wx = sw.x, wy = sw.y - sw.r * 0.3;
+      back += '<path d="M ' + q(wx) + ' ' + q(wy) + ' Q ' + q(wx - 32) + ' ' + q(wy - 38) + ' ' + q(wx + 8 + wSweep) + ' ' + q(wy - 44) + ' Q ' + q(wx + 36) + ' ' + q(wy - 32) + ' ' + q(wx + 32) + ' ' + q(wy - 6) + ' Q ' + q(wx + 18) + ' ' + q(wy + 2) + ' ' + q(wx) + ' ' + q(wy) + ' Z" fill="url(#gw' + uid + ')" stroke="' + dk(accent, 0.4) + '" stroke-width="1.6" opacity="0.95"/>'; }
+    if (has(plan.tail)) { var stl = seg[0]; back += '<path d="M ' + q(stl.x) + ' ' + q(stl.y) + ' q ' + q(-tailLen) + ' 4 ' + q(-tailLen * 1.2) + ' -8 l 5 -4 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.6" stroke-linejoin="round"/>'; }
+    seg.forEach(function (s, i) { if (!has(plan.legs[i])) return; var ky = s.y + s.r * 0.7 + 8;
+      legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
+      legs += '<path d="M ' + q(s.x + 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 3) + ' ' + q(ky) + ' L ' + q(s.x - 6) + ' ' + q(ky + 10) + '" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'; });
+    seg.forEach(function (s, i) { if (!has(plan.spines[i])) return; back += '<path d="M ' + q(s.x) + ' ' + q(s.y - s.r) + ' l -3 -9 l 6 0 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1"/>'; });
+    seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? 'gh' : 'gb';
+      body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + uid + ')" stroke="' + ol + '" stroke-width="2.4"/>';
+      if (i < N - 1) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
 
-    // wings (behind); family by t.wing%5, 4 = wingless
-    var wing = '';
-    if (g.wf !== 4) {
-      var wsc = g.wingSpan/44, wx = thCx-3, wy = cy - g.thR*0.5, sw = g.wSweep, dr = g.wDroop, d;
-      var wcol = 'fill="url(#gW'+uid+')" stroke="'+dk(accent,0.4)+'" stroke-width="1.8"';
-      if (g.wf===0) d='M '+wx+' '+wy+' Q '+q(wx-38*wsc)+' '+q(wy-58*wsc)+' '+q(wx+16+sw)+' '+q(wy-64*wsc)+' Q '+q(wx+50*wsc)+' '+q(wy-52*wsc)+' '+q(wx+46*wsc)+' '+q(wy-12+dr)+' Q '+q(wx+32)+' '+q(wy+2)+' '+wx+' '+wy+' Z';
-      else if (g.wf===1) d='M '+wx+' '+wy+' Q '+q(wx-28*wsc)+' '+q(wy-64*wsc)+' '+q(wx+28+sw)+' '+q(wy-70*wsc)+' L '+q(wx+58*wsc)+' '+q(wy-26+dr)+' Q '+q(wx+36)+' '+q(wy+2)+' '+wx+' '+wy+' Z';
-      else if (g.wf===2) d='M '+wx+' '+wy+' Q '+q(wx-14)+' '+q(wy-54*wsc)+' '+q(wx+8+sw)+' '+q(wy-68*wsc)+' Q '+q(wx+28)+' '+q(wy-72*wsc)+' '+q(wx+38*wsc)+' '+q(wy-34+dr)+' Q '+q(wx+34)+' '+wy+' '+wx+' '+wy+' Z';
-      else d='M '+wx+' '+wy+' Q '+q(wx-34*wsc)+' '+q(wy-54*wsc)+' '+q(wx+12+sw)+' '+q(wy-60*wsc)+' Q '+q(wx+46*wsc)+' '+q(wy-48*wsc)+' '+q(wx+42*wsc)+' '+q(wy-10+dr)+' Q '+q(wx+30)+' '+q(wy+2)+' '+wx+' '+wy+' Z';
-      wing = '<path d="'+d+'" '+wcol+' opacity="0.96"/>'
-        + '<path d="M '+q(wx+2)+' '+q(wy-4)+' Q '+q(wx+10)+' '+q(wy-30*wsc)+' '+q(wx+24)+' '+q(wy-38*wsc)+'" fill="none" stroke="'+lt(accent,0.5)+'" stroke-width="1.3" opacity="0.55"/>';
-      if (g.wf===3) wing = '<path d="'+d+'" transform="translate(-12,6) scale(0.8)" '+wcol+' opacity="0.7"/>' + wing;
-    }
+    var head = seg[N - 1], eR = head.r * 0.42, ax = head.x + head.r * 0.2, ay = head.y - head.r * 0.8;
+    if (has(0.12)) { front += '<path d="M ' + q(ax) + ' ' + q(ay) + ' Q ' + q(ax + 10) + ' ' + q(ay - 14) + ' ' + q(ax + 20) + ' ' + q(ay - 20) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/><path d="M ' + q(ax - 4) + ' ' + q(ay) + ' Q ' + q(ax + 4) + ' ' + q(ay - 16) + ' ' + q(ax + 12) + ' ' + q(ay - 24) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/>'; }
+    if (has(plan.horns)) { front += '<path d="M ' + q(head.x + head.r * 0.1) + ' ' + q(head.y - head.r * 0.85) + ' Q ' + q(head.x + head.r * 0.6 + hornCurl * 10) + ' ' + q(head.y - head.r * 1.6) + ' ' + q(head.x + head.r * 1.1) + ' ' + q(head.y - head.r * 1.5) + '" fill="none" stroke="' + spineCol + '" stroke-width="3" stroke-linecap="round"/>'; }
+    if (has(plan.pincers)) { front += '<path d="M ' + q(head.x + head.r * 0.8) + ' ' + q(head.y + head.r * 0.3) + ' q 9 3 7 10" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round"/><path d="M ' + q(head.x + head.r * 0.8) + ' ' + q(head.y + head.r * 0.55) + ' q 8 5 4 11" fill="none" stroke="' + ol + '" stroke-width="2.2" stroke-linecap="round"/>'; }
+    front += '<ellipse cx="' + q(head.x + head.r * 0.3) + '" cy="' + q(head.y - head.r * 0.2) + '" rx="' + q(eR * 0.85) + '" ry="' + q(eR) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1.2"/><circle cx="' + q(head.x + head.r * 0.15) + '" cy="' + q(head.y - head.r * 0.4) + '" r="' + q(eR * 0.32) + '" fill="#fdfdfa"/>';
+    if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
-    // legs (jointed, taper): far behind body + near in front
-    var legW = 2.6 + (t.leg%3)*0.4; if (g.legPairs===4) legW *= 0.9;
-    var bases = []; for (var li=0; li<g.legPairs; li++){ var t01 = g.legPairs===1?0.5:li/(g.legPairs-1); bases.push(thCx - g.thR*0.7 + (g.abRx*0.5+g.thR)*(-0.2+t01*0.5)); }
-    function legPath(bx,dir,len){ var kx=bx+dir*len*0.35*(0.5+g.femur), ky=cy+g.abRy*0.5+len*0.5, fx=kx+dir*len*(0.4+g.curl*0.3), fy=ky+len*0.7; return 'M '+q(bx)+' '+q(cy+g.abRy*0.35)+' L '+q(kx)+' '+q(ky)+' L '+q(fx)+' '+q(fy); }
-    var farLegs='', nearLegs='';
-    for (var bi=0; bi<bases.length; bi++){
-      farLegs += '<path d="'+legPath(bases[bi]-3,-1,g.legLen*0.95)+'" fill="none" stroke="'+dk(ol,-0.25)+'" stroke-width="'+legW+'" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>';
-      nearLegs += '<path d="'+legPath(bases[bi],(bi===0?-1:1),g.legLen)+'" fill="none" stroke="'+ol+'" stroke-width="'+(legW+0.4)+'" stroke-linecap="round" stroke-linejoin="round"/>';
-    }
-
-    // abdomen + clipped pattern
-    var abdomen = '<path d="'+abD+'" fill="url(#gB'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
-    var pc = mix(primary, pal.dark, 0.4), pat = '';
-    if (g.pf===1){ for (var s=0;s<g.patCount;s++) pat += '<circle cx="'+q(abCx-g.abRx*0.3+s*(g.abRx*0.5/g.patCount))+'" cy="'+q(cy-6+((s%2)*12))+'" r="'+q(5-s*0.4)+'" fill="'+pc+'" opacity="0.5"/>'; }
-    else if (g.pf===2){ for (var s2=0;s2<g.patCount;s2++) pat += '<path d="M '+q(abCx-g.abRx*0.4+s2*10)+' '+q(cy-g.abRy*0.7)+' Q '+q(abCx-g.abRx*0.4+s2*10-2)+' '+q(cy)+' '+q(abCx-g.abRx*0.4+s2*10+2)+' '+q(cy+g.abRy*0.7)+'" fill="none" stroke="'+pc+'" stroke-width="2.4" opacity="0.5"/>'; }
-    else if (g.pf===3){ for (var s3=0;s3<Math.min(3,g.patCount);s3++) pat += '<path d="M '+q(abCx-g.abRx*0.7)+' '+q(cy-8+s3*13)+' Q '+q(abCx)+' '+q(cy-4+s3*13)+' '+q(abCx+g.abRx*0.6)+' '+q(cy-8+s3*13)+'" fill="none" stroke="'+pc+'" stroke-width="2.6" opacity="0.45"/>'; }
-    else if (g.pf===0){ pat = '<circle cx="'+q(abCx)+'" cy="'+q(cy)+'" r="'+q(g.abRy*0.45)+'" fill="'+pc+'" opacity="0.4"/>'; }
-    pat = '<g clip-path="url(#ca'+uid+')">'+pat+'</g>';
-
-    // thorax (superellipse)
-    var thorax = '<path d="'+bodyPath(thCx, cy-1, g.thR, g.thR*0.95, g.nTh, 1, 40)+'" fill="url(#gT'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
-    // un-tinted dorsal highlight
-    var hl = '<circle cx="'+q(thCx-g.thR*0.35)+'" cy="'+q(cy-g.thR*0.4)+'" r="'+q(g.thR*0.16)+'" fill="#ffffff" opacity="0.35"/>';
-
-    // antennae (pair) by t.antenna%5
-    var af = g.af, aoy = hCy - g.hR*0.8;
-    function antenna(ox, k, op){ var d2, tip='', L=g.antLen*k;
-      if (af===0){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.6)+' '+q(aoy-L*0.6)+' '+q(ox+L)+' '+q(aoy-L); }
-      else if (af===1){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.7)+' '+q(aoy-L*0.4)+' '+q(ox+L*0.6)+' '+q(aoy-L)+' Q '+q(ox+L*0.5)+' '+q(aoy-L*1.2)+' '+q(ox+L*0.8)+' '+q(aoy-L*1.25); }
-      else if (af===2){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.5)+' '+q(aoy-L*0.6)+' '+q(ox+L*0.85)+' '+q(aoy-L); tip='<circle cx="'+q(ox+L*0.85)+'" cy="'+q(aoy-L)+'" r="'+q(g.club*0.7)+'" fill="'+ol+'" opacity="'+op+'"/>'; }
-      else if (af===3){ d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.45)+' '+q(aoy-L*0.6)+' '+q(ox+L*0.7)+' '+q(aoy-L); for (var b=1;b<=4;b++) tip += '<path d="M '+q(ox+L*0.15+b*L*0.13)+' '+q(aoy-b*L*0.22)+' l '+q(L*0.16)+' '+q(-L*0.1)+'" stroke="'+ol+'" stroke-width="1.2" stroke-linecap="round" opacity="'+op+'"/>'; }
-      else { d2='M '+q(ox)+' '+q(aoy)+' Q '+q(ox+L*0.7)+' '+q(aoy-L*0.7)+' '+q(ox+L*1.2)+' '+q(aoy-L*0.85); }
-      return '<path d="'+d2+'" fill="none" stroke="'+ol+'" stroke-width="2.2" stroke-linecap="round" opacity="'+op+'"/>'+tip; }
-    var antPair = antenna(hCx + g.hR*0.05, 0.85, 0.6) + antenna(hCx + g.hR*0.28, 1.0, 1.0);
-
-    // head (superellipse, forward-stretched for snouted families) + eye + mandible
-    var headA = g.hR * (1 + (g.hfam < 2 ? g.snout/g.hR : 0));
-    var head = '<path d="'+bodyPath(hCx, hCy, headA, g.hR, g.nH, 1, 36)+'" fill="url(#gH'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
-    var eye = '<ellipse cx="'+q(hCx+g.hR*0.35)+'" cy="'+q(hCy-g.hR*0.25)+'" rx="'+q(g.eR*0.85)+'" ry="'+q(g.eR)+'" fill="'+dk(pal.dark,0.05)+'" stroke="'+ol+'" stroke-width="1.4"/>'
-      + '<circle cx="'+q(hCx+g.hR*0.2)+'" cy="'+q(hCy-g.hR*0.45)+'" r="'+q(g.eR*0.32)+'" fill="#fdfdfa"/>';
-    var mand = g.mand ? '<path d="M '+q(hCx+headA*0.85)+' '+q(hCy+g.hR*0.4)+' q 7 3 5 9" fill="none" stroke="'+ol+'" stroke-width="2.4" stroke-linecap="round"/>' : '';
-
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="'+size+'" height="'+size+'">'
-      + defs + wing + farLegs + abdomen + pat + nearLegs + thorax + hl + antPair + head + eye + mand + '</svg>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
+      + defs + back + legs + body + stitches + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
@@ -757,14 +707,14 @@
   }
 
   // bugFromCodeblock: convenience — codeblock -> { traits, identity, svg }.
-  function bugFromCodeblock(codeblock, size) {
+  function bugFromCodeblock(codeblock, size, level) {
     var id = bugIdentity(codeblock);
     return {
       traits: hashToBugTraits(codeblock),
       name: id.name,          // kept for back-compat
       identity: id,           // { name, species, designation, lore }
       stats: bugStats(codeblock),  // { type, cls, kit, stats, power, rarity, tags }
-      svg: _generateBugSVG(codeblock, size || 160)
+      svg: _generateBugSVG(codeblock, size || 160, level)  // level = growth (default full)
     };
   }
 

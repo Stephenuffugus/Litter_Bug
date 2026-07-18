@@ -176,7 +176,7 @@
       var st = E.bugStats(bg.cb);
       var chip = document.createElement('div');
       chip.className = 'chip' + (bg.cb === activeCb ? ' sel' : '');
-      chip.innerHTML = E._generateBugSVG(bg.cb, 46)
+      chip.innerHTML = E._generateBugSVG(bg.cb, 46, bg.level)
         + '<div class="cl">L' + bg.level + ' ' + st.type + '</div>'
         + (dep[bg.cb] ? '<div class="dep" title="deployed"></div>' : '');
       chip.addEventListener('click', function () { activeCb = bg.cb; renderRoster(); renderMap(); });
@@ -202,7 +202,7 @@
     var chips = vault.bugs.map(function (bg) {
       var st = E.bugStats(bg.cb), sel = breedSel.indexOf(bg.cb) >= 0;
       return '<div class="bchip' + (sel ? ' sel' : '') + '" data-cb="' + bg.cb + '">'
-        + E._generateBugSVG(bg.cb, 44) + '<div class="cl">L' + bg.level + ' ' + st.type + '</div></div>';
+        + E._generateBugSVG(bg.cb, 44, bg.level) + '<div class="cl">L' + bg.level + ' ' + st.type + '</div></div>';
     }).join('');
     var card = document.getElementById('card');
     card.innerHTML = '<h2>Breed</h2>'
@@ -242,7 +242,7 @@
     } else {
       var tcol = TYPE_COLOR[bugType(st.cb)] || '#8a9178';
       el.style.borderColor = (st.type === 'rival') ? '#c0604a' : tcol;
-      el.innerHTML = E._generateBugSVG(st.cb, 64) + '<span class="lv">L' + st.level + '</span>'
+      el.innerHTML = E._generateBugSVG(st.cb, 64, st.level) + '<span class="lv">L' + st.level + '</span>'
         + (st.type === 'rival' ? '<span class="rivtag">' + (st.owner || 'rival') + '</span>' : '');
     }
     el.addEventListener('click', function (e) { if (!dragging) onCell(ix, iy, st); });
@@ -340,7 +340,7 @@
     var hpc = pct > 50 ? '#7ab356' : pct > 22 ? '#d99a2f' : '#c86a4b';
     var badges = (f.corrode > 0 ? ' &#9763;' : '') + (f.smolder > 0 ? ' &#9832;' : '') + (f.rustlock ? ' &#9202;' : '');
     var t2 = f.type2 ? '<span class="tbadge" style="background:' + (TYPE_COLOR[f.type2] || '#8a9178') + '">' + f.type2 + '</span>' : '';
-    return '<div class="bside' + (foe ? ' foe' : '') + '">' + E._generateBugSVG(f.cb, 74)
+    return '<div class="bside' + (foe ? ' foe' : '') + '">' + E._generateBugSVG(f.cb, 74, f.level)
       + '<div class="bn">' + f.name + ' <span class="lv">L' + f.level + '</span></div>'
       + '<div style="font-size:9px"><span class="tbadge" style="background:' + tc + '">' + f.type + '</span>' + t2 + '</div>'
       + '<div class="btrack"><div class="bfill" style="width:' + pct + '%;background:' + hpc + '"></div></div>'
@@ -383,7 +383,7 @@
     var s = E.bugStats(st.cb), nm = E.bugName(st.cb);
     var card = document.getElementById('card');
     card.innerHTML = '<h2>' + nm + '</h2>'
-      + '<div class="fight"><div>' + E._generateBugSVG(st.cb, 84) + '</div></div>'
+      + '<div class="fight"><div>' + E._generateBugSVG(st.cb, 84, st.level) + '</div></div>'
       + '<div class="sub">' + s.type + ' &middot; ' + s.cls + ' &middot; L' + st.level + ' &middot; holding this cell</div>'
       + '<div class="xp">' + (e ? e.wins + ' wins' : '') + '</div>'
       + '<button id="mClose">Close</button>'

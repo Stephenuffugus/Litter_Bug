@@ -148,7 +148,7 @@
   function panelHTML(f, foe) {
     var side = foe ? 'b' : 'a', pct = Math.max(0, Math.round(f.hp/f.maxhp*100));
     var hpc = pct>50?'#7ab356':pct>22?'#d99a2f':'#c86a4b';
-    var art = '<div class="art" id="art-'+side+'">'+E._generateBugSVG(f.cb,108)+'<div class="flash"></div></div>';
+    var art = '<div class="art" id="art-'+side+'">'+E._generateBugSVG(f.cb,108,f.level)+'<div class="flash"></div></div>';
     var intent = '';
     if (foe && !state.over) {
       var fm = BAT.previewFoeMove(state), ic;

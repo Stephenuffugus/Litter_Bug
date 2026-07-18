@@ -32,14 +32,25 @@ check('renders pure SVG, no PNG <image> (procedural, not hybrid)', function () {
   return { ok: bad === 0, detail: bad ? bad + ' still using PNG layers' : 'all procedural SVG' };
 });
 
-check('shared machinery always present (gradients + body clip)', function () {
+check('shared machinery always present (shade gradients)', function () {
   var bad = 0;
   for (var i = 0; i < 60; i++) {
-    var svg = E._generateBugSVG(cb('m' + i), 160);
-    var grads = (svg.match(/linearGradient/g) || []).length;
-    if (grads < 8 || svg.indexOf('clipPath') < 0 || svg.indexOf('<svg') !== 0) bad++;
+    var svg = E._generateBugSVG(cb('m' + i), 160, 30);
+    var grads = (svg.match(/<linearGradient/g) || []).length;   // grow renderer uses 3
+    if (grads < 3 || svg.indexOf('<svg') !== 0) bad++;
   }
-  return { ok: bad === 0, detail: bad ? bad + ' missing machinery' : 'gradients + clip on every bug' };
+  return { ok: bad === 0, detail: bad ? bad + ' missing machinery' : 'shade gradients on every bug' };
+});
+
+check('bugs GROW with level (more parts at higher level)', function () {
+  var bad = 0;
+  for (var i = 0; i < 40; i++) {
+    var c = cb('grow' + i);
+    var lo = E._generateBugSVG(c, 160, 1).length;
+    var hi = E._generateBugSVG(c, 160, 30).length;
+    if (hi < lo) bad++;                 // a maxed bug is never simpler than its L1 grub
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' shrank with level' : 'L30 >= L1 complexity, 40 bugs' };
 });
 
 check('deterministic across a 200-roll batch', function () {
