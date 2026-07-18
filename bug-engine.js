@@ -337,6 +337,13 @@
     // 0 membrane pair, 1 dragonfly fore+hind, 2 beetle elytra shell.
     var wingKind = Math.floor(R() * 3), wingUp = wingKind === 2 ? 26 : (wingKind === 1 ? 56 : 46);
     var jawKind = 1 + Math.floor(R() * 3), tailKind = Math.floor(R() * 3);   // also rolled last
+    // patchwork materials: each body segment is a different scrap tinted from the
+    // palette family, so a bug reads as sewn from litter. mats[0] stays exactly
+    // primary (keeps the palette-scheme smoke green). Rolled last, fill-only.
+    var matPool = [secondary, mix(primary, pal.dark, 0.28), mix(primary, accent, 0.35), lt(primary, 0.18), dk(primary, 0.18)];
+    var nMat = 2 + Math.floor(R() * 3), mats = [primary];
+    for (i = 1; i < nMat; i++) mats.push(matPool[Math.floor(R() * matPool.length)]);
+    var segMat = seg.map(function (s, i) { return i === N - 1 ? -1 : Math.floor(R() * mats.length); });
     var has = function (th) { return growth >= th; };
 
     // fit to canvas (account for the parts that have grown in)
@@ -347,9 +354,17 @@
     var w = maxx - minx, h = bottom - top, f = Math.min(1, 176 / w, 182 / h);
     if (f < 1) { var mmx = (minx + maxx) / 2, mmy = (top + bottom) / 2; seg.forEach(function (s) { s.x = cx + (s.x - mmx) * f; s.y = cy + (s.y - mmy) * f; s.r *= f; }); tailLen *= f; }
 
+    // ground shadow: a flat ellipse under the mass so the bug sits on a surface
+    // (computed post-fit; hard-edged so the silhouette gate stays predictable).
+    var shBy = Math.max.apply(0, seg.map(function (s) { return s.y + s.r; })) + 10;
+    var shL = Math.min.apply(0, seg.map(function (s) { return s.x - s.r * 0.6; }));
+    var shR = Math.max.apply(0, seg.map(function (s) { return s.x + s.r * 0.6; }));
+    var shadow = '<ellipse cx="' + q((shL + shR) / 2) + '" cy="' + q(shBy) + '" rx="' + q((shR - shL) / 2) + '" ry="5" fill="' + pal.dark + '" opacity="0.18"/>';
+
     function grad(id, base) { return '<linearGradient id="' + id + '" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="' + lt(base, 0.28) + '"/><stop offset="0.5" stop-color="' + base + '"/><stop offset="1" stop-color="' + mix(base, pal.dark, 0.42) + '"/></linearGradient>'; }
     var uid = hash.substr(0, 6);
-    var defs = '<defs>' + grad('gb' + uid, primary) + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + '</defs>';
+    var matDefs = mats.map(function (m, k) { return grad('gb' + k + uid, m); }).join('');
+    var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + '</defs>';
     var back = '', legs = '', body = '', stitches = '', shell = '', front = '';
 
     function membrane(ox, oy, sc, op) {
@@ -389,8 +404,8 @@
       legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
       legs += '<path d="M ' + q(s.x + 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 3) + ' ' + q(ky) + ' L ' + q(s.x - 6) + ' ' + q(ky + 10) + '" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'; });
     seg.forEach(function (s, i) { if (!has(plan.spines[i])) return; back += '<path d="M ' + q(s.x) + ' ' + q(s.y - s.r) + ' l -3 -9 l 6 0 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1"/>'; });
-    seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? 'gh' : 'gb';
-      body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + uid + ')" stroke="' + ol + '" stroke-width="2.4"/>';
+    seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? ('gh' + uid) : ('gb' + segMat[i] + uid);
+      body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + ')" stroke="' + ol + '" stroke-width="2.4"/>';
       if (i < N - 1) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
 
     var head = seg[N - 1], eR = head.r * 0.42, ax = head.x + head.r * 0.2, ay = head.y - head.r * 0.8;
@@ -412,7 +427,7 @@
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
-      + defs + back + legs + body + stitches + shell + front + '</svg>';
+      + defs + shadow + back + legs + body + stitches + shell + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
