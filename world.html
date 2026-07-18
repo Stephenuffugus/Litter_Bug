@@ -141,6 +141,10 @@
   .fmatch b { color: #cdbfa6; } .fmatch .up { color: #7ab356; } .fmatch .down { color: #c86a4b; }
   .ob { text-align: left; font-size: 13px; line-height: 1.5; color: #cdbfa6; margin: 6px 0 2px; }
   .ob p { margin: 9px 0; } .ob b { color: #c8a84b; }
+  .recenter { position: absolute; right: 12px; bottom: 12px; z-index: 5; background: rgba(21,25,26,.92);
+    border: 1px solid #2a2f28; color: #cdbfa6; border-radius: 20px; padding: 8px 14px; font-size: 12px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .recenter:active { background: #2a3527; }
   .tgmodal { position: fixed; inset: 0; background: rgba(6,8,6,.8); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
   .tgmodal.show { display: flex; }
   .tgcard { background: #131614; border: 1px solid #2a2f28; border-radius: 16px; padding: 16px 18px; max-width: 340px; width: 100%; max-height: 86vh; overflow-y: auto; }
@@ -166,6 +170,7 @@
 </header>
 <div class="viewport" id="vp">
   <div class="world" id="world"></div>
+  <button class="recenter" id="recenter" style="display:none">&#9678; home</button>
   <div class="toast" id="toast"></div>
 </div>
 <div class="roster" id="roster"></div>
@@ -311,11 +316,16 @@
       for (var dy = -R; dy <= R; dy++)
         worldEl.appendChild(cellEl(center.ix + dx, center.iy + dy));
     worldEl.style.transform = 'translate(' + panX + 'px,' + panY + 'px)';
+    var rc = document.getElementById('recenter');
+    if (rc) rc.style.display = (center.ix === 0 && center.iy === 0) ? 'none' : 'block';
     renderHUD();
   }
 
   // ── pan ──────────────────────────────────────────────────────────
   var panX = 0, panY = 0, dragging = false, startX = 0, startY = 0, moved = 0;
+  document.getElementById('recenter').addEventListener('click', function () {
+    center.ix = 0; center.iy = 0; panX = 0; panY = 0; renderMap();
+  });
   vp.addEventListener('pointerdown', function (e) {
     dragging = false; moved = 0; startX = e.clientX; startY = e.clientY;
     vp.setPointerCapture(e.pointerId); vp.classList.add('drag');
