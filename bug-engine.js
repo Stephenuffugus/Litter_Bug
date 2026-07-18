@@ -302,8 +302,9 @@
   // and a trained one is its full intricate fighter. Same codeblock always
   // grows the same path. Deterministic, palette-recolored, seams are visible
   // cross-stitches ("sewn from litter"). Faces right, viewBox 200x200.
-  function _generateBugSVG(hash, size, level) {
+  function _generateBugSVG(hash, size, level, opts) {
     level = level || 30;
+    var merge = !!(opts && opts.merge);   // experimental: fuse segments into one silhouette + unified outline
     var t = hashToBugTraits(hash), pal = PALETTES[t.palette] || PALETTES[0];
     var primary = pal.primary, accent = pal.accent, secondary = pal.secondary;
     function _rgb(h){ h=h.replace('#',''); return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) }; }
@@ -368,7 +369,17 @@
     function grad(id, base) { return '<linearGradient id="' + id + '" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="' + lt(base, 0.28) + '"/><stop offset="0.5" stop-color="' + base + '"/><stop offset="1" stop-color="' + mix(base, pal.dark, 0.42) + '"/></linearGradient>'; }
     var uid = hash.substr(0, 6);
     var matDefs = mats.map(function (m, k) { return grad('gb' + k + uid, m); }).join('');
-    var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + '</defs>';
+    // merged-silhouette filter: blur+threshold fuses overlapping segment circles
+    // into one organic shape, then a dilated flood makes ONE ink outline hugging
+    // the whole body. Crisp gradient fills draw on top, so patchwork survives.
+    var bodyFx = merge ? '<filter id="bfx' + uid + '" x="-30%" y="-30%" width="160%" height="160%">'
+      + '<feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="b"/>'
+      + '<feColorMatrix in="b" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 26 -12" result="goo"/>'
+      + '<feMorphology in="goo" operator="dilate" radius="2.6" result="d"/>'
+      + '<feFlood flood-color="' + ol + '" result="oc"/>'
+      + '<feComposite in="oc" in2="d" operator="in" result="stroke"/>'
+      + '<feMerge><feMergeNode in="stroke"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' : '';
+    var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + bodyFx + '</defs>';
     var back = '', legs = '', body = '', plates = '', stitches = '', shell = '', front = '';
 
     function membrane(ox, oy, sc, op) {
@@ -414,7 +425,7 @@
     }
     seg.forEach(function (s, i) { if (!has(plan.spines[i])) return; back += '<path d="M ' + q(s.x) + ' ' + q(s.y - s.r) + ' l -3 -9 l 6 0 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1"/>'; });
     seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? ('gh' + uid) : ('gb' + segMat[i] + uid);
-      body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + ')" stroke="' + ol + '" stroke-width="2.4"/>';
+      body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + ')"' + (merge ? '' : ' stroke="' + ol + '" stroke-width="2.4"') + '/>';
       if (i < N - 1) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
     if (plated) {   // dorsal armor cap over each body segment (not the head)
       seg.forEach(function (s, i) {
@@ -471,7 +482,7 @@
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
-      + defs + shadow + back + legs + body + plates + stitches + shell + front + '</svg>';
+      + defs + shadow + back + legs + (merge ? '<g filter="url(#bfx' + uid + ')">' + body + '</g>' : body) + plates + stitches + shell + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
