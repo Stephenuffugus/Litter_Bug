@@ -106,9 +106,18 @@
     height: 96px; overflow-y: auto; font-size: 11.5px; line-height: 1.5; color: #cdbfa6; margin: 8px 0; }
   .blog .ko { color: #e0a13c; } .blog .se { color: #7ab356; }
   .bmoves { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .bmove { padding: 9px; background: #1d251c; color: #e8dcc8; border: 1px solid #3a4634;
-    border-radius: 8px; font-size: 12.5px; cursor: pointer; min-height: 42px; }
+  .bmove { padding: 8px 9px; background: #1d251c; color: #e8dcc8; border: 1px solid #3a4634;
+    border-radius: 8px; cursor: pointer; min-height: 48px; text-align: left; }
   .bmove:active { background: #2a3527; }
+  .bmove .bm-top { font-size: 12.5px; font-weight: 600; }
+  .bmove .bm-sub { font-size: 9.5px; color: #9aa48c; margin-top: 3px; line-height: 1.35; }
+  .bmove .pip { color: #c8a84b; } .bmove .g.up { color: #7ab356; } .bmove .g.down { color: #c86a4b; }
+  .bmove .pchip { color: #d9a441; } .bmove .yf { color: #7ab356; white-space: nowrap; }
+  .bmove .tbadge { font-size: 8.5px; }
+  .bpoise { position: relative; height: 3px; background: #1c211a; border-radius: 2px; margin-top: 3px; }
+  .bpoise > div { position: absolute; inset: 0; background: #d9a441; border-radius: 2px; transition: width .3s; }
+  .bintent { text-align: center; font-size: 10.5px; color: #9aa48c; margin: 0 0 7px; }
+  .bintent b { color: #e0b0a0; } .bintent .g.up { color: #7ab356; } .bintent .g.down { color: #c86a4b; }
   .bresult { text-align: center; padding: 9px; border-radius: 8px; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
   .bresult.win { background: #2a3a1f; color: #d8ecc4; } .bresult.lose { background: #3a201c; color: #f0c4b4; }
   .bresult.draw { background: #23262a; color: #cdbfa6; }
@@ -341,6 +350,7 @@
     });
     return best;
   }
+  function effWord(m) { if (m > 2) return { g: '&#9650;&#9650;', c: 'up' }; if (m > 1.05) return { g: '&#9650;', c: 'up' }; if (m < 0.5) return { g: '&#9660;&#9660;', c: 'down' }; if (m < 0.95) return { g: '&#9660;', c: 'down' }; return { g: '', c: '' }; }
   function bpanel(f, foe) {
     var tc = TYPE_COLOR[f.type] || '#8a9178';
     var pct = Math.max(0, Math.round(f.hp / f.maxhp * 100));
@@ -351,7 +361,9 @@
       + '<div class="bn">' + f.name + ' <span class="lv">L' + f.level + '</span></div>'
       + '<div style="font-size:9px"><span class="tbadge" style="background:' + tc + '">' + f.type + '</span>' + t2 + '</div>'
       + '<div class="btrack"><div class="bfill" style="width:' + pct + '%;background:' + hpc + '"></div></div>'
-      + '<div class="bhptext">' + f.hp + '/' + f.maxhp + badges + '</div></div>';
+      + '<div class="bhptext">' + f.hp + '/' + f.maxhp + badges + '</div>'
+      + (f.poiseMax ? '<div class="bpoise" title="guard ' + f.poise + '/' + f.poiseMax + '"><div style="width:' + Math.round(f.poise / f.poiseMax * 100) + '%"></div></div>' : '')
+      + '</div>';
   }
   function renderBattle(ix, iy, beg, st) {
     var a = st.a, b = st.b, over = st.over;
@@ -366,10 +378,20 @@
         + (lvUp ? '<div class="grewnote">New growth &nbsp;L' + beg.attackerLevel + ' &rarr; L' + r.newLevel + '</div>' : '')
         + '<button id="mClose">' + (won ? 'Onward' : 'Back') + '</button>';
     } else {
-      footer = '<div class="bmoves">' + a.moves.map(function (m, i) {
-        var hint = '';
-        if (m.kind === 'attack') { var mu = E.typeMatchupDual(m.type, b.type, b.type2); hint = mu > 1.05 ? ' &#9650;' : mu < 0.95 ? ' &#9660;' : ''; }
-        return '<button class="bmove" data-i="' + i + '">' + m.name + (m.stab && m.kind === 'attack' ? '*' : '') + hint + '</button>';
+      var fm = BAT.previewFoeMove(st), intent;
+      if (fm.kind === 'attack') { var fdb = BAT.damageBand(b, a, fm), few = effWord(fdb.mult); intent = 'foe next: &#9876; ' + fm.name + ' <b>~' + Math.round((fdb.min + fdb.max) / 2) + '</b> <span class="g ' + few.c + '">' + few.g + '</span>'; }
+      else intent = 'foe next: &#9881; ' + fm.name;
+      footer = '<div class="bintent">' + intent + '</div><div class="bmoves">' + a.moves.map(function (m, i) {
+        var top = m.name + (m.stab && m.kind === 'attack' ? ' <span class="pip">&#10022;</span>' : ''), sub;
+        if (m.kind === 'attack') {
+          var db = BAT.damageBand(a, b, m), ew = effWord(db.mult), chip = (db.mult > 1 ? 2 : 0) + (m.stab ? 0 : 1);
+          top += ew.g ? ' <span class="g ' + ew.c + '">' + ew.g + '</span>' : '';
+          sub = '<span class="tbadge" style="background:' + (TYPE_COLOR[m.type] || '#8a9178') + '">' + m.type + '</span> '
+            + db.min + '-' + db.max + ' &middot; ' + BAT.hitPercent(a, b, m) + '%'
+            + (chip > 0 ? ' <span class="pchip">&#128737;-' + chip + '</span>' : '');
+        } else sub = 'status';
+        var yf = BAT.previewOrder(st, i) ? ' <span class="yf">&#9656;you first</span>' : '';
+        return '<button class="bmove" data-i="' + i + '"><div class="bm-top">' + top + '</div><div class="bm-sub">' + sub + yf + '</div></button>';
       }).join('') + '</div><button class="bquick" id="bquick">quick resolve</button>';
     }
     document.getElementById('card').innerHTML =
