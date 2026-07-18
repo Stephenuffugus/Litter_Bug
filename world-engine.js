@@ -25,6 +25,10 @@
   var SCRAP_RATE_MS = 8 * 60 * 1000; // each held cell yields 1 scrap / 8 min
   var BREED_COST = 6;                // scrap to breed two bugs
   var SAVE_KEY = "litterbug_vault_v1";
+  var RAID_INTERVAL_MS = 30 * 60 * 1000; // rivals raid held cells ~ every 30 min
+  var MAX_RAIDS_PER_TICK = 3;            // never lose everything in one absence
+  var RIVAL_NAMES = ["the Skip Kings", "the Gutter Syndicate", "the Drain Court",
+    "the Rag Pickers", "the Ash Wardens", "the Bottle Barons"];
 
   function key(ix, iy) { return ix + "," + iy; }
   function parseKey(k) { var p = k.split(","); return [parseInt(p[0], 10), parseInt(p[1], 10)]; }
@@ -51,18 +55,20 @@
 
   // ── Vault (save state) ──────────────────────────────────────────────
   function newVault() {
-    return { v: 1, bugs: [], claims: {}, energy: ENERGY_MAX,
-      energyMax: ENERGY_MAX, lastEnergyTs: 0, scrap: 0, lastScrapTs: 0 };
+    return { v: 1, bugs: [], claims: {}, rivalClaims: {}, energy: ENERGY_MAX,
+      energyMax: ENERGY_MAX, lastEnergyTs: 0, scrap: 0, lastScrapTs: 0, lastTickTs: 0 };
   }
   // Fill in fields missing from an older save so upgrades never crash.
   function migrate(v) {
     if (!v.bugs) v.bugs = [];
     if (!v.claims) v.claims = {};
+    if (!v.rivalClaims) v.rivalClaims = {};
     if (v.energy == null) v.energy = ENERGY_MAX;
     if (v.energyMax == null) v.energyMax = ENERGY_MAX;
     if (v.lastEnergyTs == null) v.lastEnergyTs = 0;
     if (v.scrap == null) v.scrap = 0;
     if (v.lastScrapTs == null) v.lastScrapTs = 0;
+    if (v.lastTickTs == null) v.lastTickTs = 0;
     return v;
   }
   function findBug(vault, cb) {
@@ -111,6 +117,10 @@
   function cellState(vault, ix, iy) {
     var k = key(ix, iy);
     if (vault.claims[k]) return { type: "yours", key: k, cb: vault.claims[k].defenderCb, level: vault.claims[k].defenderLevel };
+    if (vault.rivalClaims && vault.rivalClaims[k]) {
+      var rc = vault.rivalClaims[k];
+      return { type: "rival", key: k, cb: rc.defenderCb, level: rc.defenderLevel, owner: rc.owner };
+    }
     if (isWild(ix, iy)) return { type: "wild", key: k, cb: wildCodeblock(ix, iy), level: wildLevel(ix, iy) };
     return { type: "empty", key: k };
   }
@@ -165,6 +175,7 @@
     var levelsGained = gainXp(e, xp);
     if (won) {
       e.wins++;
+      if (vault.rivalClaims) delete vault.rivalClaims[key(ix, iy)]; // reclaimed from a rival
       var dep = deployedMap(vault)[attackerCb];        // relocate if it was defending elsewhere
       if (dep) delete vault.claims[dep];
       vault.claims[key(ix, iy)] = { defenderCb: attackerCb, defenderLevel: e.level, claimedAt: now };
@@ -185,7 +196,42 @@
 
   function summary(vault) {
     return { territory: Object.keys(vault.claims).length, roster: vault.bugs.length,
-      scrap: vault.scrap || 0 };
+      scrap: vault.scrap || 0, rival: Object.keys(vault.rivalClaims || {}).length };
+  }
+
+  // ── Rival raids (single-player async-PvP prototype) ─────────────────
+  // While you are away, rival factions attack your held cells. A raid pits
+  // your FROZEN defender snapshot against a rival bug (deterministic, scaled
+  // to the cell's region). Lose and the cell flips to the rival, who now
+  // defends it; you can go take it back. Home (0,0) is never raided.
+  function rivalChallenger(ix, iy, tickN) {
+    var kk = key(ix, iy) + ":" + tickN;
+    var cb = hexFromRng(ENG.seededRng(WORLD_SALT + ":raid:" + kk), 64);
+    var r = ENG.seededRng(WORLD_SALT + ":raidmeta:" + kk);
+    var lvl = Math.min(LEVEL_CAP, wildLevel(ix, iy) + Math.floor(r() * 3)); // region + 0..2 edge
+    return { cb: cb, level: lvl, name: RIVAL_NAMES[Math.floor(r() * RIVAL_NAMES.length)] };
+  }
+  function worldTick(vault, now) {
+    var last = vault.lastTickTs || 0;
+    var elapsed = Math.floor((now - last) / RAID_INTERVAL_MS);
+    if (elapsed < 1) return { raids: [], defended: 0, lost: 0 };
+    var targets = Object.keys(vault.claims).filter(function (k) { return k !== "0,0"; });
+    var nRaids = Math.min(elapsed, MAX_RAIDS_PER_TICK, targets.length);
+    var baseTick = Math.floor(last / RAID_INTERVAL_MS), raids = [];
+    for (var i = 0; i < nRaids; i++) {
+      var k = targets[i], c = vault.claims[k], xy = parseKey(k);
+      var ch = rivalChallenger(xy[0], xy[1], baseTick + i);
+      var res = BAT.resolveBattle(c.defenderCb, ch.cb, c.defenderLevel, ch.level);
+      var held = res.winner === "a" && !res.draw;   // your defender is side A
+      if (!held) {
+        delete vault.claims[k];
+        vault.rivalClaims[k] = { defenderCb: ch.cb, defenderLevel: ch.level, owner: ch.name, since: now };
+      }
+      raids.push({ key: k, ix: xy[0], iy: xy[1], rival: ch.name, level: ch.level, defended: held });
+    }
+    vault.lastTickTs = last + elapsed * RAID_INTERVAL_MS;   // keep the remainder
+    var lost = raids.filter(function (r) { return !r.defended; }).length;
+    return { raids: raids, defended: raids.length - lost, lost: lost };
   }
 
   // ── Territory rewards (scrap) ───────────────────────────────────────
@@ -236,6 +282,7 @@
     var t = nowMs();
     if (!v.lastScrapTs) v.lastScrapTs = t;
     if (!v.lastEnergyTs) v.lastEnergyTs = t;
+    if (!v.lastTickTs) v.lastTickTs = t;
     browserSave(v); return v;
   }
 
@@ -252,6 +299,7 @@
     xpToNext: xpToNext, gainXp: gainXp, winXp: winXp, leveledStats: leveledStats,
     placeBug: placeBug, attackCell: attackCell,
     beginAttack: beginAttack, applyAttackResult: applyAttackResult, summary: summary,
+    worldTick: worldTick, rivalChallenger: rivalChallenger, RAID_INTERVAL_MS: RAID_INTERVAL_MS,
     pendingScrap: pendingScrap, collectScrap: collectScrap, breedBugs: breedBugs,
     browserSave: browserSave, browserLoad: browserLoad
   };

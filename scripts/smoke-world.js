@@ -267,6 +267,62 @@ check('applyAttackResult: win claims + xp, loss neither', function () {
   return { ok: noClaimOnLoss && claimOnWin, detail: 'loss = consolation xp, win = claim' };
 });
 
+function vaultWithClaims(n) {
+  var v = W.seedStarter(W.newVault()); v.energy = 999;
+  for (var i = 0; i < n + 3; i++) W.addBug(v, cbOf('army' + i));
+  var placed = 0;
+  for (var x = -3; x <= 3 && placed < n; x++) for (var y = -3; y <= 3; y++) {
+    if (placed >= n) break;
+    if (W.cellState(v, x, y).type === 'empty') {
+      var reserve = v.bugs.filter(function (b) { return !W.deployedMap(v)[b.cb]; })[0];
+      if (reserve && W.placeBug(v, x, y, reserve.cb, 1000).ok) placed++;
+    }
+  }
+  return v;
+}
+
+check('rival raids: capped, home safe, invariant, deterministic', function () {
+  function run() {
+    var v = vaultWithClaims(6);
+    var t = W.RAID_INTERVAL_MS * 10;
+    var res = W.worldTick(v, t);
+    return { v: v, res: res };
+  }
+  var a = run(), b = run();
+  var r = a.res;
+  if (r.raids.length > 3) return { ok: false, detail: 'raids not capped: ' + r.raids.length };
+  if (r.raids.some(function (x) { return x.ix === 0 && x.iy === 0; })) return { ok: false, detail: 'home was raided' };
+  // invariant: defended => still yours; lost => now rival, not yours
+  var badInv = r.raids.some(function (x) {
+    var s = W.cellState(a.v, x.ix, x.iy).type;
+    return x.defended ? s !== 'yours' : s !== 'rival';
+  });
+  if (badInv) return { ok: false, detail: 'raid outcome/state mismatch' };
+  var deterministic = JSON.stringify(a.v.claims) === JSON.stringify(b.v.claims)
+    && JSON.stringify(a.v.rivalClaims) === JSON.stringify(b.v.rivalClaims);
+  return { ok: deterministic, detail: r.defended + ' held / ' + r.lost + ' lost, deterministic' };
+});
+
+check('worldTick with no elapsed time does nothing', function () {
+  var v = vaultWithClaims(4);
+  var res = W.worldTick(v, v.lastTickTs || 0);
+  return { ok: res.raids.length === 0, detail: 'no time -> no raids' };
+});
+
+check('reclaiming a rival cell makes it yours again', function () {
+  var v = vaultWithClaims(6);
+  W.worldTick(v, W.RAID_INTERVAL_MS * 20);
+  var rk = Object.keys(v.rivalClaims)[0];
+  if (!rk) return { ok: true, detail: 'no rival cell this run (rivals all repelled) - trivially ok' };
+  var xy = rk.split(',').map(Number);
+  if (W.cellState(v, xy[0], xy[1]).type !== 'rival') return { ok: false, detail: 'cell not rival-typed' };
+  var atk = v.bugs.filter(function (b) { return !W.deployedMap(v)[b.cb]; })[0];
+  W.findBug(v, atk.cb).level = 30; v.energy = 999;   // force a win
+  var r = W.attackCell(v, xy[0], xy[1], atk.cb, 99);
+  return { ok: r.won && !v.rivalClaims[rk] && W.cellState(v, xy[0], xy[1]).type === 'yours',
+    detail: r.won ? 'rival cell reclaimed' : 'attack lost (retry)' };
+});
+
 // ── Output ─────────────────────────────────────────────────────────────
 console.log('');
 console.log('=== Litter Bug world-engine smoke ===');

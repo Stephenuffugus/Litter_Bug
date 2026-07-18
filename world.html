@@ -37,6 +37,10 @@
   .cell.empty .plus { color: #3a4634; font-size: 26px; }
   .cell.wild { border-color: #7a4a3a; }
   .cell.yours { border-color: #c8a84b; background: #161509; }
+  .cell.rival { background: #1a1210; }
+  .cell .rivtag { position: absolute; bottom: 2px; left: 0; right: 0; font-size: 7.5px;
+    color: #e0907a; text-align: center; }
+  .log .held { color: #7ab356; } .log .lostc { color: #c86a4b; }
   .cell.home::after { content: "home"; position: absolute; bottom: 3px; font-size: 8px;
     letter-spacing: .1em; color: #c8a84b; text-transform: uppercase; }
   .cell svg { width: 64px; height: 64px; }
@@ -237,8 +241,9 @@
       el.innerHTML = '<span class="plus">' + (activeReserve ? '+' : '') + '</span>';
     } else {
       var tcol = TYPE_COLOR[bugType(st.cb)] || '#8a9178';
-      el.style.borderColor = tcol;
-      el.innerHTML = E._generateBugSVG(st.cb, 64) + '<span class="lv">L' + st.level + '</span>';
+      el.style.borderColor = (st.type === 'rival') ? '#c0604a' : tcol;
+      el.innerHTML = E._generateBugSVG(st.cb, 64) + '<span class="lv">L' + st.level + '</span>'
+        + (st.type === 'rival' ? '<span class="rivtag">' + (st.owner || 'rival') + '</span>' : '');
     }
     el.addEventListener('click', function (e) { if (!dragging) onCell(ix, iy, st); });
     return el;
@@ -292,7 +297,7 @@
       var r = W.placeBug(vault, ix, iy, activeCb, now());
       if (!r.ok) return toast(r.reason);
       save(vault); renderRoster(); renderMap(); toast('Claimed the cell.');
-    } else if (st.type === 'wild') {
+    } else if (st.type === 'wild' || st.type === 'rival') {
       if (!activeCb) return toast('Pick a bug to attack with.');
       openAttack(ix, iy, st);
     } else { openInfo(ix, iy, st); }
@@ -399,8 +404,23 @@
     if (e.target === this) hideModal();
   });
 
+  function showAway(tick) {
+    var lines = tick.raids.map(function (r) {
+      return '<div class="' + (r.defended ? 'held' : 'lostc') + '">' + r.rival + ' raided '
+        + r.ix + ',' + r.iy + ' (L' + r.level + ') &mdash; ' + (r.defended ? 'your bug held!' : 'cell lost') + '</div>';
+    }).join('');
+    document.getElementById('card').innerHTML = '<h2>While you were away</h2>'
+      + '<div class="sub">' + tick.defended + ' held, ' + tick.lost + ' lost. Reclaim the red cells by beating their new defender.</div>'
+      + '<div class="log">' + lines + '</div><button id="mClose">Got it</button>';
+    showModal();
+    document.getElementById('mClose').addEventListener('click', hideModal);
+  }
+
+  // rivals raid your cells while you are away; resolve on load
+  var awayTick = W.worldTick(vault, now());
+  if (awayTick.raids.length) save(vault);
   renderRoster(); renderMap();
-  // gentle energy tick so the HUD updates as it regens
+  if (awayTick.raids.length) showAway(awayTick);
   setInterval(renderHUD, 15000);
 })();
 </script>
