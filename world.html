@@ -137,6 +137,8 @@
   @keyframes growpop { 0% { transform: scale(.86); opacity: .3; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
   .growpop { animation: growpop .5s ease-out; }
   .tglink { color: #7ab356; cursor: pointer; text-decoration: underline; font-size: 10px; margin-left: 6px; }
+  .fmatch { font-size: 11px; color: #9aa48c; line-height: 1.45; margin: 6px 0; }
+  .fmatch b { color: #cdbfa6; } .fmatch .up { color: #7ab356; } .fmatch .down { color: #c86a4b; }
   .tgmodal { position: fixed; inset: 0; background: rgba(6,8,6,.8); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
   .tgmodal.show { display: flex; }
   .tgcard { background: #131614; border: 1px solid #2a2f28; border-radius: 16px; padding: 16px 18px; max-width: 340px; width: 100%; max-height: 86vh; overflow-y: auto; }
@@ -387,6 +389,12 @@
     return best;
   }
   function effWord(m) { if (m > 2) return { g: '&#9650;&#9650;', c: 'up' }; if (m > 1.05) return { g: '&#9650;', c: 'up' }; if (m < 0.5) return { g: '&#9660;&#9660;', c: 'down' }; if (m < 0.95) return { g: '&#9660;', c: 'down' }; return { g: '', c: '' }; }
+  function matchLine(type) {
+    var strong = [], weak = [];
+    E.TYPES.forEach(function (d) { var m = E.typeMatchup(type, d); if (m > 1) strong.push(d); else if (m < 1) weak.push(d); });
+    return '<div class="fmatch"><b>' + type + '</b> hits are <span class="up">strong vs ' + strong.join(', ')
+      + '</span>, <span class="down">weak vs ' + weak.join(', ') + '</span></div>';
+  }
   function typeGuideHTML() {
     function badge(t) { return '<span class="tbadge" style="background:' + (TYPE_COLOR[t] || '#8a9178') + '">' + t + '</span>'; }
     var rows = E.TYPES.map(function (a) {
@@ -488,6 +496,7 @@
       + '<div class="fight"><div>' + E._generateBugSVG(st.cb, 84, st.level) + '</div></div>'
       + '<div class="sub">' + s.type + ' &middot; ' + s.cls + ' &middot; L' + st.level + ' &middot; holding this cell</div>'
       + '<div class="xp">' + (e ? e.wins + ' wins' + (e.level < W.LEVEL_CAP ? ' &middot; XP ' + e.xp + '/' + W.xpToNext(e.level) + ' to L' + (e.level + 1) : ' &middot; max level') : '') + '</div>'
+      + matchLine(s.type)
       + '<button id="mClose">Close</button>'
       + '<button class="ghost" id="mRecall">Recall (free the cell)</button>';
     showModal();
