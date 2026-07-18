@@ -37,18 +37,24 @@
   };
 
   // ── Fighter ─────────────────────────────────────────────────────────
-  function buildFighter(cb) {
+  // Each level adds 8% to the combat stats (matches world-engine leveling).
+  var LEVEL_STEP = 0.08;
+  function leveledStat(v, level) { return Math.round(v * (1 + LEVEL_STEP * ((level || 1) - 1))); }
+  function buildFighter(cb, level) {
+    level = level || 1;
     var s = ENG.bugStats(cb);
     var moves = (CLASS_MOVES[s.cls] || CLASS_MOVES.Aggressor).map(function (m) {
       var c = {}; for (var k in m) c[k] = m[k];
       if (c.type === "self") c.type = s.type;
       return c;
     });
+    var hp = leveledStat(s.stats.hp, level);
     return {
-      cb: cb, name: ENG.bugName(cb), type: s.type, cls: s.cls, kit: s.kit,
-      maxhp: s.stats.hp, hp: s.stats.hp,
-      atk: s.stats.atk, def: s.stats.def, spd: s.stats.spd,
-      acc: s.stats.acc, eva: s.stats.eva, power: s.power,
+      cb: cb, name: ENG.bugName(cb), type: s.type, cls: s.cls, kit: s.kit, level: level,
+      maxhp: hp, hp: hp,
+      atk: leveledStat(s.stats.atk, level), def: leveledStat(s.stats.def, level),
+      spd: leveledStat(s.stats.spd, level), acc: leveledStat(s.stats.acc, level),
+      eva: leveledStat(s.stats.eva, level), power: s.power,
       moves: moves,
       stages: { atk: 0, def: 0, spd: 0, acc: 0, eva: 0 },
       poison: 0, guard: false, critUp: false
@@ -185,8 +191,8 @@
     return state;
   }
 
-  function startBattle(cbA, cbB) {
-    return { a: buildFighter(cbA), b: buildFighter(cbB),
+  function startBattle(cbA, cbB, aLevel, bLevel) {
+    return { a: buildFighter(cbA, aLevel), b: buildFighter(cbB, bLevel),
       rng: ENG.seededRng(cbA + "|" + cbB + "|battle-v1"),
       round: 0, over: false, draw: false, winner: null, log: [] };
   }
@@ -194,8 +200,8 @@
   function playerRound(state, aMoveIdx) { return resolveRound(state, aMoveIdx); }
 
   // auto-battle: both AI. Returns { winner:'a'|'b', winnerName, rounds, log }
-  function resolveBattle(cbA, cbB) {
-    var st = startBattle(cbA, cbB), full = [];
+  function resolveBattle(cbA, cbB, aLevel, bLevel) {
+    var st = startBattle(cbA, cbB, aLevel, bLevel), full = [];
     while (!st.over) {
       resolveRound(st, aiPick(st.a, st.b, st.rng));
       full = full.concat(st.log);
