@@ -594,6 +594,23 @@
     };
   }
 
+  // ── Breeding: two parents -> a child codeblock (deterministic). ─────
+  // Each of the 32 trait-bytes is inherited from one parent or the other
+  // (order-independent), with a ~12% chance of mutation. Because traits map to
+  // fixed byte positions, the child visibly blends its parents (this body, that
+  // wing) yet is its own unique bug. Same parents always yield the same child.
+  function breed(cbA, cbB) {
+    var p = [String(cbA), String(cbB)].sort(), a = p[0], b = p[1];
+    var rng = seededRng("breed:" + a + ":" + b);
+    var hexc = "0123456789abcdef", child = "";
+    for (var i = 0; i < 64; i += 2) {
+      var byte = (rng() < 0.5 ? a : b).substr(i, 2);
+      if (rng() < 0.12) byte = hexc[Math.floor(rng() * 16)] + hexc[Math.floor(rng() * 16)];
+      child += byte;
+    }
+    return child;
+  }
+
   // ── NEW: the codeblock mint (play -> codeblock). ────────────────────
   // serializeTrace: canonical, order-sensitive string from a play trace.
   // A trace is an array of moves; each move is { i: <int action/cell>, dt:
@@ -639,7 +656,7 @@
     WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,
     LEG_BANK: LEG_BANK, ANTENNA_BANK: ANTENNA_BANK, PATTERN_BANK: PATTERN_BANK,
     serializeTrace: serializeTrace, mintCodeblock: mintCodeblock,
-    bugFromCodeblock: bugFromCodeblock
+    bugFromCodeblock: bugFromCodeblock, breed: breed
   };
   if (typeof module !== "undefined" && module.exports) { module.exports = _api; }
   if (typeof window !== "undefined") {

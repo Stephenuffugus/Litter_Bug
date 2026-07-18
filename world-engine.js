@@ -22,6 +22,9 @@
   var PLACE_COST = 1, ATTACK_COST = 1;
   var LEVEL_STEP = 0.08;        // must match battle-engine
   var LEVEL_CAP = 30;
+  var SCRAP_RATE_MS = 8 * 60 * 1000; // each held cell yields 1 scrap / 8 min
+  var BREED_COST = 6;                // scrap to breed two bugs
+  var SAVE_KEY = "litterbug_vault_v1";
 
   function key(ix, iy) { return ix + "," + iy; }
   function parseKey(k) { var p = k.split(","); return [parseInt(p[0], 10), parseInt(p[1], 10)]; }
@@ -49,7 +52,18 @@
   // ── Vault (save state) ──────────────────────────────────────────────
   function newVault() {
     return { v: 1, bugs: [], claims: {}, energy: ENERGY_MAX,
-      energyMax: ENERGY_MAX, lastEnergyTs: 0 };
+      energyMax: ENERGY_MAX, lastEnergyTs: 0, scrap: 0, lastScrapTs: 0 };
+  }
+  // Fill in fields missing from an older save so upgrades never crash.
+  function migrate(v) {
+    if (!v.bugs) v.bugs = [];
+    if (!v.claims) v.claims = {};
+    if (v.energy == null) v.energy = ENERGY_MAX;
+    if (v.energyMax == null) v.energyMax = ENERGY_MAX;
+    if (v.lastEnergyTs == null) v.lastEnergyTs = 0;
+    if (v.scrap == null) v.scrap = 0;
+    if (v.lastScrapTs == null) v.lastScrapTs = 0;
+    return v;
   }
   function findBug(vault, cb) {
     for (var i = 0; i < vault.bugs.length; i++) if (vault.bugs[i].cb === cb) return vault.bugs[i];
@@ -155,19 +169,67 @@
   }
 
   function summary(vault) {
-    return { territory: Object.keys(vault.claims).length, roster: vault.bugs.length };
+    return { territory: Object.keys(vault.claims).length, roster: vault.bugs.length,
+      scrap: vault.scrap || 0 };
+  }
+
+  // ── Territory rewards (scrap) ───────────────────────────────────────
+  // Each held cell yields scrap over time; scrap is spent on breeding.
+  // Holding more territory earns faster, so it is worth fighting for.
+  function pendingScrap(vault, now) {
+    var iv = Math.floor((now - (vault.lastScrapTs || 0)) / SCRAP_RATE_MS);
+    return Math.max(0, iv) * Object.keys(vault.claims).length;
+  }
+  function collectScrap(vault, now) {
+    var iv = Math.floor((now - (vault.lastScrapTs || 0)) / SCRAP_RATE_MS);
+    if (iv < 1) return 0;
+    var gain = iv * Object.keys(vault.claims).length;
+    vault.scrap = (vault.scrap || 0) + gain;
+    vault.lastScrapTs = (vault.lastScrapTs || 0) + iv * SCRAP_RATE_MS; // keep the remainder
+    return gain;
+  }
+
+  // ── Breeding: spend scrap to make a child from two owned parents ────
+  function breedBugs(vault, cbA, cbB, now) {
+    if (!findBug(vault, cbA) || !findBug(vault, cbB)) return { ok: false, reason: "need two of your bugs" };
+    if (cbA === cbB) return { ok: false, reason: "pick two different bugs" };
+    collectScrap(vault, now); // bank pending scrap first
+    if ((vault.scrap || 0) < BREED_COST) return { ok: false, reason: "need " + BREED_COST + " scrap" };
+    var child = ENG.breed(cbA, cbB);
+    if (findBug(vault, child)) return { ok: false, reason: "that pairing already made a bug" };
+    vault.scrap -= BREED_COST;
+    addBug(vault, child);
+    return { ok: true, childCb: child };
+  }
+
+  // ── Browser persistence (localStorage). No-ops under Node. ─────────
+  function browserSave(vault) {
+    try { if (typeof localStorage !== "undefined") localStorage.setItem(SAVE_KEY, JSON.stringify(vault)); } catch (e) {}
+  }
+  function browserLoad() {
+    try {
+      if (typeof localStorage !== "undefined") {
+        var raw = localStorage.getItem(SAVE_KEY);
+        if (raw) return migrate(JSON.parse(raw));
+      }
+    } catch (e) {}
+    var v = seedStarter(newVault()); browserSave(v); return v;
   }
 
   var _api = {
     WORLD_SALT: WORLD_SALT, ENERGY_MAX: ENERGY_MAX, PLACE_COST: PLACE_COST,
     ATTACK_COST: ATTACK_COST, LEVEL_CAP: LEVEL_CAP, REGEN_MS: REGEN_MS,
+    SCRAP_RATE_MS: SCRAP_RATE_MS, BREED_COST: BREED_COST, SAVE_KEY: SAVE_KEY,
     key: key, parseKey: parseKey,
-    newVault: newVault, seedStarter: seedStarter, findBug: findBug, addBug: addBug,
+    newVault: newVault, seedStarter: seedStarter, migrate: migrate,
+    findBug: findBug, addBug: addBug,
     energyNow: energyNow, spendEnergy: spendEnergy, msToNextEnergy: msToNextEnergy,
     deployedMap: deployedMap, cellState: cellState,
     isWild: isWild, wildCodeblock: wildCodeblock, wildLevel: wildLevel,
     xpToNext: xpToNext, gainXp: gainXp, winXp: winXp, leveledStats: leveledStats,
-    placeBug: placeBug, attackCell: attackCell, summary: summary
+    placeBug: placeBug, attackCell: attackCell, summary: summary,
+    pendingScrap: pendingScrap, collectScrap: collectScrap, breedBugs: breedBugs,
+    browserSave: browserSave, browserLoad: browserLoad
   };
   if (isNode) module.exports = _api;
   if (typeof window !== "undefined") window.WORLD_ENGINE = _api;

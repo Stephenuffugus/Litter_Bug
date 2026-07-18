@@ -17,6 +17,9 @@
  */
 var path = require('path');
 var W = require(path.join(__dirname, '..', 'world-engine.js'));
+var E = require(path.join(__dirname, '..', 'bug-engine.js'));
+var crypto = require('crypto');
+function cbOf(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
 
 var results = [];
 function check(name, fn) {
@@ -178,6 +181,52 @@ check('conquest run: territory grows only on wins, deterministic', function () {
   var a = run(), b = run();
   var ok = a && b && JSON.stringify(a) === JSON.stringify(b) && a.minEnergy >= 0 && a.attacks > 5;
   return { ok: ok, detail: a ? a.attacks + ' attacks, reserve bug reached lvl ' + a.level : 'FAILED' };
+});
+
+check('breed is deterministic, order-independent, and inherits', function () {
+  var A = cbOf('mom'), B = cbOf('dad');
+  var c1 = E.breed(A, B), c2 = E.breed(B, A);
+  if (c1 !== c2 || !/^[0-9a-f]{64}$/.test(c1)) return { ok: false, detail: 'not order-independent/valid' };
+  var fromParent = 0;
+  for (var i = 0; i < 64; i += 2) {
+    var byte = c1.substr(i, 2);
+    if (byte === A.substr(i, 2) || byte === B.substr(i, 2)) fromParent++;
+  }
+  // most bytes come from a parent (some mutate); child differs from both parents
+  return { ok: fromParent >= 22 && c1 !== A && c1 !== B, detail: fromParent + '/32 bytes inherited' };
+});
+
+check('scrap accrues from territory and collects with remainder', function () {
+  var v = W.seedStarter(W.newVault());   // 1 cell (home), scrap 0, lastScrapTs 0
+  var t = 0;
+  if (W.pendingScrap(v, W.SCRAP_RATE_MS * 3) !== 3) return { ok: false, detail: 'pending wrong' };
+  // collect at 3.5 intervals -> 3 scrap banked, half-interval remainder kept
+  var gain = W.collectScrap(v, Math.floor(W.SCRAP_RATE_MS * 3.5));
+  if (gain !== 3 || v.scrap !== 3) return { ok: false, detail: 'collect wrong: ' + gain + '/' + v.scrap };
+  var remainder = W.pendingScrap(v, Math.floor(W.SCRAP_RATE_MS * 3.5));
+  return { ok: remainder === 0 && W.collectScrap(v, W.SCRAP_RATE_MS * 3) === 0,
+    detail: '3 collected, remainder preserved, no double-collect' };
+});
+
+check('breedBugs: costs scrap, rejects poor / dup pair / same bug', function () {
+  var v = W.seedStarter(W.newVault());
+  var a = v.bugs[0].cb, b = v.bugs[1].cb;
+  var broke = W.breedBugs(v, a, b, 0);                 // 0 scrap
+  if (broke.ok) return { ok: false, detail: 'bred with no scrap' };
+  v.scrap = 100;
+  var same = W.breedBugs(v, a, a, 0);                  // same bug
+  var ok1 = W.breedBugs(v, a, b, 0);                   // should succeed
+  var dup = W.breedBugs(v, a, b, 0);                   // same pair again
+  var costOk = v.scrap === 100 - W.BREED_COST;
+  return { ok: !broke.ok && !same.ok && ok1.ok && !dup.ok && costOk && v.bugs.length === 4,
+    detail: 'poor+same+dup rejected, one child added, scrap spent' };
+});
+
+check('migrate fills missing fields on an old save', function () {
+  var old = { v: 1, bugs: [{ cb: 'x', level: 3, xp: 0, wins: 2 }], claims: {} };
+  var m = W.migrate(old);
+  return { ok: m.scrap === 0 && m.lastScrapTs === 0 && m.energy === W.ENERGY_MAX,
+    detail: 'scrap/energy defaults added, roster preserved' };
 });
 
 // ── Output ─────────────────────────────────────────────────────────────
