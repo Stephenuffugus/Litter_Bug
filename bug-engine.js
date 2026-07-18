@@ -344,6 +344,7 @@
     var nMat = 2 + Math.floor(R() * 3), mats = [primary];
     for (i = 1; i < nMat; i++) mats.push(matPool[Math.floor(R() * matPool.length)]);
     var segMat = seg.map(function (s, i) { return i === N - 1 ? -1 : Math.floor(R() * mats.length); });
+    var antKind = Math.floor(R() * 3), eyeKind = Math.floor(R() * 3);   // head detail, rolled last
     var has = function (th) { return growth >= th; };
 
     // fit to canvas (account for the parts that have grown in)
@@ -409,7 +410,21 @@
       if (i < N - 1) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
 
     var head = seg[N - 1], eR = head.r * 0.42, ax = head.x + head.r * 0.2, ay = head.y - head.r * 0.8;
-    if (has(0.12)) { front += '<path d="M ' + q(ax) + ' ' + q(ay) + ' Q ' + q(ax + 10) + ' ' + q(ay - 14) + ' ' + q(ax + 20) + ' ' + q(ay - 20) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/><path d="M ' + q(ax - 4) + ' ' + q(ay) + ' Q ' + q(ax + 4) + ' ' + q(ay - 16) + ' ' + q(ax + 12) + ' ' + q(ay - 24) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/>'; }
+    if (has(0.12)) {
+      var t1x = ax + 20, t1y = ay - 20, t2x = ax + 12, t2y = ay - 24;   // antenna tips
+      front += '<path d="M ' + q(ax) + ' ' + q(ay) + ' Q ' + q(ax + 10) + ' ' + q(ay - 14) + ' ' + q(t1x) + ' ' + q(t1y) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/>'
+        + '<path d="M ' + q(ax - 4) + ' ' + q(ay) + ' Q ' + q(ax + 4) + ' ' + q(ay - 16) + ' ' + q(t2x) + ' ' + q(t2y) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/>';
+      if (antKind === 1) {   // clubbed tips
+        front += '<circle cx="' + q(t1x) + '" cy="' + q(t1y) + '" r="2.5" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="0.8"/>'
+          + '<circle cx="' + q(t2x) + '" cy="' + q(t2y) + '" r="2.5" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="0.8"/>';
+      } else if (antKind === 2) {   // feathered barbs
+        for (var bi = 1; bi <= 3; bi++) {
+          var tt = bi / 4;
+          front += '<path d="M ' + q(ax + (t1x - ax) * tt) + ' ' + q(ay + (t1y - ay) * tt) + ' l 4 -1" stroke="' + ol + '" stroke-width="1" stroke-linecap="round"/>'
+            + '<path d="M ' + q((ax - 4) + (t2x - (ax - 4)) * tt) + ' ' + q(ay + (t2y - ay) * tt) + ' l 4 -1" stroke="' + ol + '" stroke-width="1" stroke-linecap="round"/>';
+        }
+      }
+    }
     if (has(plan.horns)) { front += '<path d="M ' + q(head.x + head.r * 0.1) + ' ' + q(head.y - head.r * 0.85) + ' Q ' + q(head.x + head.r * 0.6 + hornCurl * 10) + ' ' + q(head.y - head.r * 1.6) + ' ' + q(head.x + head.r * 1.1) + ' ' + q(head.y - head.r * 1.5) + '" fill="none" stroke="' + spineCol + '" stroke-width="3" stroke-linecap="round"/>'; }
     if (has(plan.pincers)) { var jx = head.x + head.r * 0.8, jy = head.y;
       if (jawKind === 2) {   // crossing tusks
@@ -423,7 +438,17 @@
           + '<path d="M ' + q(jx) + ' ' + q(jy + head.r * 0.55) + ' q 8 5 4 11" fill="none" stroke="' + ol + '" stroke-width="2.2" stroke-linecap="round"/>';
       }
     }
-    front += '<ellipse cx="' + q(head.x + head.r * 0.3) + '" cy="' + q(head.y - head.r * 0.2) + '" rx="' + q(eR * 0.85) + '" ry="' + q(eR) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1.2"/><circle cx="' + q(head.x + head.r * 0.15) + '" cy="' + q(head.y - head.r * 0.4) + '" r="' + q(eR * 0.32) + '" fill="#fdfdfa"/>';
+    var eyeX = head.x + head.r * 0.3, eyeY = head.y - head.r * 0.2;
+    if (eyeKind === 1) {   // compound eye: a cluster of facets
+      var er2 = eR * 0.95;
+      [[0, 0], [-0.55, -0.5], [0.5, -0.45], [-0.45, 0.55], [0.55, 0.45]].forEach(function (o) {
+        front += '<circle cx="' + q(eyeX + o[0] * er2) + '" cy="' + q(eyeY + o[1] * er2) + '" r="' + q(er2 * 0.44) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="0.8"/>';
+      });
+      front += '<circle cx="' + q(eyeX - er2 * 0.3) + '" cy="' + q(eyeY - er2 * 0.35) + '" r="' + q(er2 * 0.2) + '" fill="#fdfdfa"/>';
+    } else {   // single eye (original), optionally half-lidded
+      front += '<ellipse cx="' + q(eyeX) + '" cy="' + q(eyeY) + '" rx="' + q(eR * 0.85) + '" ry="' + q(eR) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1.2"/><circle cx="' + q(head.x + head.r * 0.15) + '" cy="' + q(head.y - head.r * 0.4) + '" r="' + q(eR * 0.32) + '" fill="#fdfdfa"/>';
+      if (eyeKind === 2) front += '<path d="M ' + q(eyeX - eR * 0.85) + ' ' + q(eyeY - eR * 0.45) + ' q ' + q(eR * 0.85) + ' ' + q(-eR * 0.6) + ' ' + q(eR * 1.7) + ' 0" fill="none" stroke="' + ol + '" stroke-width="1.4" stroke-linecap="round"/>';
+    }
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
