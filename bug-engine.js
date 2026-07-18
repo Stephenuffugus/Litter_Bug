@@ -336,12 +336,13 @@
     // wing family (rolled last so it never shifts the spine/part rolls above):
     // 0 membrane pair, 1 dragonfly fore+hind, 2 beetle elytra shell.
     var wingKind = Math.floor(R() * 3), wingUp = wingKind === 2 ? 26 : (wingKind === 1 ? 56 : 46);
+    var jawKind = 1 + Math.floor(R() * 3), tailKind = Math.floor(R() * 3);   // also rolled last
     var has = function (th) { return growth >= th; };
 
     // fit to canvas (account for the parts that have grown in)
     var top = Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (has(plan.wings) ? wingUp : 8) - (has(Math.min.apply(0, plan.spines)) ? 10 : 0);
-    var minx = Math.min.apply(0, seg.map(function (s) { return s.x - s.r; })) - (has(plan.tail) ? tailLen : 4);
-    var maxx = Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (has(plan.pincers) ? 14 : 8) + (has(plan.horns) ? 10 : 0) + (has(plan.wings) && wingKind !== 2 ? 16 : 0);
+    var minx = Math.min.apply(0, seg.map(function (s) { return s.x - s.r; })) - (has(plan.tail) ? tailLen * 1.3 + 6 : 4);
+    var maxx = Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (has(plan.pincers) ? 16 : 8) + (has(plan.horns) ? 10 : 0) + (has(plan.wings) && wingKind !== 2 ? 16 : 0);
     var bottom = Math.max.apply(0, seg.map(function (s) { return s.y + s.r; })) + 22;
     var w = maxx - minx, h = bottom - top, f = Math.min(1, 176 / w, 182 / h);
     if (f < 1) { var mmx = (minx + maxx) / 2, mmy = (top + bottom) / 2; seg.forEach(function (s) { s.x = cx + (s.x - mmx) * f; s.y = cy + (s.y - mmy) * f; s.r *= f; }); tailLen *= f; }
@@ -373,7 +374,17 @@
         back += membrane(wx, wy, sc, 0.95);
       }
     }
-    if (has(plan.tail)) { var stl = seg[0]; back += '<path d="M ' + q(stl.x) + ' ' + q(stl.y) + ' q ' + q(-tailLen) + ' 4 ' + q(-tailLen * 1.2) + ' -8 l 5 -4 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.6" stroke-linejoin="round"/>'; }
+    if (has(plan.tail)) { var stl = seg[0], tx = stl.x, ty = stl.y;
+      if (tailKind === 1) {   // forked
+        back += '<path d="M ' + q(tx) + ' ' + q(ty) + ' l ' + q(-tailLen) + ' -6 l 3 5 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.4" stroke-linejoin="round"/>'
+          + '<path d="M ' + q(tx) + ' ' + q(ty) + ' l ' + q(-tailLen) + ' 8 l 3 -5 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.4" stroke-linejoin="round"/>';
+      } else if (tailKind === 2) {   // clubbed stinger
+        back += '<path d="M ' + q(tx) + ' ' + q(ty) + ' q ' + q(-tailLen) + ' 2 ' + q(-tailLen * 1.1) + ' 0" fill="none" stroke="' + spineCol + '" stroke-width="3" stroke-linecap="round"/>'
+          + '<circle cx="' + q(tx - tailLen * 1.15) + '" cy="' + q(ty) + '" r="' + q(4 + tailLen * 0.12) + '" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.4"/>';
+      } else {   // straight stinger (original)
+        back += '<path d="M ' + q(tx) + ' ' + q(ty) + ' q ' + q(-tailLen) + ' 4 ' + q(-tailLen * 1.2) + ' -8 l 5 -4 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.6" stroke-linejoin="round"/>';
+      }
+    }
     seg.forEach(function (s, i) { if (!has(plan.legs[i])) return; var ky = s.y + s.r * 0.7 + 8;
       legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
       legs += '<path d="M ' + q(s.x + 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 3) + ' ' + q(ky) + ' L ' + q(s.x - 6) + ' ' + q(ky + 10) + '" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'; });
@@ -385,7 +396,18 @@
     var head = seg[N - 1], eR = head.r * 0.42, ax = head.x + head.r * 0.2, ay = head.y - head.r * 0.8;
     if (has(0.12)) { front += '<path d="M ' + q(ax) + ' ' + q(ay) + ' Q ' + q(ax + 10) + ' ' + q(ay - 14) + ' ' + q(ax + 20) + ' ' + q(ay - 20) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/><path d="M ' + q(ax - 4) + ' ' + q(ay) + ' Q ' + q(ax + 4) + ' ' + q(ay - 16) + ' ' + q(ax + 12) + ' ' + q(ay - 24) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/>'; }
     if (has(plan.horns)) { front += '<path d="M ' + q(head.x + head.r * 0.1) + ' ' + q(head.y - head.r * 0.85) + ' Q ' + q(head.x + head.r * 0.6 + hornCurl * 10) + ' ' + q(head.y - head.r * 1.6) + ' ' + q(head.x + head.r * 1.1) + ' ' + q(head.y - head.r * 1.5) + '" fill="none" stroke="' + spineCol + '" stroke-width="3" stroke-linecap="round"/>'; }
-    if (has(plan.pincers)) { front += '<path d="M ' + q(head.x + head.r * 0.8) + ' ' + q(head.y + head.r * 0.3) + ' q 9 3 7 10" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round"/><path d="M ' + q(head.x + head.r * 0.8) + ' ' + q(head.y + head.r * 0.55) + ' q 8 5 4 11" fill="none" stroke="' + ol + '" stroke-width="2.2" stroke-linecap="round"/>'; }
+    if (has(plan.pincers)) { var jx = head.x + head.r * 0.8, jy = head.y;
+      if (jawKind === 2) {   // crossing tusks
+        front += '<path d="M ' + q(jx) + ' ' + q(jy + head.r * 0.2) + ' q 12 0 15 8" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round"/>'
+          + '<path d="M ' + q(jx) + ' ' + q(jy + head.r * 0.55) + ' q 12 2 15 -3" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round"/>';
+      } else if (jawKind === 3) {   // open filled mandibles
+        front += '<path d="M ' + q(jx) + ' ' + q(jy + head.r * 0.12) + ' l 12 -3 l -2 7 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.4" stroke-linejoin="round"/>'
+          + '<path d="M ' + q(jx) + ' ' + q(jy + head.r * 0.62) + ' l 12 4 l -3 -7 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.4" stroke-linejoin="round"/>';
+      } else {   // curved pincers (original)
+        front += '<path d="M ' + q(jx) + ' ' + q(jy + head.r * 0.3) + ' q 9 3 7 10" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round"/>'
+          + '<path d="M ' + q(jx) + ' ' + q(jy + head.r * 0.55) + ' q 8 5 4 11" fill="none" stroke="' + ol + '" stroke-width="2.2" stroke-linecap="round"/>';
+      }
+    }
     front += '<ellipse cx="' + q(head.x + head.r * 0.3) + '" cy="' + q(head.y - head.r * 0.2) + '" rx="' + q(eR * 0.85) + '" ry="' + q(eR) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1.2"/><circle cx="' + q(head.x + head.r * 0.15) + '" cy="' + q(head.y - head.r * 0.4) + '" r="' + q(eR * 0.32) + '" fill="#fdfdfa"/>';
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
