@@ -512,6 +512,88 @@
     };
   }
 
+  // ══ BATTLE STATS (P1: a bug is a fighter) ═══════════════════════════
+  // Every combat number is DERIVED from the same traits that draw the bug,
+  // so a bug's look predicts its fight: big body = HP, big head = ATK, wings
+  // = speed/dodge, no wings = tankier, antennae = accuracy. Deterministic.
+
+  // Six litter-born elemental types. A bug's type comes from its palette
+  // scheme (the color the player sees), so type is legible at a glance.
+  var TYPES = ['Rust', 'Moss', 'Spark', 'Ooze', 'Glass', 'Ash'];
+  // Type of each palette scheme, parallel to PALETTES by index.
+  var PALETTE_TYPE = ['Rust','Moss','Spark','Ooze','Glass','Moss','Rust','Ash',
+    'Spark','Glass','Spark','Ooze','Moss','Glass','Ash','Rust','Rust','Ooze',
+    'Glass','Glass','Rust','Moss','Spark','Glass','Rust','Moss','Ash','Rust'];
+  // Cyclic chart: each type is strong vs the next two in the ring, weak vs the
+  // previous two, neutral vs the one opposite. Balanced by construction.
+  var TYPE_CHART = {};
+  (function () {
+    var n = TYPES.length;
+    for (var i = 0; i < n; i++) {
+      TYPE_CHART[TYPES[i]] = {
+        strong: [TYPES[(i + 1) % n], TYPES[(i + 2) % n]],
+        weak:   [TYPES[(i + n - 1) % n], TYPES[(i + n - 2) % n]]
+      };
+    }
+  })();
+  // typeMatchup(attacker, defender) -> damage multiplier (2 / 1 / 0.5).
+  function typeMatchup(atk, def) {
+    var c = TYPE_CHART[atk];
+    if (!c) return 1;
+    if (c.strong.indexOf(def) >= 0) return 2;
+    if (c.weak.indexOf(def) >= 0) return 0.5;
+    return 1;
+  }
+
+  // Eight tactical classes, from the bug's behavior trait. Each is a kit
+  // hint the turn-based battle engine (P2) will read.
+  var CLASSES = [
+    { name: 'Aggressor',  kit: 'raw damage, hits first and hard' },
+    { name: 'Bulwark',    kit: 'soaks hits, high HP and DEF' },
+    { name: 'Skirmisher', kit: 'fast, dodges, chips away' },
+    { name: 'Ambusher',   kit: 'big first strike, high crit' },
+    { name: 'Venomancer', kit: 'poison and damage over time' },
+    { name: 'Sentinel',   kit: 'guards allies and counters' },
+    { name: 'Trickster',  kit: 'lowers enemy accuracy and speed' },
+    { name: 'Swarm',      kit: 'many small multi-hits' }
+  ];
+
+  // Rarity is a separate roll (hash byte 24), DECOUPLED from power on purpose:
+  // a common bug can still be a strong battler. Rarity is a collection/flex axis.
+  var RARITIES = [
+    { name: 'Common', min: 0 }, { name: 'Uncommon', min: 150 },
+    { name: 'Rare', min: 210 }, { name: 'Epic', min: 240 },
+    { name: 'Legendary', min: 253 }
+  ];
+  function rarityFor(roll) {
+    var r = RARITIES[0];
+    for (var i = 0; i < RARITIES.length; i++) if (roll >= RARITIES[i].min) r = RARITIES[i];
+    return r.name;
+  }
+
+  // bugStats(codeblock) -> the full fighter profile. Deterministic.
+  function bugStats(codeblock) {
+    var t = hashToBugTraits(codeblock);
+    var winged = (t.wing % 5) !== 4;
+    var hp  = 40 + (t.bodyLen % 40) + Math.floor((t.bodyW % 30) / 2);
+    var atk = 30 + (t.head * 7) % 50 + ((t.head % 2) ? 8 : 0);
+    var def = 30 + (t.body * 5) % 45 + ((t.pattern % 5 === 0) ? 6 : 0) + (winged ? 0 : 12);
+    var spd = 28 + (winged ? 22 : 0) + (t.leg % 14) * 2;
+    var acc = 45 + (t.antenna * 3) % 40;
+    var eva = 8 + (winged ? 12 : 0) + (t.leg % 10) * 2;
+    var stats = { hp: hp, atk: atk, def: def, spd: spd, acc: acc, eva: eva };
+    var power = Math.round(hp * 0.6 + atk * 1.2 + def * 1.0 + spd * 0.9 + acc * 0.5 + eva * 0.7);
+    var cls = CLASSES[t.behavior % CLASSES.length];
+    var tags = [winged ? 'Flying' : 'Grounded'];
+    if (t.head % 2) tags.push('Mandibles');
+    return {
+      type: PALETTE_TYPE[t.palette] || TYPES[0],
+      cls: cls.name, kit: cls.kit,
+      stats: stats, power: power,
+      rarity: rarityFor(hb(codeblock, 24)), tags: tags
+    };
+  }
+
   // ── NEW: the codeblock mint (play -> codeblock). ────────────────────
   // serializeTrace: canonical, order-sensitive string from a play trace.
   // A trace is an array of moves; each move is { i: <int action/cell>, dt:
@@ -541,6 +623,7 @@
       traits: hashToBugTraits(codeblock),
       name: id.name,          // kept for back-compat
       identity: id,           // { name, species, designation, lore }
+      stats: bugStats(codeblock),  // { type, cls, kit, stats, power, rarity, tags }
       svg: _generateBugSVG(codeblock, size || 160)
     };
   }
@@ -551,6 +634,8 @@
     hashToBugTraits: hashToBugTraits, _generateBugSVG: _generateBugSVG,
     bugName: bugName, bugSpecies: bugSpecies, bugDesignation: bugDesignation,
     bugLore: bugLore, bugIdentity: bugIdentity, seededRng: seededRng, PALETTES: PALETTES,
+    TYPES: TYPES, TYPE_CHART: TYPE_CHART, typeMatchup: typeMatchup,
+    CLASSES: CLASSES, bugStats: bugStats,
     WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,
     LEG_BANK: LEG_BANK, ANTENNA_BANK: ANTENNA_BANK, PATTERN_BANK: PATTERN_BANK,
     serializeTrace: serializeTrace, mintCodeblock: mintCodeblock,

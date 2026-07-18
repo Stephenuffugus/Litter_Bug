@@ -54,6 +54,23 @@
   .buglore { white-space: pre-line; text-align: center; font-size: 13.5px;
     line-height: 1.55; color: #cdbfa6; max-width: 32ch; margin: 4px auto 2px;
     font-style: italic; }
+  .fighter { width: 100%; background: #10140f; border: 1px solid #1f231d;
+    border-radius: 10px; padding: 10px 12px; box-sizing: border-box; }
+  .fhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .tbadge { font-size: 11px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 6px; color: #0d100c; }
+  .fmeta { font-size: 12px; color: #cdbfa6; }
+  .fmeta .pwr { color: #c8a84b; font-weight: 600; }
+  .fmeta .rar { font-weight: 600; }
+  .fkit { font-size: 11px; color: #8a9178; margin-bottom: 8px; font-style: italic; }
+  .statrow { display: grid; grid-template-columns: 32px 1fr 26px; align-items: center;
+    gap: 8px; margin: 3px 0; font-size: 11px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .statrow .lbl { color: #8a9178; }
+  .statrow .track { height: 7px; background: #1c211a; border-radius: 4px; overflow: hidden; }
+  .statrow .fill { height: 100%; border-radius: 4px; }
+  .statrow .val { color: #cdbfa6; text-align: right; }
+  .ftags { margin-top: 7px; font-size: 10.5px; color: #6f7766; letter-spacing: .03em; }
   .codeblock { font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 11px; color: #7ab356; word-break: break-all; text-align: center;
     background: #10140f; border: 1px solid #1f231d; border-radius: 8px;
@@ -99,6 +116,7 @@
       <div class="bugspecies" id="bugspecies"></div>
       <div class="bugdesig" id="bugdesig"></div>
       <div class="buglore" id="buglore"></div>
+      <div class="fighter" id="fighter"></div>
       <div class="codeblock">
         <span class="lbl">codeblock</span>
         <span id="cbHex"></span>
@@ -217,6 +235,30 @@
     onCellTap(parseInt(el.getAttribute('data-i'), 10));
   });
 
+  // Build the fighter card (type badge + class/rarity/power + stat bars).
+  var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f',
+    Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
+  var RARITY_COLOR = { Common:'#8a9178', Uncommon:'#7ab356', Rare:'#4a9ad4',
+    Epic:'#b06fd4', Legendary:'#e0a13c' };
+  function renderFighter(st) {
+    var tcol = TYPE_COLOR[st.type] || '#8a9178';
+    var order = [['HP','hp'],['ATK','atk'],['DEF','def'],['SPD','spd'],['ACC','acc'],['EVA','eva']];
+    var bars = order.map(function (o) {
+      var v = st.stats[o[1]];
+      var w = Math.min(100, Math.round(v / 120 * 100));
+      return '<div class="statrow"><span class="lbl">' + o[0] + '</span>'
+        + '<span class="track"><span class="fill" style="width:' + w + '%;background:' + tcol + '"></span></span>'
+        + '<span class="val">' + v + '</span></div>';
+    }).join('');
+    document.getElementById('fighter').innerHTML =
+      '<div class="fhead"><span class="tbadge" style="background:' + tcol + '">' + st.type + '</span>'
+      + '<span class="fmeta">' + st.cls + ' &middot; <span class="rar" style="color:'
+      + (RARITY_COLOR[st.rarity] || '#cdbfa6') + '">' + st.rarity + '</span> &middot; '
+      + '<span class="pwr">PWR ' + st.power + '</span></span></div>'
+      + '<div class="fkit">' + st.kit + '</div>' + bars
+      + '<div class="ftags">' + st.tags.join('  &middot;  ') + '</div>';
+  }
+
   async function finishTrial() {
     playing = false;
     boardEl.classList.add('done');
@@ -232,6 +274,7 @@
     document.getElementById('bugspecies').textContent = bug.identity.species;
     document.getElementById('bugdesig').textContent = bug.identity.designation;
     document.getElementById('buglore').textContent = bug.identity.lore;
+    renderFighter(bug.stats);
     document.getElementById('cbHex').textContent = cb;
     document.getElementById('traceStr').textContent = window.serializeTrace(trace);
     document.getElementById('verdict').textContent = '';
