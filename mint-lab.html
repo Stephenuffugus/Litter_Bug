@@ -71,6 +71,7 @@
   .statrow .fill { height: 100%; border-radius: 4px; }
   .statrow .val { color: #cdbfa6; text-align: right; }
   .ftags { margin-top: 7px; font-size: 10.5px; color: #6f7766; letter-spacing: .03em; }
+  .collnote { font-size: 12px; color: #7ab356; text-align: center; }
   .codeblock { font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 11px; color: #7ab356; word-break: break-all; text-align: center;
     background: #10140f; border: 1px solid #1f231d; border-radius: 8px;
@@ -117,6 +118,7 @@
       <div class="bugdesig" id="bugdesig"></div>
       <div class="buglore" id="buglore"></div>
       <div class="fighter" id="fighter"></div>
+      <div class="collnote" id="collnote"></div>
       <div class="codeblock">
         <span class="lbl">codeblock</span>
         <span id="cbHex"></span>
@@ -139,6 +141,7 @@
 </footer>
 
 <script src="bug-engine.js"></script>
+<script src="world-engine.js"></script>
 <script>
 (function () {
   'use strict';
@@ -259,6 +262,23 @@
       + '<div class="ftags">' + st.tags.join('  &middot;  ') + '</div>';
   }
 
+  // Save each newly minted bug into the shared collection (localStorage),
+  // so it shows up in your World roster to deploy and battle.
+  function saveToCollection(cb) {
+    var note = document.getElementById('collnote');
+    try {
+      var Wld = window.WORLD_ENGINE;
+      if (!Wld) { note.textContent = ''; return; }
+      var vault = Wld.browserLoad();
+      var before = vault.bugs.length;
+      Wld.addBug(vault, cb);
+      Wld.browserSave(vault);
+      note.textContent = vault.bugs.length > before
+        ? 'Saved to your collection (' + vault.bugs.length + ' bugs). Deploy it in the World.'
+        : 'Already in your collection (' + vault.bugs.length + ' bugs).';
+    } catch (e) { note.textContent = ''; }
+  }
+
   async function finishTrial() {
     playing = false;
     boardEl.classList.add('done');
@@ -275,6 +295,7 @@
     document.getElementById('bugdesig').textContent = bug.identity.designation;
     document.getElementById('buglore').textContent = bug.identity.lore;
     renderFighter(bug.stats);
+    saveToCollection(cb);
     document.getElementById('cbHex').textContent = cb;
     document.getElementById('traceStr').textContent = window.serializeTrace(trace);
     document.getElementById('verdict').textContent = '';

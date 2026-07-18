@@ -83,6 +83,12 @@
   .card button { width: 100%; padding: 12px; background: #2a3a1f; color: #d8ecc4;
     border: 1px solid #7ab356; border-radius: 10px; font-size: 15px; cursor: pointer; min-height: 48px; }
   .card button.ghost { background: #15191a; border-color: #2a2f28; color: #e8dcc8; margin-top: 8px; }
+  .bgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
+  .bchip { text-align: center; padding: 4px; border-radius: 10px; border: 2px solid transparent;
+    cursor: pointer; background: #10140f; }
+  .bchip.sel { border-color: #7ab356; background: #141a10; }
+  .bchip svg { width: 44px; height: 44px; }
+  .bchip .cl { font-size: 9px; color: #8a9178; font-family: ui-monospace, Menlo, monospace; }
 </style>
 </head>
 <body>
@@ -90,6 +96,7 @@
   <h1>Litter Bug / world</h1>
   <div class="hud">
     <span>territory <b id="hTerr">0</b></span>
+    <span>scrap <b id="hScrap">0</b></span>
     <span class="en">energy <b class="en" id="hEn">0</b>/<span id="hEnMax">10</span></span>
   </div>
 </header>
@@ -116,11 +123,8 @@
     var b = new Uint8Array(32); (window.crypto || window.msCrypto).getRandomValues(b);
     var s = ''; for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2); return s;
   }
-  function load() {
-    try { var raw = localStorage.getItem(SAVE); if (raw) return JSON.parse(raw); } catch (e) {}
-    var v = W.seedStarter(W.newVault()); save(v); return v;
-  }
-  function save(v) { try { localStorage.setItem(SAVE, JSON.stringify(v)); } catch (e) {} }
+  function load() { return W.browserLoad(); }   // shared with mint-lab
+  function save(v) { W.browserSave(v); }
 
   var vault = load();
   var center = { ix: 0, iy: 0 };
@@ -132,7 +136,9 @@
   function bugType(cb) { return E.bugStats(cb).type; }
 
   function renderHUD() {
+    if (W.collectScrap(vault, now()) > 0) save(vault);   // auto-bank territory income
     document.getElementById('hTerr').textContent = W.summary(vault).territory;
+    document.getElementById('hScrap').textContent = vault.scrap || 0;
     document.getElementById('hEn').textContent = W.energyNow(vault, now());
     document.getElementById('hEnMax').textContent = vault.energyMax;
   }
@@ -158,6 +164,44 @@
       renderRoster(); renderMap(); toast('Rolled a new bug into your roster.');
     });
     r.appendChild(mint);
+    var breedBtn = document.createElement('button');
+    breedBtn.className = 'rbtn'; breedBtn.textContent = 'breed';
+    breedBtn.addEventListener('click', openBreed);
+    r.appendChild(breedBtn);
+  }
+
+  // ── breeding ─────────────────────────────────────────────────────
+  var breedSel = [];
+  function openBreed() { breedSel = []; renderBreed(); showModal(); }
+  function renderBreed() {
+    var chips = vault.bugs.map(function (bg) {
+      var st = E.bugStats(bg.cb), sel = breedSel.indexOf(bg.cb) >= 0;
+      return '<div class="bchip' + (sel ? ' sel' : '') + '" data-cb="' + bg.cb + '">'
+        + E._generateBugSVG(bg.cb, 44) + '<div class="cl">L' + bg.level + ' ' + st.type + '</div></div>';
+    }).join('');
+    var card = document.getElementById('card');
+    card.innerHTML = '<h2>Breed</h2>'
+      + '<div class="sub">Pick two parents. The child inherits their traits. '
+      + 'Costs ' + W.BREED_COST + ' scrap &mdash; you have ' + (vault.scrap || 0) + '.</div>'
+      + '<div class="bgrid">' + chips + '</div>'
+      + '<button id="mBreed"' + (breedSel.length === 2 ? '' : ' disabled') + '>Breed</button>'
+      + '<button class="ghost" id="mClose">Close</button>';
+    Array.prototype.forEach.call(card.querySelectorAll('.bchip'), function (el) {
+      el.addEventListener('click', function () {
+        var cb = el.getAttribute('data-cb'), idx = breedSel.indexOf(cb);
+        if (idx >= 0) breedSel.splice(idx, 1);
+        else { if (breedSel.length >= 2) breedSel.shift(); breedSel.push(cb); }
+        renderBreed();
+      });
+    });
+    var bb = document.getElementById('mBreed');
+    if (bb) bb.addEventListener('click', function () {
+      var r = W.breedBugs(vault, breedSel[0], breedSel[1], now());
+      if (!r.ok) { toast(r.reason); return; }
+      activeCb = r.childCb; save(vault); renderRoster(); renderMap(); hideModal();
+      toast('Bred a new bug into your roster.');
+    });
+    var c = document.getElementById('mClose'); if (c) c.addEventListener('click', hideModal);
   }
 
   function cellEl(ix, iy) {

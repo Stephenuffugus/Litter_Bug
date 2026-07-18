@@ -206,14 +206,22 @@
   function browserSave(vault) {
     try { if (typeof localStorage !== "undefined") localStorage.setItem(SAVE_KEY, JSON.stringify(vault)); } catch (e) {}
   }
+  function nowMs() { return (typeof Date !== "undefined" && Date.now) ? Date.now() : 0; }
   function browserLoad() {
+    var v = null;
     try {
       if (typeof localStorage !== "undefined") {
         var raw = localStorage.getItem(SAVE_KEY);
-        if (raw) return migrate(JSON.parse(raw));
+        if (raw) v = migrate(JSON.parse(raw));
       }
     } catch (e) {}
-    var v = seedStarter(newVault()); browserSave(v); return v;
+    if (!v) v = seedStarter(newVault());
+    // A fresh/old save has ts 0; stamp to NOW so scrap/energy don't pay out
+    // retroactively for all of epoch time on first load.
+    var t = nowMs();
+    if (!v.lastScrapTs) v.lastScrapTs = t;
+    if (!v.lastEnergyTs) v.lastEnergyTs = t;
+    browserSave(v); return v;
   }
 
   var _api = {
