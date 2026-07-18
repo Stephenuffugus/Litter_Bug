@@ -345,6 +345,7 @@
     for (i = 1; i < nMat; i++) mats.push(matPool[Math.floor(R() * matPool.length)]);
     var segMat = seg.map(function (s, i) { return i === N - 1 ? -1 : Math.floor(R() * mats.length); });
     var antKind = Math.floor(R() * 3), eyeKind = Math.floor(R() * 3);   // head detail, rolled last
+    var legKind = Math.floor(R() * 3);   // 0 thin, 1 sturdy, 2 raptorial forelegs
     var has = function (th) { return growth >= th; };
 
     // fit to canvas (account for the parts that have grown in)
@@ -401,9 +402,14 @@
         back += '<path d="M ' + q(tx) + ' ' + q(ty) + ' q ' + q(-tailLen) + ' 4 ' + q(-tailLen * 1.2) + ' -8 l 5 -4 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.6" stroke-linejoin="round"/>';
       }
     }
+    var lw = (legKind === 1) ? 1 : 0;   // sturdy legs are thicker
     seg.forEach(function (s, i) { if (!has(plan.legs[i])) return; var ky = s.y + s.r * 0.7 + 8;
-      legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
-      legs += '<path d="M ' + q(s.x + 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 3) + ' ' + q(ky) + ' L ' + q(s.x - 6) + ' ' + q(ky + 10) + '" fill="none" stroke="' + ol + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>'; });
+      legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="' + (2.2 + lw) + '" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
+      legs += '<path d="M ' + q(s.x + 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 3) + ' ' + q(ky) + ' L ' + q(s.x - 6) + ' ' + q(ky + 10) + '" fill="none" stroke="' + ol + '" stroke-width="' + (2.6 + lw) + '" stroke-linecap="round" stroke-linejoin="round"/>'; });
+    if (legKind === 2) {   // raptorial forelegs: a bent, hooked limb reaching forward off the thorax
+      var rs = seg[thoraxI], rx0 = rs.x + rs.r * 0.3, ry0 = rs.y + rs.r * 0.45;
+      legs += '<path d="M ' + q(rx0) + ' ' + q(ry0) + ' L ' + q(rx0 + 7) + ' ' + q(ry0 + 10) + ' L ' + q(rx0 + 17) + ' ' + q(ry0 + 3) + ' L ' + q(rx0 + 15) + ' ' + q(ry0 + 11) + '" fill="none" stroke="' + ol + '" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>';
+    }
     seg.forEach(function (s, i) { if (!has(plan.spines[i])) return; back += '<path d="M ' + q(s.x) + ' ' + q(s.y - s.r) + ' l -3 -9 l 6 0 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1"/>'; });
     seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? ('gh' + uid) : ('gb' + segMat[i] + uid);
       body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + ')" stroke="' + ol + '" stroke-width="2.4"/>';
