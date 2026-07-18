@@ -114,6 +114,12 @@
   .bresult.draw { background: #23262a; color: #cdbfa6; }
   .bquick { width: 100%; background: #15191a; border: 1px solid #2a2f28; color: #8a9178;
     border-radius: 8px; padding: 8px; font-size: 12px; cursor: pointer; margin-top: 6px; }
+  .chip .xps { height: 2px; background: #1c211a; border-radius: 2px; margin-top: 2px; }
+  .chip .xpf { height: 100%; background: #7ab356; border-radius: 2px; }
+  .grewnote { text-align: center; font-size: 12px; color: #7ab356; margin: -2px 0 8px;
+    font-family: ui-monospace, Menlo, monospace; }
+  @keyframes growpop { 0% { transform: scale(.86); opacity: .3; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+  .growpop { animation: growpop .5s ease-out; }
 </style>
 </head>
 <body>
@@ -178,6 +184,7 @@
       chip.className = 'chip' + (bg.cb === activeCb ? ' sel' : '');
       chip.innerHTML = E._generateBugSVG(bg.cb, 46, bg.level)
         + '<div class="cl">L' + bg.level + ' ' + st.type + '</div>'
+        + (bg.level < W.LEVEL_CAP ? '<div class="xps"><div class="xpf" style="width:' + Math.min(100, Math.round((bg.xp || 0) / W.xpToNext(bg.level) * 100)) + '%"></div></div>' : '')
         + (dep[bg.cb] ? '<div class="dep" title="deployed"></div>' : '');
       chip.addEventListener('click', function () { activeCb = bg.cb; renderRoster(); renderMap(); });
       r.appendChild(chip);
@@ -352,9 +359,11 @@
     if (over) {
       if (!st._applied) { st._applied = true; st._r = applyBattle(ix, iy, beg, st.winner === 'a' && !st.draw); }
       var r = st._r, won = st.winner === 'a' && !st.draw;
+      var lvUp = won && r.levelsGained > 0;
       footer = '<div class="bresult ' + (won ? 'win' : st.draw ? 'draw' : 'lose') + '">'
-        + (won ? 'Territory taken. +' + r.xp + ' XP' + (r.levelsGained > 0 ? ' &middot; Level up to L' + r.newLevel : '')
+        + (won ? 'Territory taken. +' + r.xp + ' XP' + (lvUp ? ' &middot; Level up to L' + r.newLevel : '')
           : st.draw ? 'Draw. They hold the cell.' : 'Defeated. +' + r.xp + ' XP') + '</div>'
+        + (lvUp ? '<div class="grewnote">New growth &nbsp;L' + beg.attackerLevel + ' &rarr; L' + r.newLevel + '</div>' : '')
         + '<button id="mClose">' + (won ? 'Onward' : 'Back') + '</button>';
     } else {
       footer = '<div class="bmoves">' + a.moves.map(function (m, i) {
@@ -366,7 +375,23 @@
     document.getElementById('card').innerHTML =
       '<div class="bfight">' + bpanel(a, false) + '<div class="bvs">vs</div>' + bpanel(b, true) + '</div>'
       + '<div class="blog" id="blog">' + logLines(st._fulllog) + '</div>' + footer;
-    if (over) { var c = document.getElementById('mClose'); if (c) c.addEventListener('click', hideModal); }
+    if (over) {
+      var c = document.getElementById('mClose'); if (c) c.addEventListener('click', hideModal);
+      if (lvUp) {
+        var aside = document.querySelector('#card .bside');
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var swap = function () {
+          var old = aside && aside.querySelector('svg');
+          if (!old) return;
+          var holder = document.createElement('span');
+          holder.innerHTML = E._generateBugSVG(a.cb, 74, r.newLevel);
+          var neu = holder.firstChild;
+          if (!reduce) neu.setAttribute('class', 'growpop');
+          old.parentNode.replaceChild(neu, old);
+        };
+        if (reduce) swap(); else setTimeout(swap, 280);
+      }
+    }
     else {
       Array.prototype.forEach.call(document.querySelectorAll('.bmove'), function (el) {
         el.addEventListener('click', function () { advance(st, parseInt(el.getAttribute('data-i'), 10)); renderBattle(ix, iy, beg, st); });
@@ -385,7 +410,7 @@
     card.innerHTML = '<h2>' + nm + '</h2>'
       + '<div class="fight"><div>' + E._generateBugSVG(st.cb, 84, st.level) + '</div></div>'
       + '<div class="sub">' + s.type + ' &middot; ' + s.cls + ' &middot; L' + st.level + ' &middot; holding this cell</div>'
-      + '<div class="xp">' + (e ? e.wins + ' wins' : '') + '</div>'
+      + '<div class="xp">' + (e ? e.wins + ' wins' + (e.level < W.LEVEL_CAP ? ' &middot; XP ' + e.xp + '/' + W.xpToNext(e.level) + ' to L' + (e.level + 1) : ' &middot; max level') : '') + '</div>'
       + '<button id="mClose">Close</button>'
       + '<button class="ghost" id="mRecall">Recall (free the cell)</button>';
     showModal();
