@@ -26,17 +26,17 @@
     o = o || {};
     return { name: name, kind: (power > 0 ? "attack" : "status"), pow: power,
       acc: (o.acc == null ? 0.95 : o.acc), type: o.type || "self",
-      eff: o.eff || null, prio: o.prio || 0, multi: o.multi || 1 };
+      eff: o.eff || null, prio: o.prio || 0, multi: o.multi || 1, desc: o.desc || "" };
   }
   var CLASS_MOVES = {
-    Aggressor:  [mv("Strike",1.0), mv("Heavy Blow",1.55,{acc:0.85}), mv("Flank Bolt",1.15,{type:"cover"}), mv("Rally",0,{eff:"atkUp"})],
-    Bulwark:    [mv("Strike",0.95), mv("Body Check",1.2), mv("Cover Jab",0.9,{type:"cover"}), mv("Fortify",0,{eff:"defUp2"})],
-    Skirmisher: [mv("Quick Jab",0.75,{prio:1,acc:0.98}), mv("Slash",1.05), mv("Cover Dart",0.95,{type:"cover"}), mv("Feint",0,{eff:"accDownEnemy"})],
-    Ambusher:   [mv("Ambush",1.5,{acc:0.85,eff:"critUp"}), mv("Strike",1.0), mv("Cover Strike",1.1,{type:"cover"}), mv("Guard",0,{eff:"guard"})],
-    Venomancer: [mv("Venom Bite",0.7,{eff:"corrode"}), mv("Strike",0.9), mv("Cover Spit",0.85,{type:"cover"}), mv("Toxic Spray",0,{eff:"corrode"})],
-    Sentinel:   [mv("Strike",0.95), mv("Retaliate",1.25), mv("Cover Ward",0.9,{type:"cover"}), mv("Sweep the Grate",0,{eff:"haze"})],
-    Trickster:  [mv("Hex Bolt",1.15), mv("Strike",0.95), mv("Cover Hex",1.0,{type:"cover"}), mv("Rust Hex",0,{eff:"rustlock"})],
-    Swarm:      [mv("Swarm",0.46,{multi:3}), mv("Nibble",1.0), mv("Cover Bite",0.9,{type:"cover"}), mv("Cinder Swarm",0,{eff:"smolder"})]
+    Aggressor:  [mv("Strike",1.0,{desc:"a solid all-purpose hit"}), mv("Heavy Blow",1.55,{acc:0.85,desc:"big damage, less accurate"}), mv("Flank Bolt",1.15,{type:"cover",desc:"off-type coverage hit"}), mv("Rally",0,{eff:"atkUp",desc:"raise your attack"})],
+    Bulwark:    [mv("Strike",0.95,{desc:"a steady hit"}), mv("Body Check",1.2,{desc:"a sturdy ram"}), mv("Cover Jab",0.9,{type:"cover",desc:"off-type coverage hit"}), mv("Fortify",0,{eff:"defUp2",desc:"sharply raise defense"})],
+    Skirmisher: [mv("Quick Jab",0.75,{prio:1,acc:0.98,desc:"always strikes first"}), mv("Slash",1.05,{desc:"a clean hit"}), mv("Cover Dart",0.95,{type:"cover",desc:"off-type coverage hit"}), mv("Feint",0,{eff:"accDownEnemy",desc:"lower the enemy's aim"})],
+    Ambusher:   [mv("Ambush",1.5,{acc:0.85,eff:"critUp",desc:"high crit chance"}), mv("Strike",1.0,{desc:"a solid hit"}), mv("Cover Strike",1.1,{type:"cover",desc:"off-type coverage hit"}), mv("Guard",0,{eff:"guard",desc:"halve the next hit taken"})],
+    Venomancer: [mv("Venom Bite",0.7,{eff:"corrode",desc:"hit and corrode (damage over time)"}), mv("Strike",0.9,{desc:"a steady hit"}), mv("Cover Spit",0.85,{type:"cover",desc:"off-type coverage hit"}), mv("Toxic Spray",0,{eff:"corrode",desc:"corrode the enemy (ignores defense)"})],
+    Sentinel:   [mv("Strike",0.95,{desc:"a steady hit"}), mv("Retaliate",1.25,{desc:"a hard counter-hit"}), mv("Cover Ward",0.9,{type:"cover",desc:"off-type coverage hit"}), mv("Sweep the Grate",0,{eff:"haze",desc:"reset all stat boosts, both sides"})],
+    Trickster:  [mv("Hex Bolt",1.15,{desc:"a sharp hex"}), mv("Strike",0.95,{desc:"a steady hit"}), mv("Cover Hex",1.0,{type:"cover",desc:"off-type coverage hit"}), mv("Rust Hex",0,{eff:"rustlock",desc:"rust-lock: slow the enemy, may seize"})],
+    Swarm:      [mv("Swarm",0.46,{multi:3,desc:"three small hits"}), mv("Nibble",1.0,{desc:"a quick hit"}), mv("Cover Bite",0.9,{type:"cover",desc:"off-type coverage hit"}), mv("Cinder Swarm",0,{eff:"smolder",desc:"smolder: enemy hits weaker + burns"})]
   };
 
   // ── Fighter ─────────────────────────────────────────────────────────

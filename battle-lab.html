@@ -124,11 +124,11 @@
       var desc, eff = '';
       if (m.kind === 'attack') {
         var mult = window.BUG_ENGINE.typeMatchupDual(m.type, foe.type, foe.type2);
-        desc = m.type + (m.stab ? ' (STAB)' : '') + (m.multi > 1 ? ' x' + m.multi : '');
+        desc = m.type + (m.stab ? ' &middot;STAB' : '') + '  ' + (m.desc || '');
         if (mult > 1.05) eff = ' <span class="eff up">' + (mult > 2 ? 'x2.5' : 'strong') + '</span>';
         else if (mult < 0.95) eff = ' <span class="eff down">' + (mult < 0.5 ? 'x0.4' : 'weak') + '</span>';
       } else {
-        desc = 'status';
+        desc = m.desc || 'status';
       }
       var over = state.over ? ' disabled' : '';
       return '<button class="move" data-i="' + i + '"' + over + '>'
