@@ -53,7 +53,7 @@
       leg:      hb(hash, 12) % 20,      // 20 leg sets
       antenna:   hb(hash, 14) % 15,     // 15 antenna sets
       pattern:   hb(hash, 16) % 50,     // 50 surface patterns
-      palette:   [hc(hash, 18), hc(hash, 19), hc(hash, 20), hc(hash, 21)],
+      palette:   hb(hash, 18) % PALETTES.length,   // index into one curated scheme
       behavior:  hb(hash, 22) % 12,
       // Plumbing
       bodyLen:   80 + (hb(hash, 1) % 40),  // 80..120
@@ -63,13 +63,43 @@
     };
   }
 
-  // ── Palette. 16 entries indexed by nibbles. ─────────────────────────
-  // Picked to feel earthy / cozy / not synthetic. Refine when art lands.
-  var PAL = [
-    '#3a4634', '#7ab356', '#c8a84b', '#e8dcc8',
-    '#a85a3a', '#4a3a2e', '#2a3a4a', '#8a6f4a',
-    '#5a8c3a', '#d4842a', '#a0c4e8', '#6b4f3a',
-    '#3e5a3e', '#b8985a', '#5a6e4a', '#8a9178'
+  // ── Palettes. Curated harmonious SCHEMES, one per bug. ──────────────
+  // Each scheme is a designed 4-color set instead of 4 independent picks,
+  // so bugs read as intentional, not muddy. Roles:
+  //   primary = body   accent = wings (lightest, wings render translucent)
+  //   dark = head/legs/pattern   secondary = reserved
+  //   lore = the color word the backstory uses, so text matches the art.
+  // Litter-born voice: rust, sodium light, bottle-glass, foil, damp moss.
+  // Grow toward the ~80 launch target; adding schemes is pure data.
+  var PALETTES = [
+    { name: 'Rusted Tin',    primary: '#9a5a34', secondary: '#b87a44', accent: '#e0a55a', dark: '#3a2214', lore: 'rusted tin' },
+    { name: 'Bottle Green',  primary: '#2f6a44', secondary: '#3f8a52', accent: '#8fce7a', dark: '#163020', lore: 'bottle green' },
+    { name: 'Sodium Night',  primary: '#4a4658', secondary: '#625d76', accent: '#e6a13c', dark: '#1c1a26', lore: 'sodium amber' },
+    { name: 'Oil Slick',     primary: '#2c3350', secondary: '#3e4f6e', accent: '#7fa6cf', dark: '#12141f', lore: 'oil-slick blue' },
+    { name: 'Wax Paper',     primary: '#ddceac', secondary: '#cbb889', accent: '#b1935e', dark: '#6f5c39', lore: 'wax paper' },
+    { name: 'Verdigris',     primary: '#3f8f7e', secondary: '#5cb39d', accent: '#b9dcc9', dark: '#1f4a3f', lore: 'verdigris' },
+    { name: 'Wet Cardboard', primary: '#b3915d', secondary: '#9c7a48', accent: '#d8b881', dark: '#543c24', lore: 'wet cardboard' },
+    { name: 'Cigarette Ash', primary: '#8b8b80', secondary: '#a3a397', accent: '#cbc7b3', dark: '#37372f', lore: 'cigarette ash' },
+    { name: 'Ember',         primary: '#ad4a28', secondary: '#d67a38', accent: '#f4bb5e', dark: '#3a190d', lore: 'ember' },
+    { name: 'Frostbitten',   primary: '#86a0b6', secondary: '#9db8cc', accent: '#dbe8f0', dark: '#384954', lore: 'frost blue' },
+    { name: 'Marigold Rot',  primary: '#c79126', secondary: '#d9a83c', accent: '#f0d17a', dark: '#4a380f', lore: 'rotted marigold' },
+    { name: 'Bruised Plum',  primary: '#5a3a58', secondary: '#744a70', accent: '#b487ac', dark: '#26162a', lore: 'bruised plum' },
+    { name: 'Nettle',        primary: '#4d6a2e', secondary: '#67873f', accent: '#b0c96a', dark: '#23310f', lore: 'nettle green' },
+    { name: 'Bone',          primary: '#d9d2be', secondary: '#c3bba2', accent: '#a89a76', dark: '#5c523c', lore: 'bone' },
+    { name: 'Slate Drain',   primary: '#4a5560', secondary: '#616f7c', accent: '#9fb0bd', dark: '#202a30', lore: 'wet slate' },
+    { name: 'Cola Brown',    primary: '#4a2f22', secondary: '#6a4632', accent: '#a5764f', dark: '#1e120a', lore: 'cola brown' },
+    { name: 'Tarnished Brass', primary: '#7a6a3a', secondary: '#9a8a4a', accent: '#cabe6a', dark: '#2f2810', lore: 'tarnished brass' },
+    { name: 'Antifreeze',    primary: '#4a9a6a', secondary: '#66b884', accent: '#c2ecae', dark: '#204a30', lore: 'antifreeze green' },
+    { name: 'Ceramic Blue',  primary: '#4a7290', secondary: '#6a92ae', accent: '#b6d2e0', dark: '#1e3648', lore: 'ceramic blue' },
+    { name: 'Crushed Foil',  primary: '#9a9ea6', secondary: '#b4b8bf', accent: '#dde0e5', dark: '#40434a', lore: 'crushed foil' },
+    { name: 'Dried Rust',    primary: '#7a3230', secondary: '#9a4a44', accent: '#c88070', dark: '#2c100e', lore: 'dried rust-red' },
+    { name: 'Damp Moss',     primary: '#3e5a40', secondary: '#547552', accent: '#9ab884', dark: '#1c2c1c', lore: 'damp moss' },
+    { name: 'Streetlamp',    primary: '#b98a3a', secondary: '#d4a44e', accent: '#f2d488', dark: '#45320f', lore: 'streetlamp gold' },
+    { name: 'Cellophane',    primary: '#8aa49a', secondary: '#a4c0b4', accent: '#d6e6dc', dark: '#3a4a44', lore: 'cellophane sheen' },
+    { name: 'Burnt Umber',   primary: '#6b4a2e', secondary: '#86603e', accent: '#b68c5e', dark: '#2a1a0e', lore: 'burnt umber' },
+    { name: 'Sea Glass',     primary: '#6a9a94', secondary: '#86b6ae', accent: '#c8e2dc', dark: '#2e4a46', lore: 'sea glass' },
+    { name: 'Charcoal',      primary: '#3a3a3c', secondary: '#52524e', accent: '#8a8880', dark: '#161618', lore: 'charcoal' },
+    { name: 'Tea Stain',     primary: '#8a6a2a', secondary: '#a5843c', accent: '#d4b268', dark: '#362810', lore: 'tea-stain brown' }
   ];
 
   // ── Wing bank. ─────────────────────────────────────────────────────
@@ -202,10 +232,11 @@
     var uid = hash.substr(0, 8);
     var cx = 100, cy = 100;
 
-    var primary = PAL[t.palette[0]];
-    var secondary = PAL[t.palette[1]];
-    var accent = PAL[t.palette[2]];
-    var dark = PAL[t.palette[3] % 8];
+    var pal = PALETTES[t.palette] || PALETTES[0];
+    var primary = pal.primary;
+    var secondary = pal.secondary;
+    var accent = pal.accent;
+    var dark = pal.dark;
     var primaryRGB = hexToRGB(primary);
     var accentRGB = hexToRGB(accent);
     var darkRGB = hexToRGB(dark);
@@ -501,9 +532,8 @@
   var SP_SUFFIX = ['us','a','ii','ensis','ata','osa'];
 
   // ── Lore banks (trait-linked color/temper + litter-born imagery). ───
-  var LORE_COLORS = ['deep green','pale moss','tarnished gold','bone','burnt sienna',
-    'dark umber','slate blue','wet cardboard','nettle green','marigold','faded denim',
-    'walnut','pine dark','wheat','old olive','ash grey'];
+  // Lore color now comes from the bug's actual palette scheme (PALETTES[].lore),
+  // so the backstory names the color the player is looking at.
   var LORE_TEMPER = ['patient','vengeful','skittish','stubborn','watchful','restless',
     'territorial','solitary','tireless','wary','defiant','quiet'];
   var LORE_WHEN = ['at first frost','on a rain-slick morning','under a dead streetlight',
@@ -572,7 +602,7 @@
   function bugLore(codeblock) {
     var t = hashToBugTraits(codeblock);
     var rng = seededRng(codeblock + '|lore');
-    var color = LORE_COLORS[((t.palette && t.palette[0]) || 0) % LORE_COLORS.length];
+    var color = (PALETTES[t.palette] || PALETTES[0]).lore;
     var temper = LORE_TEMPER[(t.behavior || 0) % LORE_TEMPER.length];
     function fill(tpl) {
       return tpl
@@ -647,7 +677,7 @@
     sha256Hex: sha256Hex, hb: hb, hc: hc, hexToRGB: hexToRGB,
     hashToBugTraits: hashToBugTraits, _generateBugSVG: _generateBugSVG,
     bugName: bugName, bugSpecies: bugSpecies, bugDesignation: bugDesignation,
-    bugLore: bugLore, bugIdentity: bugIdentity, seededRng: seededRng, PAL: PAL,
+    bugLore: bugLore, bugIdentity: bugIdentity, seededRng: seededRng, PALETTES: PALETTES,
     WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,
     LEG_BANK: LEG_BANK, ANTENNA_BANK: ANTENNA_BANK, PATTERN_BANK: PATTERN_BANK,
     serializeTrace: serializeTrace, mintCodeblock: mintCodeblock,

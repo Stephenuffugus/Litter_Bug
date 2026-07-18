@@ -15,11 +15,8 @@ var path = require('path');
 var crypto = require('crypto');
 var E = require(path.join(__dirname, '..', 'bug-engine.js'));
 
-// Mirrors of the two trait-linked banks in bug-engine.js, for the linkage
-// assertion only. If you reorder those banks, update these too.
-var COLORS = ['deep green','pale moss','tarnished gold','bone','burnt sienna',
-  'dark umber','slate blue','wet cardboard','nettle green','marigold','faded denim',
-  'walnut','pine dark','wheat','old olive','ash grey'];
+// Mirror of the temperament bank in bug-engine.js, for the linkage assertion.
+// The color word now comes from the bug's palette scheme (E.PALETTES[i].lore).
 var TEMPER = ['patient','vengeful','skittish','stubborn','watchful','restless',
   'territorial','solitary','tireless','wary','defiant','quiet'];
 
@@ -97,7 +94,7 @@ check('lore is trait-linked (reflects colour or temperament)', function () {
   for (var i = 0; i < 40; i++) {
     var c = cb('link-' + i);
     var t = E.hashToBugTraits(c);
-    var color = COLORS[(t.palette[0]) % COLORS.length];
+    var color = (E.PALETTES[t.palette] || E.PALETTES[0]).lore;
     var temper = TEMPER[(t.behavior) % TEMPER.length];
     var lore = E.bugLore(c).toLowerCase(); // line-start words get capitalized
     if (lore.indexOf(color) === -1 && lore.indexOf(temper) === -1) miss++;
@@ -122,6 +119,29 @@ check('variety: lore near-unique, designations unique over 2000 bugs', function 
   var ok = loreRatio > 0.95 && desigRatio > 0.99 && nameRatio > 0.5;
   return { ok: ok, detail: 'names ' + (nameRatio * 100).toFixed(0) + '% lore '
     + (loreRatio * 100).toFixed(1) + '% desig ' + (desigRatio * 100).toFixed(1) + '% distinct' };
+});
+
+check('PALETTES exported and well-formed', function () {
+  var P = E.PALETTES;
+  if (!Array.isArray(P) || P.length < 8) return { ok: false, detail: 'not an array of schemes' };
+  var bad = P.filter(function (s) {
+    return !/^#[0-9a-f]{6}$/i.test(s.primary) || !/^#[0-9a-f]{6}$/i.test(s.accent)
+        || !/^#[0-9a-f]{6}$/i.test(s.dark) || !s.lore;
+  });
+  return { ok: bad.length === 0, detail: P.length + ' schemes, ' + bad.length + ' malformed' };
+});
+
+check('bug picks a valid scheme and the render applies it', function () {
+  var miss = 0;
+  for (var i = 0; i < 60; i++) {
+    var c = cb('pal-' + i);
+    var t = E.hashToBugTraits(c);
+    var scheme = E.PALETTES[t.palette];
+    // The `dark` hex is used literally for leg/antenna strokes, so it must
+    // appear in the SVG when the scheme is applied.
+    if (!Number.isInteger(t.palette) || !scheme || E._generateBugSVG(c, 160).indexOf(scheme.dark) === -1) miss++;
+  }
+  return { ok: miss === 0, detail: miss + ' / 60 bugs with unapplied scheme' };
 });
 
 // ── Output ─────────────────────────────────────────────────────────────
