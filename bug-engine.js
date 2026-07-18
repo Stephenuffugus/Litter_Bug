@@ -333,12 +333,15 @@
       extraEyes: (R() < 0.4) ? 0.7 + R() * 0.25 : 999
     };
     var wSweep = (R() - 0.5) * 16, hornCurl = (R() - 0.5) * 0.6, tailLen = 10 + R() * 8;
+    // wing family (rolled last so it never shifts the spine/part rolls above):
+    // 0 membrane pair, 1 dragonfly fore+hind, 2 beetle elytra shell.
+    var wingKind = Math.floor(R() * 3), wingUp = wingKind === 2 ? 26 : (wingKind === 1 ? 56 : 46);
     var has = function (th) { return growth >= th; };
 
     // fit to canvas (account for the parts that have grown in)
-    var top = Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (has(plan.wings) ? 40 : 8) - (has(Math.min.apply(0, plan.spines)) ? 10 : 0);
+    var top = Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (has(plan.wings) ? wingUp : 8) - (has(Math.min.apply(0, plan.spines)) ? 10 : 0);
     var minx = Math.min.apply(0, seg.map(function (s) { return s.x - s.r; })) - (has(plan.tail) ? tailLen : 4);
-    var maxx = Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (has(plan.pincers) ? 14 : 8) + (has(plan.horns) ? 10 : 0);
+    var maxx = Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (has(plan.pincers) ? 14 : 8) + (has(plan.horns) ? 10 : 0) + (has(plan.wings) && wingKind !== 2 ? 16 : 0);
     var bottom = Math.max.apply(0, seg.map(function (s) { return s.y + s.r; })) + 22;
     var w = maxx - minx, h = bottom - top, f = Math.min(1, 176 / w, 182 / h);
     if (f < 1) { var mmx = (minx + maxx) / 2, mmy = (top + bottom) / 2; seg.forEach(function (s) { s.x = cx + (s.x - mmx) * f; s.y = cy + (s.y - mmy) * f; s.r *= f; }); tailLen *= f; }
@@ -346,10 +349,30 @@
     function grad(id, base) { return '<linearGradient id="' + id + '" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="' + lt(base, 0.28) + '"/><stop offset="0.5" stop-color="' + base + '"/><stop offset="1" stop-color="' + mix(base, pal.dark, 0.42) + '"/></linearGradient>'; }
     var uid = hash.substr(0, 6);
     var defs = '<defs>' + grad('gb' + uid, primary) + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + '</defs>';
-    var back = '', legs = '', body = '', stitches = '', front = '';
+    var back = '', legs = '', body = '', stitches = '', shell = '', front = '';
 
+    function membrane(ox, oy, sc, op) {
+      return '<path d="M ' + q(ox) + ' ' + q(oy)
+        + ' Q ' + q(ox - 32 * sc) + ' ' + q(oy - 38 * sc) + ' ' + q(ox + 8 + wSweep) + ' ' + q(oy - 44 * sc)
+        + ' Q ' + q(ox + 36 * sc) + ' ' + q(oy - 32 * sc) + ' ' + q(ox + 32 * sc) + ' ' + q(oy - 6 * sc)
+        + ' Q ' + q(ox + 18 * sc) + ' ' + q(oy + 2) + ' ' + q(ox) + ' ' + q(oy) + ' Z"'
+        + ' fill="url(#gw' + uid + ')" stroke="' + dk(accent, 0.4) + '" stroke-width="1.6" opacity="' + op + '"/>'
+        + '<path d="M ' + q(ox + 2) + ' ' + q(oy - 3) + ' Q ' + q(ox + 8) + ' ' + q(oy - 26 * sc) + ' ' + q(ox + 20) + ' ' + q(oy - 30 * sc) + '" fill="none" stroke="' + dk(accent, 0.35) + '" stroke-width="0.9" opacity="0.6"/>';
+    }
     if (has(plan.wings)) { var sw = seg[thoraxI], wx = sw.x, wy = sw.y - sw.r * 0.3;
-      back += '<path d="M ' + q(wx) + ' ' + q(wy) + ' Q ' + q(wx - 32) + ' ' + q(wy - 38) + ' ' + q(wx + 8 + wSweep) + ' ' + q(wy - 44) + ' Q ' + q(wx + 36) + ' ' + q(wy - 32) + ' ' + q(wx + 32) + ' ' + q(wy - 6) + ' Q ' + q(wx + 18) + ' ' + q(wy + 2) + ' ' + q(wx) + ' ' + q(wy) + ' Z" fill="url(#gw' + uid + ')" stroke="' + dk(accent, 0.4) + '" stroke-width="1.6" opacity="0.95"/>'; }
+      if (wingKind === 2) {
+        // beetle elytra: a hard domed shell over the back, seam + gloss, sits ON TOP of the sewn body
+        var ea = seg[0], eb = sw, lx = ea.x - ea.r * 0.2, rx = eb.x + eb.r, topY = Math.min(ea.y, eb.y) - Math.max(ea.r, eb.r) - 6;
+        shell += '<path d="M ' + q(lx) + ' ' + q(ea.y) + ' Q ' + q((lx + rx) / 2) + ' ' + q(topY) + ' ' + q(rx) + ' ' + q(eb.y - 2)
+          + ' L ' + q(rx) + ' ' + q(eb.y + 3) + ' L ' + q(lx) + ' ' + q(ea.y + 3) + ' Z" fill="url(#gh' + uid + ')" stroke="' + ol + '" stroke-width="2.2" stroke-linejoin="round"/>';
+        shell += '<path d="M ' + q(lx + 3) + ' ' + q(ea.y - 1) + ' Q ' + q((lx + rx) / 2) + ' ' + q(topY + 5) + ' ' + q(rx - 3) + ' ' + q(eb.y - 3) + '" fill="none" stroke="' + dk(pal.dark, 0.1) + '" stroke-width="1.4" opacity="0.55"/>';
+        shell += '<ellipse cx="' + q(lx + (rx - lx) * 0.3) + '" cy="' + q(topY + 11) + '" rx="7" ry="4" fill="' + lt(secondary, 0.4) + '" opacity="0.5"/>';
+      } else {
+        var sc = wingKind === 1 ? 1.18 : 1;
+        if (wingKind === 1) back += membrane(wx - 3, wy + 4, 0.72, 0.8);   // hindwing, behind the forewing
+        back += membrane(wx, wy, sc, 0.95);
+      }
+    }
     if (has(plan.tail)) { var stl = seg[0]; back += '<path d="M ' + q(stl.x) + ' ' + q(stl.y) + ' q ' + q(-tailLen) + ' 4 ' + q(-tailLen * 1.2) + ' -8 l 5 -4 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1.6" stroke-linejoin="round"/>'; }
     seg.forEach(function (s, i) { if (!has(plan.legs[i])) return; var ky = s.y + s.r * 0.7 + 8;
       legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
@@ -367,7 +390,7 @@
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
-      + defs + back + legs + body + stitches + front + '</svg>';
+      + defs + back + legs + body + stitches + shell + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
