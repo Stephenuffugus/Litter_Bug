@@ -99,7 +99,60 @@
     { name: 'Burnt Umber',   primary: '#6b4a2e', secondary: '#86603e', accent: '#b68c5e', dark: '#2a1a0e', lore: 'burnt umber' },
     { name: 'Sea Glass',     primary: '#6a9a94', secondary: '#86b6ae', accent: '#c8e2dc', dark: '#2e4a46', lore: 'sea glass' },
     { name: 'Charcoal',      primary: '#3a3a3c', secondary: '#52524e', accent: '#8a8880', dark: '#161618', lore: 'charcoal' },
-    { name: 'Tea Stain',     primary: '#8a6a2a', secondary: '#a5843c', accent: '#d4b268', dark: '#362810', lore: 'tea-stain brown' }
+    { name: 'Tea Stain',     primary: '#8a6a2a', secondary: '#a5843c', accent: '#d4b268', dark: '#362810', lore: 'tea-stain brown' },
+    // --- +52 from the content-expansion workflow (2026-07-17): now 80 schemes ---
+    { name: 'Bent Nail', primary: '#a05730', secondary: '#bf7440', accent: '#e6a866', dark: '#37200f', lore: 'bent-nail rust' },
+    { name: 'Brick Dust', primary: '#9c4f3a', secondary: '#ba6a4e', accent: '#dd9c82', dark: '#331311', lore: 'brick dust' },
+    { name: 'Flowerpot', primary: '#b06844', secondary: '#cb8258', accent: '#ecb384', dark: '#3e2314', lore: 'terracotta clay' },
+    { name: 'Kraft Paper', primary: '#a9814e', secondary: '#c39c66', accent: '#e4c996', dark: '#4a3418', lore: 'kraft paper' },
+    { name: 'Chestnut Husk', primary: '#7d4a2b', secondary: '#9a6440', accent: '#c79668', dark: '#2a1609', lore: 'chestnut husk' },
+    { name: 'Rust Bloom', primary: '#b0602f', secondary: '#cd7c42', accent: '#efb06a', dark: '#3c1e0c', lore: 'flaked rust' },
+    { name: 'Sisal Twine', primary: '#b08a54', secondary: '#c8a46e', accent: '#e8d3a4', dark: '#50391c', lore: 'sisal twine' },
+    { name: 'Tobacco Tin', primary: '#916c33', secondary: '#ab8546', accent: '#d4b56e', dark: '#382709', lore: 'tobacco tin' },
+    { name: 'Ironstone', primary: '#8a5c4a', secondary: '#a4735e', accent: '#c9a08c', dark: '#301b13', lore: 'ironstone rust' },
+    { name: 'Lichen Crust', primary: '#7f9068', secondary: '#97a880', accent: '#cdd6b4', dark: '#333c26', lore: 'grey-green lichen' },
+    { name: 'Pond Scum', primary: '#6b7a34', secondary: '#869647', accent: '#c0cd7e', dark: '#262d0e', lore: 'pond scum' },
+    { name: 'Weedcrack', primary: '#47692f', secondary: '#5f8542', accent: '#a0c073', dark: '#1b2c11', lore: 'weed-crack green' },
+    { name: 'Gutter Fern', primary: '#3d6a4e', secondary: '#538765', accent: '#97c19f', dark: '#16301f', lore: 'gutter fern' },
+    { name: 'River Algae', primary: '#5a8a4a', secondary: '#74a660', accent: '#b4d698', dark: '#22381a', lore: 'river algae' },
+    { name: 'Mildew', primary: '#6d7d5e', secondary: '#869674', accent: '#bfc9a8', dark: '#2b3324', lore: 'mildew green' },
+    { name: 'Roadside Clover', primary: '#567a3e', secondary: '#6f9552', accent: '#aecd82', dark: '#203010', lore: 'roadside clover' },
+    { name: 'Bog Myrtle', primary: '#4c6042', secondary: '#647a57', accent: '#a2b48c', dark: '#1d281a', lore: 'bog myrtle' },
+    { name: 'Dock Leaf', primary: '#5e7638', secondary: '#78904c', accent: '#b6c884', dark: '#242e12', lore: 'dock leaf' },
+    { name: 'Split Mustard', primary: '#c69a2c', secondary: '#ddb245', accent: '#f4dd88', dark: '#4d3a0c', lore: 'mustard smear' },
+    { name: 'Matchflame', primary: '#d06a26', secondary: '#ea8638', accent: '#f8bd72', dark: '#431d08', lore: 'matchflame orange' },
+    { name: 'Traffic Cone', primary: '#cc5f34', secondary: '#e67c4a', accent: '#f5b184', dark: '#431806', lore: 'faded traffic cone' },
+    { name: 'Caution Tape', primary: '#cead2e', secondary: '#e0c24a', accent: '#f4e58a', dark: '#4a3d0b', lore: 'caution-tape yellow' },
+    { name: 'Egg Yolk', primary: '#d69b2a', secondary: '#edb442', accent: '#f9db7c', dark: '#4b380a', lore: 'egg-yolk gold' },
+    { name: 'Old Honey', primary: '#c88b34', secondary: '#e0a44a', accent: '#f5cf84', dark: '#46300c', lore: 'old honey' },
+    { name: 'Apricot Rot', primary: '#cf7a4e', secondary: '#e59668', accent: '#f6c39c', dark: '#45210f', lore: 'bruised apricot' },
+    { name: 'Orange Peel', primary: '#d47a2c', secondary: '#ec9440', accent: '#f8c37c', dark: '#47230a', lore: 'orange rind' },
+    { name: 'Turmeric', primary: '#cc8b24', secondary: '#e3a53c', accent: '#f6d078', dark: '#47320a', lore: 'turmeric stain' },
+    { name: 'Sump Oil', primary: '#2b2f24', secondary: '#3d4232', accent: '#6f745e', dark: '#0a0b06', lore: 'sump oil' },
+    { name: 'Ink Spill', primary: '#232a3a', secondary: '#333d52', accent: '#6c7893', dark: '#070911', lore: 'spilled ink' },
+    { name: 'Bilge Water', primary: '#24382f', secondary: '#354e42', accent: '#6c8a7c', dark: '#08100b', lore: 'bilge water' },
+    { name: 'Blackberry Sludge', primary: '#35243c', secondary: '#4a3452', accent: '#816a8a', dark: '#0d0710', lore: 'blackberry sludge' },
+    { name: 'Motor Oil', primary: '#2f2a22', secondary: '#443c30', accent: '#766c58', dark: '#0a0805', lore: 'motor oil' },
+    { name: 'Sewer Green', primary: '#2c3a2a', secondary: '#3e5039', accent: '#728468', dark: '#0a100a', lore: 'sewer green' },
+    { name: 'Spilled Wine', primary: '#3f2029', secondary: '#58303a', accent: '#916069', dark: '#100609', lore: 'spilled wine' },
+    { name: 'Tar Pit', primary: '#2b2823', secondary: '#403a33', accent: '#74695c', dark: '#080705', lore: 'wet tar' },
+    { name: 'Milk Jug', primary: '#c3ccc6', secondary: '#d5ddd7', accent: '#f0f3ee', dark: '#5a635e', lore: 'milk-jug plastic' },
+    { name: 'Frosted Pane', primary: '#9fb2b8', secondary: '#b6c6cb', accent: '#e2ebed', dark: '#43525a', lore: 'frosted glass' },
+    { name: 'Jam Jar', primary: '#a2bcaa', secondary: '#b8ccbc', accent: '#e0ece0', dark: '#47584c', lore: 'jam-jar glass' },
+    { name: 'Dish Soap', primary: '#86b0b6', secondary: '#a0c4c8', accent: '#d6e9ea', dark: '#365055', lore: 'dish-soap blue' },
+    { name: 'Chalk Blue', primary: '#94a8bc', secondary: '#adbecf', accent: '#dde6ef', dark: '#3e4c5a', lore: 'chalk blue' },
+    { name: 'Mint Wrapper', primary: '#9ec2ac', secondary: '#b6d3c0', accent: '#e2f0e6', dark: '#43594b', lore: 'mint-wrapper green' },
+    { name: 'Cling Film', primary: '#b6c0c2', secondary: '#ccd4d5', accent: '#eef2f2', dark: '#515b5d', lore: 'cling film' },
+    { name: 'Icebox Frost', primary: '#9ab6c0', secondary: '#b2cad2', accent: '#dfeef2', dark: '#3f545c', lore: 'icebox frost' },
+    { name: 'Seafoam Rinse', primary: '#8fb8ac', secondary: '#a9ccc1', accent: '#dcefe8', dark: '#3a544b', lore: 'seafoam rinse' },
+    { name: 'Wet Newsprint', primary: '#82868a', secondary: '#999da0', accent: '#c6cacc', dark: '#313436', lore: 'wet newsprint' },
+    { name: 'Pencil Lead', primary: '#6b7076', secondary: '#83888e', accent: '#b3b8bd', dark: '#292c30', lore: 'graphite grey' },
+    { name: 'Raw Concrete', primary: '#9a968c', secondary: '#b0aca1', accent: '#d6d3c8', dark: '#403d36', lore: 'raw concrete' },
+    { name: 'Wet Asphalt', primary: '#4c4f54', secondary: '#63676c', accent: '#9aa0a6', dark: '#1d1f22', lore: 'wet asphalt' },
+    { name: 'Chimney Soot', primary: '#3b3a37', secondary: '#52514c', accent: '#8a887f', dark: '#171614', lore: 'chimney soot' },
+    { name: 'Gunmetal', primary: '#45494e', secondary: '#5c6167', accent: '#969ba1', dark: '#1b1d20', lore: 'gunmetal grey' },
+    { name: 'Dryer Lint', primary: '#9c948f', secondary: '#b2aaa4', accent: '#d8d1cb', dark: '#433d39', lore: 'dryer lint' },
+    { name: 'Spent Cinder', primary: '#4a443f', secondary: '#625a53', accent: '#948b80', dark: '#1c1917', lore: 'spent cinder' }
   ];
 
   // ── Wing bank. ─────────────────────────────────────────────────────
@@ -521,9 +574,15 @@
   // scheme (the color the player sees), so type is legible at a glance.
   var TYPES = ['Rust', 'Moss', 'Spark', 'Ooze', 'Glass', 'Ash'];
   // Type of each palette scheme, parallel to PALETTES by index.
-  var PALETTE_TYPE = ['Rust','Moss','Spark','Ooze','Glass','Moss','Rust','Ash',
-    'Spark','Glass','Spark','Ooze','Moss','Glass','Ash','Rust','Rust','Ooze',
-    'Glass','Glass','Rust','Moss','Spark','Glass','Rust','Moss','Ash','Rust'];
+  var PALETTE_TYPE = [
+    'Rust','Moss','Spark','Ooze','Glass','Moss','Rust','Ash','Spark','Glass',
+    'Spark','Ooze','Moss','Glass','Ash','Rust','Rust','Ooze','Glass','Glass',
+    'Rust','Moss','Spark','Glass','Rust','Moss','Ash','Rust','Rust','Rust',
+    'Rust','Rust','Rust','Rust','Rust','Rust','Rust','Moss','Moss','Moss',
+    'Moss','Moss','Moss','Moss','Moss','Moss','Spark','Spark','Spark','Spark',
+    'Spark','Spark','Spark','Spark','Spark','Ooze','Ooze','Ooze','Ooze','Ooze',
+    'Ooze','Ooze','Ooze','Glass','Glass','Glass','Glass','Glass','Glass','Glass',
+    'Glass','Glass','Ash','Ash','Ash','Ash','Ash','Ash','Ash','Ash'];
   // Cyclic chart: each type is strong vs the next two in the ring, weak vs the
   // previous two, neutral vs the one opposite. Balanced by construction.
   var TYPE_CHART = {};
@@ -540,8 +599,8 @@
   function typeMatchup(atk, def) {
     var c = TYPE_CHART[atk];
     if (!c) return 1;
-    if (c.strong.indexOf(def) >= 0) return 2;
-    if (c.weak.indexOf(def) >= 0) return 0.5;
+    if (c.strong.indexOf(def) >= 0) return 1.6;
+    if (c.weak.indexOf(def) >= 0) return 0.625;
     return 1;
   }
 

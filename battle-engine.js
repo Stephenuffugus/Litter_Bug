@@ -96,7 +96,7 @@
       else if (move.eff === "spdDownEnemy") { bump(def, "spd", -2); log.push(att.name + " hexes " + def.name + ". (slowed)"); }
       else if (move.eff === "atkDownEnemy") { bump(def, "atk", -2); log.push(att.name + " weakens " + def.name + ". (ATK down)"); }
       else if (move.eff === "poison") {
-        if (def.poison <= 0) { def.poison = 4; log.push(att.name + " sprays toxin. " + def.name + " is poisoned!"); }
+        if (def.poison <= 0) { def.poison = 3; log.push(att.name + " sprays toxin. " + def.name + " is poisoned!"); }
         else log.push(att.name + " sprays toxin, but " + def.name + " is already poisoned.");
       }
       return { fainted: false };
@@ -114,7 +114,7 @@
     if (landed > 0) {
       var extra = (notedType === true ? " Super effective!" : "") + (landed > 1 ? " (" + landed + " hits)" : "");
       log.push(att.name + " used " + move.name + " for " + total + " damage." + extra);
-      if (move.eff === "poison" && def.poison <= 0) { def.poison = 4; log.push(def.name + " is poisoned!"); }
+      if (move.eff === "poison" && def.poison <= 0) { def.poison = 3; log.push(def.name + " is poisoned!"); }
       if (move.eff === "selfDefDown") { bump(att, "def", -1); }
     } else if (hits > 1) {
       log.push(att.name + " used " + move.name + " but missed.");
@@ -171,7 +171,7 @@
     if (!koNow) {
       [a, b].forEach(function (f) {
         if (f.hp > 0 && f.poison > 0) {
-          var tick = Math.max(1, Math.round(f.maxhp / 8));
+          var tick = Math.max(1, Math.round(f.maxhp / 12));
           f.hp = Math.max(0, f.hp - tick); f.poison--;
           log.push(f.name + " takes " + tick + " poison damage.");
           if (f.hp <= 0) log.push(f.name + " succumbs to poison!");

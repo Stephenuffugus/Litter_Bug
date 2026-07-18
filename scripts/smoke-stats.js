@@ -72,10 +72,10 @@ check('type chart is balanced and reciprocal', function () {
     if (!c || c.strong.length !== 2 || c.weak.length !== 2) { bad++; return; }
     if (E.typeMatchup(a, a) !== 1) bad++;                 // no self super-effective
     c.strong.forEach(function (d) {
-      if (E.typeMatchup(a, d) !== 2) bad++;               // strong => x2
+      if (E.typeMatchup(a, d) !== 1.6) bad++;               // strong => x2
       if (E.TYPE_CHART[d].weak.indexOf(a) < 0) bad++;     // reciprocal
     });
-    c.weak.forEach(function (d) { if (E.typeMatchup(a, d) !== 0.5) bad++; }); // weak => x0.5
+    c.weak.forEach(function (d) { if (E.typeMatchup(a, d) !== 0.625) bad++; }); // weak => x0.5
   });
   return { ok: bad === 0, detail: bad ? bad + ' chart issues' : 'all ' + E.TYPES.length + ' types balanced' };
 });

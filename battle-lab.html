@@ -124,8 +124,8 @@
       if (m.kind === 'attack') {
         var mult = window.BUG_ENGINE.typeMatchup(m.type, foe.type);
         desc = 'PWR ' + Math.round(m.pow * 100) + (m.multi > 1 ? ' x' + m.multi : '');
-        if (mult > 1) eff = ' <span class="eff up">2x</span>';
-        else if (mult < 1) eff = ' <span class="eff down">&frac12;x</span>';
+        if (mult > 1) eff = ' <span class="eff up">strong</span>';
+        else if (mult < 1) eff = ' <span class="eff down">weak</span>';
       } else {
         desc = 'status';
       }
