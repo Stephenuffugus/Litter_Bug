@@ -419,15 +419,194 @@
       + '</svg>';
   }
 
-  // ── Cozy procedural nickname so each card has something to read. ────
-  // Two-word generator, deterministic from hash bytes.
-  var ADJ = ['Mossy','Tin','Husk','Glass','Rust','Sleepy','Paper','Brittle',
-             'Velvet','Salt','Cobweb','Dusty','Lichen','Brass','Quiet','Wax'];
-  var NOUN = ['Beetle','Moth','Hopper','Skip','Click','Watcher','Drowse','Knot',
-              'Mite','Crawler','Spinner','Filing','Hum','Crawl','Drift','Snip'];
-  function bugName(hash) {
-    return ADJ[hb(hash, 23) % ADJ.length] + ' '
-         + NOUN[hb(hash, 24) % NOUN.length];
+  // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
+  // Every bug gets a common name, a pseudo-Latin species binomial, a
+  // near-unique specimen designation, and a short poetic backstory, all
+  // deterministic from the codeblock. The codeblock carries 256 bits, far
+  // more than the anatomy uses, so name and lore draw from an independent,
+  // effectively bottomless space. Voice: litter-born field-journal — these
+  // are little lives made from what people threw away, now holding turf.
+  //
+  // STABILITY NOTE: outputs are deterministic from the codeblock AND from
+  // the current bank contents. Growing a bank (append/reorder) shifts the
+  // draws, so a persisted bug should FREEZE its name+lore at mint time;
+  // bank growth then only enriches future rolls, never rewrites old ones.
+
+  // Deterministic PRNG seeded from a string (cyrb128 -> sfc32). Pure integer
+  // ops, so identical output in browser and Node. Gives unlimited stable draws.
+  function cyrb128(str) {
+    var h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+    for (var i = 0, k; i < str.length; i++) {
+      k = str.charCodeAt(i);
+      h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+      h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+      h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+      h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    return [(h1 ^ h2 ^ h3 ^ h4) >>> 0, (h2 ^ h1) >>> 0, (h3 ^ h1) >>> 0, (h4 ^ h1) >>> 0];
+  }
+  function sfc32(a, b, c, d) {
+    return function () {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+      var t = (a + b) | 0;
+      a = b ^ (b >>> 9);
+      b = (c + (c << 3)) | 0;
+      c = (c << 21) | (c >>> 11);
+      d = (d + 1) | 0;
+      t = (t + d) | 0;
+      c = (c + t) | 0;
+      return (t >>> 0) / 4294967296;
+    };
+  }
+  function seededRng(seedStr) {
+    var s = cyrb128(String(seedStr));
+    return sfc32(s[0], s[1], s[2], s[3]);
+  }
+  function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+  function pickN(rng, arr, n) {
+    var pool = arr.slice(), out = [];
+    for (var i = 0; i < n && pool.length; i++) {
+      out.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+    }
+    return out;
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // ── Common-name banks. ──────────────────────────────────────────────
+  var NAME_ADJ = ['mossy','tin','husk','glass','rust','paper','brittle','velvet',
+    'salt','cobweb','dusty','lichen','brass','wax','sodium','cellophane','grit',
+    'ember','tallow','soot','amber','chrome','vellum','foil','ash','clinker',
+    'ceramic','frost','gutter','bottleglass'];
+  var NAME_CREATURE = ['beetle','moth','hopper','skit','click','watcher','vesper',
+    'mite','crawler','spinner','filing','weevil','lantern','borer','chafer','gnat',
+    'locust','mantis','earwig','firebrat','silverfish','roach','katydid','cicada',
+    'longhorn','drift'];
+  var NAME_HONORIFIC = ['Little','Old','Saint','Sir','Dame','King','Warden','Mother','Baron','Duke'];
+  var NAME_EPITHET = ['the Tarnished','the Unswept','the Ninefold','the Late',
+    'the Gutterborn','the Persistent','the Frayed','the Kept','the Overlooked',
+    'the Recurring','the Sodium-Lit','the Unspent','the Wintered','the Hollow',
+    'the Bottlefed','the Long-Waiting'];
+
+  // ── Species (pseudo-Latin taxonomy) banks. ──────────────────────────
+  var SP_GENUS = ['Chitin','Vespa','Gutter','Litho','Ferra','Scoria','Detrita',
+    'Noctu','Cinis','Strata','Culex','Blatta','Carab','Formic','Lampyr','Acanth',
+    'Tenebri','Crypto','Sordid','Aurel'];
+  var SP_GSUFFIX = ['a','us','ops','ina','ella','odes','ymis'];
+  var SP_ROOT = ['sordid','noctis','ferri','cellophan','vulgar','gutteri','sodium',
+    'rubig','tarnix','oblit','recurr','vespid','minim','detrit','cinere','stratum'];
+  var SP_SUFFIX = ['us','a','ii','ensis','ata','osa'];
+
+  // ── Lore banks (trait-linked color/temper + litter-born imagery). ───
+  var LORE_COLORS = ['deep green','pale moss','tarnished gold','bone','burnt sienna',
+    'dark umber','slate blue','wet cardboard','nettle green','marigold','faded denim',
+    'walnut','pine dark','wheat','old olive','ash grey'];
+  var LORE_TEMPER = ['patient','vengeful','skittish','stubborn','watchful','restless',
+    'territorial','solitary','tireless','wary','defiant','quiet'];
+  var LORE_WHEN = ['at first frost','on a rain-slick morning','under a dead streetlight',
+    'in the last week of summer','on collection day','at the turn of the tide',
+    'during the long dust','on a grey Tuesday','after the floods','at closing time'];
+  var LORE_PLACE = ['the gutter','the tin gardens','a drain-mouth','the recycling drift',
+    'a landfill dawn','the underpass','the bottle-bank','the storm grate',
+    'the alley behind the diner','the wet cardboard','the culvert','a heap of raked leaves',
+    'the parking-lot verge','the sodium dark','the overflow','the skip'];
+  var LORE_MATERIAL = ['cellophane','foil','wax paper','bottle-glass','a snapped twist-tie',
+    'grit','a bottlecap crown','cigarette silver','a bent straw','packing foam'];
+  var LORE_EVENT = ['the lamps first buzzed on','nothing was thrown away',
+    'the rain forgot to stop','the bins went uncollected','the frost took the others',
+    'a gate was left open','the tide left its wrack','the machines went quiet'];
+  var LORE_HABIT = ['counts what it cannot keep','guards a square of warm concrete',
+    'follows the scent of spilled sugar','hoards bright scraps','answers only to the rain',
+    'walks the same seam of pavement','keeps the old boundaries','waits out the sweepers',
+    'maps the drains by heart'];
+  var LORE_ENEMY = ['no sweeper','no gull','no rival brood','no boot','no frost','no rival king'];
+  var LORE_VERBPAST = ['moved','routed','out-waited','unseated','cornered','outlasted'];
+  var LORE_OATH = ['to hold the grate','to keep the corner','to outlast the winter',
+    'to guard the drift','to answer the lamp','to keep what it found'];
+  var LORE_WEATHER = ['the rain','the frost','the sweepers','the long heat','the floodwater','the grey'];
+  var LORE_REACTION = ['goes still and waits','digs in deeper','holds its ground',
+    'folds its wings and endures','doubles its patrol','will not be moved'];
+  var LORE_MEMORY = ['a warmth it never names','one bright wrapper','the shape of an old territory',
+    'the hum of the last lamp','a season that did not come back','the taste of spilled syrup'];
+  var LORE_COUNT = ['three','seven','a dozen','forty','nine','more'];
+  var LORE_TRAIT_TPL = ['its shell holds the {color} of {material}',
+    'a {temper} thing, it {habit}', 'logged as {color}, tempered {temper}',
+    '{temper} to the last, it keeps to {place}'];
+  var LORE_GEN_TPL = ['hatched {when} in {place}', 'born where {event}',
+    'it remembers {memory}, and little else', 'sworn {oath}',
+    'when {weather} comes, it {reaction}',
+    'they found it in {place}, crowned in {material}',
+    'it has outlived {count} broods and buried the count',
+    '{enemy} has ever {verbpast} it twice', 'it {habit}, and asks for nothing'];
+
+  // bugName: evocative common name. Core is Adj + Creature; sometimes an
+  // honorific prefix, sometimes an epithet tail. Deterministic per codeblock.
+  function bugName(codeblock) {
+    var rng = seededRng(codeblock + '|name');
+    var out = cap(pick(rng, NAME_ADJ)) + ' ' + cap(pick(rng, NAME_CREATURE));
+    if (rng() < 0.32) out = pick(rng, NAME_HONORIFIC) + ' ' + out;
+    if (rng() < 0.42) out = out + ' ' + pick(rng, NAME_EPITHET);
+    return out;
+  }
+
+  // bugSpecies: pseudo-Latin binomial. Huge, taxonomy-flavored space.
+  function bugSpecies(codeblock) {
+    var rng = seededRng(codeblock + '|species');
+    var genus = pick(rng, SP_GENUS) + pick(rng, SP_GSUFFIX);
+    var epithet = pick(rng, SP_ROOT) + pick(rng, SP_SUFFIX);
+    return cap(genus) + ' ' + epithet;
+  }
+
+  // bugDesignation: near-unique specimen tag pulled straight from the hash.
+  function bugDesignation(codeblock) {
+    var h = String(codeblock);
+    return 'LB-' + h.slice(0, 4).toUpperCase() + '-' + h.slice(4, 8).toUpperCase();
+  }
+
+  // bugLore: 3 short poetic lines. One line is trait-linked (the bug's actual
+  // primary color and its behavior-derived temperament), two are drawn from
+  // the litter-born imagery banks. Deterministic per codeblock.
+  function bugLore(codeblock) {
+    var t = hashToBugTraits(codeblock);
+    var rng = seededRng(codeblock + '|lore');
+    var color = LORE_COLORS[((t.palette && t.palette[0]) || 0) % LORE_COLORS.length];
+    var temper = LORE_TEMPER[(t.behavior || 0) % LORE_TEMPER.length];
+    function fill(tpl) {
+      return tpl
+        .replace('{when}', pick(rng, LORE_WHEN))
+        .replace('{place}', pick(rng, LORE_PLACE))
+        .replace('{material}', pick(rng, LORE_MATERIAL))
+        .replace('{event}', pick(rng, LORE_EVENT))
+        .replace('{habit}', pick(rng, LORE_HABIT))
+        .replace('{enemy}', pick(rng, LORE_ENEMY))
+        .replace('{verbpast}', pick(rng, LORE_VERBPAST))
+        .replace('{oath}', pick(rng, LORE_OATH))
+        .replace('{weather}', pick(rng, LORE_WEATHER))
+        .replace('{reaction}', pick(rng, LORE_REACTION))
+        .replace('{memory}', pick(rng, LORE_MEMORY))
+        .replace('{count}', pick(rng, LORE_COUNT))
+        .replace('{color}', color)
+        .replace('{temper}', temper);
+    }
+    var lines = [pick(rng, LORE_TRAIT_TPL)].concat(pickN(rng, LORE_GEN_TPL, 2));
+    return lines.map(function (tpl) {
+      var s = fill(tpl);
+      s = s.charAt(0).toUpperCase() + s.slice(1);
+      return /[.!?]$/.test(s) ? s : s + '.';
+    }).join('\n');
+  }
+
+  // bugIdentity: the whole nameplate for a bug.
+  function bugIdentity(codeblock) {
+    return {
+      name: bugName(codeblock),
+      species: bugSpecies(codeblock),
+      designation: bugDesignation(codeblock),
+      lore: bugLore(codeblock)
+    };
   }
 
   // ── NEW: the codeblock mint (play -> codeblock). ────────────────────
@@ -452,11 +631,13 @@
     return sha256Hex(String(salt) + "#" + serializeTrace(trace));
   }
 
-  // bugFromCodeblock: convenience — codeblock -> { traits, name, svg }.
+  // bugFromCodeblock: convenience — codeblock -> { traits, identity, svg }.
   function bugFromCodeblock(codeblock, size) {
+    var id = bugIdentity(codeblock);
     return {
       traits: hashToBugTraits(codeblock),
-      name: bugName(codeblock),
+      name: id.name,          // kept for back-compat
+      identity: id,           // { name, species, designation, lore }
       svg: _generateBugSVG(codeblock, size || 160)
     };
   }
@@ -465,7 +646,8 @@
   var _api = {
     sha256Hex: sha256Hex, hb: hb, hc: hc, hexToRGB: hexToRGB,
     hashToBugTraits: hashToBugTraits, _generateBugSVG: _generateBugSVG,
-    bugName: bugName, PAL: PAL,
+    bugName: bugName, bugSpecies: bugSpecies, bugDesignation: bugDesignation,
+    bugLore: bugLore, bugIdentity: bugIdentity, seededRng: seededRng, PAL: PAL,
     WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,
     LEG_BANK: LEG_BANK, ANTENNA_BANK: ANTENNA_BANK, PATTERN_BANK: PATTERN_BANK,
     serializeTrace: serializeTrace, mintCodeblock: mintCodeblock,

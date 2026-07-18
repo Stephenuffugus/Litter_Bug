@@ -47,7 +47,13 @@
   .bugwrap { background: #131614; border: 1px solid #1f231d; border-radius: 16px;
     padding: 14px; }
   .bugwrap svg { width: 200px; height: 200px; display: block; }
-  .bugname { font-size: 17px; font-weight: 600; color: #c8a84b; }
+  .bugname { font-size: 18px; font-weight: 600; color: #c8a84b; text-align: center; }
+  .bugspecies { font-style: italic; font-size: 13px; color: #8a9178; margin-top: -2px; }
+  .bugdesig { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px; color: #6f7766; letter-spacing: .04em; }
+  .buglore { white-space: pre-line; text-align: center; font-size: 13.5px;
+    line-height: 1.55; color: #cdbfa6; max-width: 32ch; margin: 4px auto 2px;
+    font-style: italic; }
   .codeblock { font-family: ui-monospace, "SF Mono", Menlo, monospace;
     font-size: 11px; color: #7ab356; word-break: break-all; text-align: center;
     background: #10140f; border: 1px solid #1f231d; border-radius: 8px;
@@ -90,6 +96,9 @@
     <div id="result" class="result">
       <div class="bugwrap" id="bugwrap"></div>
       <div class="bugname" id="bugname"></div>
+      <div class="bugspecies" id="bugspecies"></div>
+      <div class="bugdesig" id="bugdesig"></div>
+      <div class="buglore" id="buglore"></div>
       <div class="codeblock">
         <span class="lbl">codeblock</span>
         <span id="cbHex"></span>
@@ -219,7 +228,10 @@
     var bug = window.bugFromCodeblock(cb, 200);
 
     document.getElementById('bugwrap').innerHTML = bug.svg;
-    document.getElementById('bugname').textContent = bug.name;
+    document.getElementById('bugname').textContent = bug.identity.name;
+    document.getElementById('bugspecies').textContent = bug.identity.species;
+    document.getElementById('bugdesig').textContent = bug.identity.designation;
+    document.getElementById('buglore').textContent = bug.identity.lore;
     document.getElementById('cbHex').textContent = cb;
     document.getElementById('traceStr').textContent = window.serializeTrace(trace);
     document.getElementById('verdict').textContent = '';
