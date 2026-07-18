@@ -137,9 +137,9 @@ check('bug picks a valid scheme and the render applies it', function () {
     var c = cb('pal-' + i);
     var t = E.hashToBugTraits(c);
     var scheme = E.PALETTES[t.palette];
-    // The `dark` hex is used literally for leg/antenna strokes, so it must
-    // appear in the SVG when the scheme is applied.
-    if (!Number.isInteger(t.palette) || !scheme || E._generateBugSVG(c, 160).indexOf(scheme.dark) === -1) miss++;
+    // The scheme's `primary` hex is used literally as the body gradient's
+    // mid-stop, so it must appear in the SVG when the scheme is applied.
+    if (!Number.isInteger(t.palette) || !scheme || E._generateBugSVG(c, 160).indexOf(scheme.primary) === -1) miss++;
   }
   return { ok: miss === 0, detail: miss + ' / 60 bugs with unapplied scheme' };
 });

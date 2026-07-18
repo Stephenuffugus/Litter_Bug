@@ -227,227 +227,100 @@
   //   → legs → body (PNG, primary-tinted) → pattern → head → antennae.
   // Bodies and wings are PNG-driven; heads / patterns will join when
   // their banks land. Legs and antennae are inline SVG line art.
+  // ── _generateBugSVG(hash, size): procedural flat-vector cel-shaded bug. ──
+  // Fully drawn in SVG (no PNG layers, no feColorMatrix). Outlined, cel-shaded
+  // insect parts whose SHAPES come from the trait indices and whose COLORS come
+  // from the bug's palette scheme. Deterministic, recolorable, needs zero art
+  // assets. Faces right, viewBox 200x200. The PNG-bank hybrid is retired as the
+  // default; the banks remain exported for an optional future hand-art drop.
   function _generateBugSVG(hash, size) {
     var t = hashToBugTraits(hash);
     var uid = hash.substr(0, 8);
-    var cx = 100, cy = 100;
-
     var pal = PALETTES[t.palette] || PALETTES[0];
-    var primary = pal.primary;
-    var secondary = pal.secondary;
-    var accent = pal.accent;
-    var dark = pal.dark;
-    var primaryRGB = hexToRGB(primary);
-    var accentRGB = hexToRGB(accent);
-    var darkRGB = hexToRGB(dark);
+    var primary = pal.primary, secondary = pal.secondary, accent = pal.accent;
 
-    // Defs: per-bug tint filters, one for each PNG layer.
-    //   bt-<uid> = body tint (primary color)
-    //   wt-<uid> = wing tint (accent color)
-    //   ht-<uid> = head tint (dark color)
-    // Unique IDs per hash so multiple bugs on the page don't share
-    // and clobber each other.
-    var bodyTintId = 'bt-' + uid;
-    var wingTintId = 'wt-' + uid;
-    var headTintId = 'ht-' + uid;
-    function tintFilter(id, rgb) {
-      return '<filter id="' + id + '" x="-5%" y="-5%" width="110%" height="110%">'
-        + '<feColorMatrix type="matrix" values="'
-        + rgb.r + ' 0 0 0 0  '
-        + '0 ' + rgb.g + ' 0 0 0  '
-        + '0 0 ' + rgb.b + ' 0 0  '
-        + '0 0 0 1 0"/>'
-        + '</filter>';
-    }
-    var defs = ''
-      + '<defs>'
-      + tintFilter(bodyTintId, primaryRGB)
-      + tintFilter(wingTintId, accentRGB)
-      + tintFilter(headTintId, darkRGB)
-      + '</defs>';
+    function _rgb(h){ h=h.replace('#',''); return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) }; }
+    function _hx(o){ var c=function(v){ return ('0'+Math.max(0,Math.min(255,Math.round(v))).toString(16)).slice(-2); }; return '#'+c(o.r)+c(o.g)+c(o.b); }
+    function dk(h,f){ var c=_rgb(h); return _hx({ r:c.r*(1-f), g:c.g*(1-f), b:c.b*(1-f) }); }
+    function lt(h,f){ var c=_rgb(h); return _hx({ r:c.r+(255-c.r)*f, g:c.g+(255-c.g)*f, b:c.b+(255-c.b)*f }); }
 
-    // Body. PNG from BODY_BANK rendered at 160x80, centered horizontally
-    // around the bug's body axis (cx=100, cy=100). Hash drives a small
-    // scale variation so not every bug is identical-sized.
-    var bodyScale = 0.92 + ((hb(hash, 1) % 17) / 100); // 0.92..1.08
-    var bodyDrawW = 160 * bodyScale;
-    var bodyDrawH = 80 * bodyScale;
-    var bodyX = cx - bodyDrawW / 2;
-    var bodyY = cy - bodyDrawH / 2;
-    var bodyHalfLen = bodyDrawW / 2;
-    var bodyHalfW = bodyDrawH / 2;
-    var body = '';
-    if (BODY_BANK.length > 0) {
-      var bodyEntry = BODY_BANK[t.body % BODY_BANK.length];
-      var bodyHref = 'assets/bodies/' + bodyEntry.file;
-      var bodyTintAttr = (bodyEntry.tintable === false) ? '' : (' filter="url(#' + bodyTintId + ')"');
-      body = '<image href="' + bodyHref + '"'
-        + ' x="' + bodyX + '" y="' + bodyY
-        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"'
-        + bodyTintAttr + ' />';
-    } else {
-      // Fallback for the brief window between adding sentinels and
-      // running the import script. Should not be hit in normal use.
-      body = '<ellipse cx="' + cx + '" cy="' + cy
-        + '" rx="' + bodyHalfLen + '" ry="' + bodyHalfW
-        + '" fill="' + primary + '" />';
+    var ol = dk(pal.dark, 0.25);
+    var cx = 94, cy = 106;
+
+    // trait-driven dimensions
+    var abRx = 34 + (t.bodyLen % 40) * 0.5;   // abdomen radii
+    var abRy = 24 + (t.bodyW % 30) * 0.45;
+    var thR  = 18 + (t.head % 8);             // thorax radius
+    var hR   = 15 + (t.headSize % 12);        // head radius
+    var abCx = cx - abRx * 0.55;
+    var thCx = abCx + abRx * 0.55 + thR * 0.6;
+    var hCx  = thCx + thR * 0.5 + hR * 0.7;
+    var hCy  = cy - 2;
+
+    // soft-cel shading gradient (highlight top-left -> base -> shadow bottom-right)
+    function grad(id, base){ return '<linearGradient id="' + id + '" x1="0.2" y1="0.05" x2="0.85" y2="1">'
+      + '<stop offset="0" stop-color="' + lt(base,0.30) + '"/><stop offset="0.44" stop-color="' + base + '"/>'
+      + '<stop offset="0.46" stop-color="' + base + '"/><stop offset="1" stop-color="' + dk(base,0.32) + '"/></linearGradient>'; }
+    var defs = '<defs>' + grad('gB'+uid, primary) + grad('gT'+uid, secondary) + grad('gH'+uid, secondary) + grad('gW'+uid, lt(accent,0.12)) + '</defs>';
+
+    // wings (behind body); family by t.wing%5, 4 = wingless
+    var wf = t.wing % 5, wing = '';
+    if (wf !== 4) {
+      var ws = 0.85 + (t.wing % 20) / 60;
+      var wcol = 'fill="url(#gW'+uid+')" stroke="' + dk(accent,0.4) + '" stroke-width="1.8"';
+      var wx = thCx - 4, wy = cy - 6, d;
+      if (wf === 0) d = 'M '+wx+' '+wy+' Q '+(wx-40*ws)+' '+(wy-64*ws)+' '+(wx+18)+' '+(wy-70*ws)+' Q '+(wx+52*ws)+' '+(wy-58*ws)+' '+(wx+50*ws)+' '+(wy-14)+' Q '+(wx+36)+' '+(wy+2)+' '+wx+' '+wy+' Z';
+      else if (wf === 1) d = 'M '+wx+' '+wy+' Q '+(wx-30*ws)+' '+(wy-70*ws)+' '+(wx+30)+' '+(wy-76*ws)+' L '+(wx+64*ws)+' '+(wy-30)+' Q '+(wx+40)+' '+(wy+2)+' '+wx+' '+wy+' Z';
+      else if (wf === 2) d = 'M '+wx+' '+wy+' Q '+(wx-16)+' '+(wy-58*ws)+' '+(wx+8)+' '+(wy-74*ws)+' Q '+(wx+30)+' '+(wy-80*ws)+' '+(wx+40*ws)+' '+(wy-40)+' Q '+(wx+36)+' '+wy+' '+wx+' '+wy+' Z';
+      else d = 'M '+wx+' '+wy+' Q '+(wx-36*ws)+' '+(wy-60*ws)+' '+(wx+14)+' '+(wy-66*ws)+' Q '+(wx+48*ws)+' '+(wy-52*ws)+' '+(wx+46*ws)+' '+(wy-12)+' Q '+(wx+32)+' '+(wy+2)+' '+wx+' '+wy+' Z';
+      var vein = '<path d="M '+(wx+4)+' '+(wy-4)+' Q '+(wx+14)+' '+(wy-40*ws)+' '+(wx+34)+' '+(wy-52*ws)+'" fill="none" stroke="' + dk(accent,0.32) + '" stroke-width="1.1" opacity="0.6"/>';
+      wing = '<path d="'+d+'" '+wcol+' opacity="0.96"/>' + vein;
+      if (wf === 3) wing = '<path d="'+d+'" transform="translate(-14,6) scale(0.8)" '+wcol+' opacity="0.7"/>' + wing;
     }
 
-    // Wings: PNG sprites from the bank, picked by traits.wing.
-    // tintable=true wings get the feColorMatrix filter (silhouettes →
-    // bug's accent color). tintable=false wings render as authored.
-    // Per-wing attachment lets art with off-center origins still align
-    // on the thorax.
-    var wing = WING_BANK[t.wing % WING_BANK.length];
-    var wingHref = 'assets/wings/' + wing.file;
-    var wW = 140 * t.wingScale;
-    var wH = 70 * t.wingScale;
-    var attachX = cx - bodyHalfLen * 0.15;
-    var attachY = cy;
-    var ax = (wing.attachment && wing.attachment[0]) || 24;
-    var ay = (wing.attachment && wing.attachment[1]) || 64;
-    var px = attachX - wW * (ax / 256);
-    var py = attachY - wH * (ay / 128);
-    var tintAttr = (wing.tintable === false) ? '' : (' filter="url(#' + wingTintId + ')"');
-    var wings = ''
-      + '<g transform="rotate(165 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
-      + '<image href="' + wingHref + '" x="' + px + '" y="' + py
-      + '" width="' + wW + '" height="' + wH + '" />'
-      + '</g>'
-      + '<g transform="rotate(195 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
-      + '<image href="' + wingHref + '" x="' + px + '" y="' + py
-      + '" width="' + wW + '" height="' + wH + '" />'
-      + '</g>';
-
-    // Legs: read params from LEG_BANK and draw `count` line strokes
-    // (count/2 per side) emerging from the body's underside and topside.
-    // Each leg's tip angles outward based on `pose` and leg index;
-    // length and thickness come directly from the bank entry.
-    var legs = '';
-    var legEntry = (LEG_BANK.length > 0)
-      ? LEG_BANK[t.leg % LEG_BANK.length]
-      : { count: 6, length: 22, segments: 1, thickness: 2.5, pose: 'spread' };
-    var legCount = legEntry.count || 6;
-    var pairs = Math.max(1, Math.floor(legCount / 2));
-    var legLen = legEntry.length || 22;
-    var legThick = legEntry.thickness || 2.5;
-    var legPose = legEntry.pose || 'spread';
-    for (var lp = 0; lp < pairs; lp++) {
-      var t01 = pairs === 1 ? 0.5 : (lp / (pairs - 1));
-      var legAx = cx - bodyHalfLen * 0.6 + bodyHalfLen * 1.2 * t01;
-      // Tip x-offset varies with pose and position. 'forward' tilts all
-      // tips toward the head end; 'spread' fans them outward (rear legs
-      // angle back, front legs angle forward); 'low' keeps tips below
-      // attachment; 'splayed' fans more aggressively than 'spread'.
-      var fan = 0;
-      if (legPose === 'forward') fan = 12;
-      else if (legPose === 'spread') fan = -14 + 28 * t01;
-      else if (legPose === 'splayed') fan = -22 + 44 * t01;
-      else if (legPose === 'low') fan = 0;
-      var tipDx = fan;
-      var tipDy = legLen;
-      var topAttachY = cy - bodyHalfW * 0.85;
-      var botAttachY = cy + bodyHalfW * 0.85;
-      legs += '<line x1="' + legAx + '" y1="' + botAttachY
-        + '" x2="' + (legAx + tipDx) + '" y2="' + (botAttachY + tipDy)
-        + '" stroke="' + dark + '" stroke-width="' + legThick
-        + '" stroke-linecap="round" />'
-        + '<line x1="' + legAx + '" y1="' + topAttachY
-        + '" x2="' + (legAx + tipDx) + '" y2="' + (topAttachY - tipDy)
-        + '" stroke="' + dark + '" stroke-width="' + legThick
-        + '" stroke-linecap="round" />';
+    // legs: 3 jointed pairs; far (drawn before body) + near (after)
+    var ll = 14 + (t.leg % 14), lw = 2.6 + (t.leg % 3) * 0.5;
+    var bases = [thCx - thR*0.7, thCx, thCx + thR*0.5];
+    function legPath(bx, dir, len){ var kx = bx + dir*len*0.35, ky = cy + abRy*0.5 + len*0.5, fx = kx + dir*len*0.5, fy = ky + len*0.7; return 'M '+bx+' '+(cy+abRy*0.35)+' L '+kx+' '+ky+' L '+fx+' '+fy; }
+    var farLegs = '', nearLegs = '';
+    for (var li = 0; li < bases.length; li++) {
+      farLegs  += '<path d="'+legPath(bases[li]-3,-1,ll*0.95)+'" fill="none" stroke="' + dk(ol,-0.25) + '" stroke-width="'+lw+'" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>';
+      nearLegs += '<path d="'+legPath(bases[li],(li===0?-1:1),ll)+'" fill="none" stroke="'+ol+'" stroke-width="'+(lw+0.4)+'" stroke-linecap="round" stroke-linejoin="round"/>';
     }
 
-    // Head: PNG from HEAD_BANK at body's right-edge attachment.
-    // Picked deterministically by traits.head. Tinted to bug's dark
-    // palette color so eyes/mandibles read as shadowed accents.
-    // hx is the bug's head-center x, used downstream for antennae.
-    var headW = 40 + (hb(hash, 5) % 12); // 40..52 — small hash-driven scale
-    var headH = headW; // square viewBox source
-    var bodyAttachX = cx + bodyHalfLen;
-    var bodyAttachY = cy;
-    var hx = bodyAttachX + headW * 0.35; // head center
-    var head = '';
-    if (HEAD_BANK.length > 0) {
-      var headEntry = HEAD_BANK[t.head % HEAD_BANK.length];
-      var headHref = 'assets/heads/' + headEntry.file;
-      var hax = (headEntry.attachment && headEntry.attachment[0]) || 0;
-      var hay = (headEntry.attachment && headEntry.attachment[1]) || 48;
-      // Place so head's PNG-attachment lands on body's attachment.
-      var headX = bodyAttachX - headW * (hax / 96);
-      var headY = bodyAttachY - headH * (hay / 96);
-      var headTintAttr = (headEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
-      head = '<image href="' + headHref + '"'
-        + ' x="' + headX + '" y="' + headY
-        + '" width="' + headW + '" height="' + headH + '"'
-        + headTintAttr + ' />'
-        // Eye dot stays inline so palette accent reads as the eye shine.
-        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
-    } else {
-      // Inline-circle fallback if HEAD_BANK is empty.
-      head = '<circle cx="' + hx + '" cy="' + cy + '" r="' + (headW / 2)
-        + '" fill="' + dark + '" />'
-        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    // body
+    var abdomen = '<ellipse cx="'+abCx+'" cy="'+cy+'" rx="'+abRx+'" ry="'+abRy+'" fill="url(#gB'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
+    var thorax  = '<ellipse cx="'+thCx+'" cy="'+(cy-1)+'" rx="'+thR+'" ry="'+(thR*0.95)+'" fill="url(#gT'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
+
+    // pattern by t.pattern%5
+    var pf = t.pattern % 5, pat = '', pc = dk(primary, 0.34);
+    if (pf === 1) { for (var s1=0;s1<3;s1++) pat += '<circle cx="'+(abCx-10+s1*14)+'" cy="'+(cy-6+((s1%2)*12))+'" r="'+(5-s1*0.5)+'" fill="'+pc+'" opacity="0.5"/>'; }
+    else if (pf === 2) { for (var s2=0;s2<3;s2++) pat += '<path d="M '+(abCx-16+s2*14)+' '+(cy-abRy*0.7)+' Q '+(abCx-18+s2*14)+' '+cy+' '+(abCx-14+s2*14)+' '+(cy+abRy*0.7)+'" fill="none" stroke="'+pc+'" stroke-width="2.4" opacity="0.5"/>'; }
+    else if (pf === 3) { for (var s3=0;s3<2;s3++) pat += '<path d="M '+(abCx-abRx*0.7)+' '+(cy-8+s3*16)+' Q '+abCx+' '+(cy-4+s3*16)+' '+(abCx+abRx*0.6)+' '+(cy-8+s3*16)+'" fill="none" stroke="'+pc+'" stroke-width="2.6" opacity="0.45"/>'; }
+    else if (pf === 0) { pat = '<circle cx="'+abCx+'" cy="'+cy+'" r="'+(abRy*0.5)+'" fill="'+pc+'" opacity="0.4"/>'; }
+
+    // head + eye + mandible
+    var head = '<circle cx="'+hCx+'" cy="'+hCy+'" r="'+hR+'" fill="url(#gH'+uid+')" stroke="'+ol+'" stroke-width="3"/>';
+    var eR = hR * (0.4 + (t.head % 3) * 0.06);
+    var eye = '<ellipse cx="'+(hCx+hR*0.35)+'" cy="'+(hCy-hR*0.25)+'" rx="'+(eR*0.85)+'" ry="'+eR+'" fill="'+dk(pal.dark,0.05)+'" stroke="'+ol+'" stroke-width="1.4"/>'
+      + '<circle cx="'+(hCx+hR*0.2)+'" cy="'+(hCy-hR*0.45)+'" r="'+(eR*0.32)+'" fill="#fdfdfa"/>';
+    var mand = (t.head % 2) ? '<path d="M '+(hCx+hR*0.8)+' '+(hCy+hR*0.4)+' q 7 3 5 9" fill="none" stroke="'+ol+'" stroke-width="2.4" stroke-linecap="round"/>' : '';
+
+    // antennae by t.antenna%5, a clean pair (far + near)
+    var af = t.antenna % 5, aoy = hCy - hR*0.8;
+    function antenna(ox, k, op){
+      var d2, tip = '';
+      if (af === 0) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+18*k)+' '+(aoy-18*k)+' '+(ox+30*k)+' '+(aoy-30*k); }
+      else if (af === 1) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+22*k)+' '+(aoy-14*k)+' '+(ox+18*k)+' '+(aoy-30*k)+' Q '+(ox+14*k)+' '+(aoy-38*k)+' '+(ox+24*k)+' '+(aoy-40*k); }
+      else if (af === 2) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+16*k)+' '+(aoy-20*k)+' '+(ox+26*k)+' '+(aoy-32*k); tip = '<circle cx="'+(ox+26*k)+'" cy="'+(aoy-32*k)+'" r="3.2" fill="'+ol+'" opacity="'+op+'"/>'; }
+      else if (af === 3) { d2 = 'M '+ox+' '+aoy+' Q '+(ox+14*k)+' '+(aoy-20*k)+' '+(ox+22*k)+' '+(aoy-34*k); for (var b=1;b<=4;b++) tip += '<path d="M '+(ox+4*k+b*4*k)+' '+(aoy-b*7*k)+' l '+(5*k)+' '+(-3*k)+'" stroke="'+ol+'" stroke-width="1.2" stroke-linecap="round" opacity="'+op+'"/>'; }
+      else { d2 = 'M '+ox+' '+aoy+' Q '+(ox+26*k)+' '+(aoy-24*k)+' '+(ox+44*k)+' '+(aoy-30*k); }
+      return '<path d="'+d2+'" fill="none" stroke="'+ol+'" stroke-width="2.2" stroke-linecap="round" opacity="'+op+'"/>' + tip;
     }
+    var antPair = antenna(hCx + hR*0.05, 0.85, 0.6) + antenna(hCx + hR*0.28, 1.0, 1.0);
 
-    // Antennae: read params from ANTENNA_BANK. Two bezier curves emerge
-    // from the head front, fanning up-and-out at the entry's `spread`
-    // angle. `curl` controls how much the bezier midpoint pulls back
-    // toward the head; higher curl gives more recurve.
-    var antEntry = (ANTENNA_BANK.length > 0)
-      ? ANTENNA_BANK[t.antenna % ANTENNA_BANK.length]
-      : { length: 24, curl: 0.4, thickness: 1.8, shape: 'straight', spread: 30 };
-    var antLen = antEntry.length || 24;
-    var antCurl = (antEntry.curl !== undefined) ? antEntry.curl : 0.4;
-    var antThick = antEntry.thickness || 1.8;
-    var antSpread = antEntry.spread || 30;
-    var antStartX = hx + headW * 0.3; // emerge from head front
-    var antRad = antSpread * Math.PI / 180;
-    // Tip points "up and slightly forward" for top antenna, mirrored
-    // for bottom. Direction is +x slightly, -y mostly (so it sweeps up).
-    var topDx = Math.sin(antRad) * antLen;
-    var topDy = -Math.cos(antRad) * antLen;
-    var topTipX = antStartX + topDx;
-    var topTipY = (cy - 4) + topDy;
-    // Bezier control: pull back toward the head (so the curve recurves)
-    // by `curl` factor.
-    var topCtrlX = antStartX + topDx * (1 - antCurl);
-    var topCtrlY = (cy - 4) + topDy * antCurl;
-    var botTipX = antStartX + topDx;
-    var botTipY = (cy + 4) - topDy;
-    var botCtrlX = antStartX + topDx * (1 - antCurl);
-    var botCtrlY = (cy + 4) - topDy * antCurl;
-    var antennae = ''
-      + '<path d="M' + antStartX + ' ' + (cy - 4)
-      + ' Q' + topCtrlX + ' ' + topCtrlY
-      + ', ' + topTipX + ' ' + topTipY
-      + '" stroke="' + dark + '" stroke-width="' + antThick
-      + '" fill="none" stroke-linecap="round" />'
-      + '<path d="M' + antStartX + ' ' + (cy + 4)
-      + ' Q' + botCtrlX + ' ' + botCtrlY
-      + ', ' + botTipX + ' ' + botTipY
-      + '" stroke="' + dark + '" stroke-width="' + antThick
-      + '" fill="none" stroke-linecap="round" />';
-
-    // Pattern: PNG from PATTERN_BANK overlaid on the body. Same draw
-    // dims as the body so the markings align. Tinted to dark (reusing
-    // the head tint filter — same color, no extra defs needed).
-    var pattern = '';
-    if (PATTERN_BANK.length > 0) {
-      var patEntry = PATTERN_BANK[t.pattern % PATTERN_BANK.length];
-      var patHref = 'assets/patterns/' + patEntry.file;
-      var patTintAttr = (patEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
-      pattern = '<image href="' + patHref + '"'
-        + ' x="' + bodyX + '" y="' + bodyY
-        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"'
-        + patTintAttr + ' opacity="0.65" />';
-    }
-
-    return ''
-      + '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"'
-      + ' width="' + size + '" height="' + size + '">'
-      + defs + wings + legs + body + pattern + head + antennae
-      + '</svg>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
+      + defs + wing + farLegs + abdomen + pat + nearLegs + thorax + antPair + head + eye + mand + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════

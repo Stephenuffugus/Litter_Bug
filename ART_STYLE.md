@@ -2,6 +2,22 @@
 # The art bible. Every bug part obeys this so mix-and-match stays cohesive.
 # Style locked 2026-07-17: clean flat vector / mascot. Director: Stephen.
 
+## STATUS (2026-07-17): art is now PROCEDURAL by default
+Stephen has Midjourney + ChatGPT but no easy way to run the AI-art pipeline,
+so we pivoted: the bugs are now drawn fully in code, in SVG, as outlined
+cel-shaded flat-vector mascots (`_generateBugSVG` in `bug-engine.js`). Shapes
+come from the trait indices, colors from the palette scheme. It looks good,
+needs ZERO art production, stays deterministic + recolorable, and ships today.
+
+The Midjourney/PNG pipeline below is NOT dead. It is the OPTIONAL higher-
+fidelity path: the PNG banks + attachment points still exist in the engine, so
+if we ever want richer hand/AI art we can drop it in and composite it over (or
+instead of) the procedural parts. Everything below still applies to that path.
+Until then, improving the look = improving the procedural drawing code.
+
+---
+
+
 ## THE ONE RULE
 Every part in the game is authored in ONE locked style, with ONE light
 direction, ONE outline treatment, on its exact canvas, with its connection
