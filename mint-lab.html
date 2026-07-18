@@ -32,6 +32,12 @@
     box-shadow: 0 0 14px rgba(122,179,86,.35); color: #b6e08a; }
   .cell.hit { background: #34301a; border-color: #c8a84b; }
   .board.done .cell { opacity: .45; cursor: default; }
+  @keyframes hitpop { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
+  .cell.pop { animation: hitpop .22s ease-out; }
+  .charge { height: 8px; background: #15191a; border: 1px solid #22271f; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+  .chargefill { height: 100%; width: 0; background: linear-gradient(90deg, #7ab356, #c8a84b);
+    border-radius: 5px; transition: width .18s ease; box-shadow: 0 0 8px rgba(200,168,75,.5); }
+  @media (prefers-reduced-motion: reduce) { .cell.pop { animation: none; } }
 
   .btnrow { display: flex; gap: 8px; width: 100%; flex-wrap: wrap; }
   button { flex: 1 1 auto; padding: 12px 14px; background: #1d251c; color: #e8dcc8;
@@ -110,6 +116,7 @@
     </div>
 
     <div id="board" class="board" aria-label="mint trial board"></div>
+    <div class="charge" aria-hidden="true"><div class="chargefill" id="chargefill"></div></div>
 
     <div class="btnrow">
       <button id="startBtn" class="primary">Start trial</button>
@@ -165,6 +172,8 @@
   var resultEl = document.getElementById('result');
   var promptEl = document.getElementById('prompt');
   var tapCountEl = document.getElementById('tapCount');
+  var chargeEl = document.getElementById('chargefill');
+  function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
   document.getElementById('tapGoal').textContent = TRIAL_LEN;
   document.getElementById('saltLbl').textContent = DEMO_SALT;
 
@@ -212,6 +221,7 @@
     boardEl.classList.remove('done');
     cells.forEach(function (el) { el.classList.remove('hit', 'target'); });
     tapCountEl.textContent = '0';
+    if (chargeEl) chargeEl.style.width = '0%';
     promptEl.textContent = 'Hit the lit cells.';
     startBtn.disabled = true;
     pickTarget();
@@ -227,8 +237,12 @@
     lastT = t;
     trace.push({ i: idx, dt: dt });
 
-    cells[idx].classList.add('hit');
+    var hitCell = cells[idx];
+    hitCell.classList.add('hit', 'pop');
+    setTimeout(function () { hitCell.classList.remove('pop'); }, 240);
+    buzz(trace.length >= TRIAL_LEN ? 30 : 12);
     tapCountEl.textContent = String(trace.length);
+    if (chargeEl) chargeEl.style.width = Math.round(trace.length / TRIAL_LEN * 100) + '%';
 
     if (trace.length >= TRIAL_LEN) {
       finishTrial();
