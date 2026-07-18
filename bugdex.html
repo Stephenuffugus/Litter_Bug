@@ -49,6 +49,8 @@
   .card2 .dg { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #6f7766; letter-spacing: .04em; }
   .card2 .lore { white-space: pre-line; font-style: italic; font-size: 13px; line-height: 1.55; color: #cdbfa6;
     max-width: 30ch; margin: 8px auto; }
+  .card2 .fmatch { font-size: 11px; color: #9aa48c; line-height: 1.45; margin: 6px auto; max-width: 32ch; }
+  .card2 .fmatch b { color: #cdbfa6; } .card2 .fmatch .up { color: #7ab356; } .card2 .fmatch .down { color: #c86a4b; }
   .card2 .meta { font-size: 12px; color: #cdbfa6; margin: 6px 0; }
   .statrow { display: grid; grid-template-columns: 32px 1fr 30px; align-items: center; gap: 8px; margin: 3px 0;
     font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
@@ -149,6 +151,12 @@
     });
   }
 
+  function matchLine(type) {
+    var strong = [], weak = [];
+    E.TYPES.forEach(function (d) { var m = E.typeMatchup(type, d); if (m > 1) strong.push(d); else if (m < 1) weak.push(d); });
+    return '<div class="fmatch"><b>' + type + '</b> hits are <span class="up">strong vs ' + strong.join(', ')
+      + '</span>, <span class="down">weak vs ' + weak.join(', ') + '</span></div>';
+  }
   function openDetail(cb) {
     var bg = W.findBug(vault, cb), st = E.bugStats(cb), id = E.bugIdentity(cb);
     var actual = bg ? bg.level : 1, tcol = TYPE_COLOR[st.type];
@@ -174,6 +182,7 @@
       + '<input type="range" id="grow" min="1" max="30" value="' + actual + '" aria-label="preview growth level">'
       + '<span class="gval" id="gval">' + glabel(actual) + '</span></div>'
       + '<div id="detailBars" style="text-align:left;margin:8px 0">' + barsHTML(actual) + '</div>'
+      + matchLine(st.type)
       + '<div class="lore">' + id.lore + '</div>'
       + '<button id="close">Close</button>';
     document.getElementById('modal').classList.add('show');
