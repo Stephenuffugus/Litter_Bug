@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Litter Bug / world</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0d100c; color: #e8dcc8;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; overflow: hidden; }
+  body { display: flex; flex-direction: column; }
+
+  header { padding: 8px 12px; border-bottom: 1px solid #1c1f1a; display: flex;
+    align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+  .hud { display: flex; gap: 12px; margin-left: auto; font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; }
+  .hud b { color: #c8a84b; }
+  .hud .en { color: #7ab356; }
+
+  .viewport { flex: 1; position: relative; overflow: hidden; touch-action: none;
+    background:
+      radial-gradient(circle at 30% 20%, #15191a 0, #0d100c 60%),
+      repeating-linear-gradient(0deg, #10130e 0 1px, transparent 1px 46px),
+      repeating-linear-gradient(90deg, #10130e 0 1px, transparent 1px 46px);
+    cursor: grab; }
+  .viewport.drag { cursor: grabbing; }
+  .world { position: absolute; left: 50%; top: 50%; will-change: transform; }
+  .cell { position: absolute; width: 84px; height: 84px; margin: -42px 0 0 -42px;
+    border-radius: 14px; border: 2px solid #23271f; background: #12150f;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: border-color .1s; }
+  .cell.empty { border-style: dashed; border-color: #22271d; }
+  .cell.empty.canplace { border-color: #3a4634; background: #141a10; }
+  .cell.empty .plus { color: #3a4634; font-size: 26px; }
+  .cell.wild { border-color: #7a4a3a; }
+  .cell.yours { border-color: #c8a84b; background: #161509; }
+  .cell.home::after { content: "home"; position: absolute; bottom: 3px; font-size: 8px;
+    letter-spacing: .1em; color: #c8a84b; text-transform: uppercase; }
+  .cell svg { width: 64px; height: 64px; }
+  .cell .lv { position: absolute; top: 2px; right: 4px; font-size: 9.5px; font-weight: 700;
+    font-family: ui-monospace, Menlo, monospace; color: #e8dcc8;
+    background: rgba(0,0,0,.5); border-radius: 5px; padding: 0 4px; }
+  .cell.wild .lv { color: #f0b49a; }
+  .cell.yours .lv { color: #f0dca0; }
+
+  .roster { border-top: 1px solid #1c1f1a; padding: 8px 10px; display: flex; gap: 8px;
+    overflow-x: auto; align-items: center; background: #0f120d; }
+  .chip { flex: 0 0 auto; width: 58px; text-align: center; padding: 4px 2px; border-radius: 10px;
+    border: 2px solid transparent; cursor: pointer; position: relative; }
+  .chip.sel { border-color: #7ab356; background: #141a10; }
+  .chip svg { width: 46px; height: 46px; }
+  .chip .cl { font-size: 9px; color: #8a9178; font-family: ui-monospace, Menlo, monospace; }
+  .chip .dep { position: absolute; top: 2px; right: 6px; width: 8px; height: 8px; border-radius: 50%;
+    background: #c8a84b; }
+  .rbtn { flex: 0 0 auto; padding: 8px 10px; background: #1d251c; color: #d8ecc4;
+    border: 1px solid #3a4634; border-radius: 10px; font-size: 12px; cursor: pointer; min-height: 44px; }
+
+  .toast { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+    background: #1c211a; border: 1px solid #3a4634; border-radius: 10px; padding: 8px 14px;
+    font-size: 13px; color: #e8dcc8; opacity: 0; transition: opacity .2s; pointer-events: none;
+    max-width: 90%; text-align: center; }
+  .toast.show { opacity: 1; }
+
+  .modal { position: fixed; inset: 0; background: rgba(6,8,6,.72); display: none;
+    align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+  .modal.show { display: flex; }
+  .card { background: #131614; border: 1px solid #2a2f28; border-radius: 16px; padding: 16px;
+    max-width: 400px; width: 100%; max-height: 86vh; overflow-y: auto; }
+  .card h2 { margin: 0 0 4px; font-size: 18px; }
+  .card h2.win { color: #7ab356; } .card h2.lose { color: #c86a4b; } .card h2.draw { color: #cdbfa6; }
+  .card .fight { display: flex; align-items: center; justify-content: space-around; gap: 8px; margin: 6px 0; }
+  .card .fight svg { width: 84px; height: 84px; }
+  .card .fight .foe svg { transform: scaleX(-1); }
+  .card .sub { font-size: 12px; color: #8a9178; text-align: center; }
+  .card .xp { text-align: center; color: #c8a84b; font-size: 13px; margin: 6px 0; }
+  .card .lvup { color: #7ab356; font-weight: 600; }
+  .card .log { background: #10140f; border: 1px solid #1f231d; border-radius: 8px; padding: 8px 10px;
+    max-height: 160px; overflow-y: auto; font-size: 12px; line-height: 1.5; color: #cdbfa6; margin: 8px 0; }
+  .card .log .ko { color: #e0a13c; } .card .log .se { color: #7ab356; }
+  .card button { width: 100%; padding: 12px; background: #2a3a1f; color: #d8ecc4;
+    border: 1px solid #7ab356; border-radius: 10px; font-size: 15px; cursor: pointer; min-height: 48px; }
+  .card button.ghost { background: #15191a; border-color: #2a2f28; color: #e8dcc8; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Litter Bug / world</h1>
+  <div class="hud">
+    <span>territory <b id="hTerr">0</b></span>
+    <span class="en">energy <b class="en" id="hEn">0</b>/<span id="hEnMax">10</span></span>
+  </div>
+</header>
+<div class="viewport" id="vp">
+  <div class="world" id="world"></div>
+  <div class="toast" id="toast"></div>
+</div>
+<div class="roster" id="roster"></div>
+
+<div class="modal" id="modal"><div class="card" id="card"></div></div>
+
+<script src="bug-engine.js"></script>
+<script src="battle-engine.js"></script>
+<script src="world-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var E = window.BUG_ENGINE, W = window.WORLD_ENGINE;
+  var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f', Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
+  var CELL = 96, R = 4, SAVE = 'litterbug_vault_v1';
+
+  function now() { return Date.now(); }
+  function randomCB() {
+    var b = new Uint8Array(32); (window.crypto || window.msCrypto).getRandomValues(b);
+    var s = ''; for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2); return s;
+  }
+  function load() {
+    try { var raw = localStorage.getItem(SAVE); if (raw) return JSON.parse(raw); } catch (e) {}
+    var v = W.seedStarter(W.newVault()); save(v); return v;
+  }
+  function save(v) { try { localStorage.setItem(SAVE, JSON.stringify(v)); } catch (e) {} }
+
+  var vault = load();
+  var center = { ix: 0, iy: 0 };
+  var activeCb = (vault.bugs[0] || {}).cb;
+
+  var worldEl = document.getElementById('world');
+  var vp = document.getElementById('vp');
+
+  function bugType(cb) { return E.bugStats(cb).type; }
+
+  function renderHUD() {
+    document.getElementById('hTerr').textContent = W.summary(vault).territory;
+    document.getElementById('hEn').textContent = W.energyNow(vault, now());
+    document.getElementById('hEnMax').textContent = vault.energyMax;
+  }
+
+  function renderRoster() {
+    var dep = W.deployedMap(vault);
+    var r = document.getElementById('roster');
+    r.innerHTML = '';
+    vault.bugs.forEach(function (bg) {
+      var st = E.bugStats(bg.cb);
+      var chip = document.createElement('div');
+      chip.className = 'chip' + (bg.cb === activeCb ? ' sel' : '');
+      chip.innerHTML = E._generateBugSVG(bg.cb, 46)
+        + '<div class="cl">L' + bg.level + ' ' + st.type + '</div>'
+        + (dep[bg.cb] ? '<div class="dep" title="deployed"></div>' : '');
+      chip.addEventListener('click', function () { activeCb = bg.cb; renderRoster(); renderMap(); });
+      r.appendChild(chip);
+    });
+    var mint = document.createElement('button');
+    mint.className = 'rbtn'; mint.textContent = '+ new bug';
+    mint.addEventListener('click', function () {
+      var cb = randomCB(); W.addBug(vault, cb); activeCb = cb; save(vault);
+      renderRoster(); renderMap(); toast('Rolled a new bug into your roster.');
+    });
+    r.appendChild(mint);
+  }
+
+  function cellEl(ix, iy) {
+    var st = W.cellState(vault, ix, iy);
+    var el = document.createElement('div');
+    el.className = 'cell ' + st.type + (ix === 0 && iy === 0 ? ' home' : '');
+    el.style.left = ((ix - center.ix) * CELL) + 'px';
+    el.style.top = ((iy - center.iy) * CELL) + 'px';
+    var activeReserve = activeCb && !W.deployedMap(vault)[activeCb];
+    if (st.type === 'empty') {
+      if (activeReserve) el.className += ' canplace';
+      el.innerHTML = '<span class="plus">' + (activeReserve ? '+' : '') + '</span>';
+    } else {
+      var tcol = TYPE_COLOR[bugType(st.cb)] || '#8a9178';
+      el.style.borderColor = tcol;
+      el.innerHTML = E._generateBugSVG(st.cb, 64) + '<span class="lv">L' + st.level + '</span>';
+    }
+    el.addEventListener('click', function (e) { if (!dragging) onCell(ix, iy, st); });
+    return el;
+  }
+
+  function renderMap() {
+    worldEl.innerHTML = '';
+    for (var dx = -R; dx <= R; dx++)
+      for (var dy = -R; dy <= R; dy++)
+        worldEl.appendChild(cellEl(center.ix + dx, center.iy + dy));
+    worldEl.style.transform = 'translate(' + panX + 'px,' + panY + 'px)';
+    renderHUD();
+  }
+
+  // ── pan ──────────────────────────────────────────────────────────
+  var panX = 0, panY = 0, dragging = false, startX = 0, startY = 0, moved = 0;
+  vp.addEventListener('pointerdown', function (e) {
+    dragging = false; moved = 0; startX = e.clientX; startY = e.clientY;
+    vp.setPointerCapture(e.pointerId); vp.classList.add('drag');
+    vp._down = true;
+  });
+  vp.addEventListener('pointermove', function (e) {
+    if (!vp._down) return;
+    panX = e.clientX - startX; panY = e.clientY - startY;
+    moved = Math.abs(panX) + Math.abs(panY);
+    if (moved > 8) dragging = true;
+    worldEl.style.transform = 'translate(' + panX + 'px,' + panY + 'px)';
+  });
+  function endPan() {
+    vp._down = false; vp.classList.remove('drag');
+    if (dragging) {
+      center.ix -= Math.round(panX / CELL);
+      center.iy -= Math.round(panY / CELL);
+    }
+    panX = 0; panY = 0; renderMap();
+    setTimeout(function () { dragging = false; }, 0);
+  }
+  vp.addEventListener('pointerup', endPan);
+  vp.addEventListener('pointercancel', endPan);
+
+  // ── interaction ──────────────────────────────────────────────────
+  var toastT;
+  function toast(msg) {
+    var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  function onCell(ix, iy, st) {
+    if (st.type === 'empty') {
+      if (!activeCb) return toast('Pick a bug from your roster first.');
+      if (W.deployedMap(vault)[activeCb]) return toast('That bug is deployed. Pick a reserve bug.');
+      var r = W.placeBug(vault, ix, iy, activeCb, now());
+      if (!r.ok) return toast(r.reason);
+      save(vault); renderRoster(); renderMap(); toast('Claimed the cell.');
+    } else if (st.type === 'wild') {
+      if (!activeCb) return toast('Pick a bug to attack with.');
+      openAttack(ix, iy, st);
+    } else { openInfo(ix, iy, st); }
+  }
+
+  function logLines(log) {
+    return log.map(function (l) {
+      var c = /is down|succumbs|draw/i.test(l) ? ' class="ko"' : /Super effective/.test(l) ? ' class="se"' : '';
+      return '<div' + c + '>' + l + '</div>';
+    }).join('');
+  }
+  function openAttack(ix, iy, st) {
+    var atkE = W.findBug(vault, activeCb);
+    var r = W.attackCell(vault, ix, iy, activeCb, now());
+    if (!r.ok) { toast(r.reason); return; }
+    save(vault); renderRoster(); renderMap();
+    var res = r.battle;
+    var cls = r.won ? 'win' : (r.draw ? 'draw' : 'lose');
+    var title = r.won ? 'Territory taken!' : (r.draw ? 'Draw — they hold.' : 'Defeated.');
+    var card = document.getElementById('card');
+    card.innerHTML =
+      '<h2 class="' + cls + '">' + title + '</h2>'
+      + '<div class="fight"><div class="you">' + E._generateBugSVG(activeCb, 84) + '</div>'
+      + '<div class="sub">vs</div><div class="foe">' + E._generateBugSVG(st.cb, 84) + '</div></div>'
+      + '<div class="sub">' + res.aName + ' (L' + atkE.level + ') vs ' + res.bName + ' (L' + st.level + ') — ' + res.rounds + ' rounds</div>'
+      + '<div class="xp">+' + r.xp + ' XP' + (r.levelsGained > 0 ? ' <span class="lvup">Level up! Now L' + r.newLevel + '</span>' : '') + '</div>'
+      + '<div class="log">' + logLines(res.log) + '</div>'
+      + '<button id="mClose">' + (r.won ? 'Onward' : 'Back') + '</button>';
+    showModal();
+  }
+  function openInfo(ix, iy, st) {
+    var e = W.findBug(vault, st.cb);
+    var s = E.bugStats(st.cb), nm = E.bugName(st.cb);
+    var card = document.getElementById('card');
+    card.innerHTML = '<h2>' + nm + '</h2>'
+      + '<div class="fight"><div>' + E._generateBugSVG(st.cb, 84) + '</div></div>'
+      + '<div class="sub">' + s.type + ' &middot; ' + s.cls + ' &middot; L' + st.level + ' &middot; holding this cell</div>'
+      + '<div class="xp">' + (e ? e.wins + ' wins' : '') + '</div>'
+      + '<button id="mClose">Close</button>'
+      + '<button class="ghost" id="mRecall">Recall (free the cell)</button>';
+    showModal();
+    document.getElementById('mRecall').addEventListener('click', function () {
+      delete vault.claims[W.key(ix, iy)]; save(vault); renderRoster(); renderMap(); hideModal();
+      toast('Recalled. The cell is open again.');
+    });
+  }
+  function showModal() {
+    document.getElementById('modal').classList.add('show');
+    var c = document.getElementById('mClose');
+    if (c) c.addEventListener('click', hideModal);
+  }
+  function hideModal() { document.getElementById('modal').classList.remove('show'); }
+  document.getElementById('modal').addEventListener('click', function (e) {
+    if (e.target === this) hideModal();
+  });
+
+  renderRoster(); renderMap();
+  // gentle energy tick so the HUD updates as it regens
+  setInterval(renderHUD, 15000);
+})();
+</script>
+</body>
+</html>
