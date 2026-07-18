@@ -109,6 +109,29 @@ check('variety: all types and classes appear', function () {
            detail: nt + '/' + E.TYPES.length + ' types, ' + nc + '/' + E.CLASSES.length + ' classes' };
 });
 
+check('dual-typing: type2 is a valid type or null, ~35-40% mono', function () {
+  var mono = 0, bad = 0;
+  for (var i = 0; i < 3000; i++) {
+    var s = E.bugStats(cb('dual' + i));
+    if (s.type2 === null) mono++;
+    else if (E.TYPES.indexOf(s.type2) < 0 || s.type2 === s.type) bad++;
+  }
+  var frac = mono / 3000;
+  return { ok: bad === 0 && frac > 0.3 && frac < 0.45,
+    detail: bad ? bad + ' bad secondaries' : (frac * 100).toFixed(0) + '% mono, rest valid dual' };
+});
+
+check('nature: valid up/down stat or neutral', function () {
+  var keys = STAT_KEYS.concat([null]), bad = 0, neutral = 0;
+  for (var i = 0; i < 600; i++) {
+    var n = E.bugStats(cb('nat' + i)).nature;
+    if (!n || keys.indexOf(n.up) < 0 || keys.indexOf(n.down) < 0) bad++;
+    if (n && n.up === null) neutral++;
+    if (n && n.up !== null && n.up === n.down) bad++;   // up==down should be neutral
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' bad natures' : (neutral / 600 * 100).toFixed(0) + '% neutral, rest valid' };
+});
+
 // ── Output ─────────────────────────────────────────────────────────────
 console.log('');
 console.log('=== Litter Bug battle-stats smoke ===');

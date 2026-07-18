@@ -1,24 +1,27 @@
-// battle-engine.js — Litter Bug turn-based battle (P2).
+// battle-engine.js — Litter Bug turn-based battle (P2, v2 per research w8fh4s7z2).
 //
-// Deterministic combat between two bugs. Reads bugStats + typeMatchup +
-// seededRng from bug-engine.js. Given the same two codeblocks and the same
-// move choices, a battle always resolves identically, so it can later run
-// server-side and verify a submitted territory fight. Browser + Node.
+// Deterministic combat between two bugs. Reads bugStats + typeMatchupDual +
+// seededRng from bug-engine.js. Same two codeblocks + same move choices +
+// same levels => identical battle (server-verifiable later). Browser + Node.
 //
-// Two entry points:
-//   resolveBattle(cbA, cbB)      -> auto-battle, both sides AI (for tests +
-//                                   async territory defense). { winner, log }
-//   startBattle(cbA, cbB)        -> interactive state; the player drives side A
-//   playerRound(state, moveIdx)  -> resolve one round (player move + AI move)
+// v2 depth: dual-typing (product effectiveness {0.39..2.56}), STAB (1.4x),
+// a COVERAGE move on every bug so no mono type is a dead counter, an
+// integer-floored damage chain (cross-engine safe), a fair arg-order-
+// independent tie-break, capped stat stages, natures, and a litter status set
+// (Corrode / Smolder / Rust-lock) on top of Guard + stage buffs.
 ;(function () {
   "use strict";
   var ENG = (typeof module !== "undefined" && module.exports)
     ? require("./bug-engine.js")
     : (typeof window !== "undefined" ? window.BUG_ENGINE : null);
 
+  var STAB = 1400, LEVEL_STEP = 0.08;
+  var STAGE_CAP = { atk: 3, def: 3, spd: 3, acc: 2, eva: 2 };
+
   // ── Moves ───────────────────────────────────────────────────────────
-  // mv(name, power, opts). power 0 = status move. type "self" = the bug's own
-  // type. eff is an effect tag handled in applyMove. prio = turn priority.
+  // mv(name, power, opts). power 0 = status. type "self" -> primary type,
+  // "cover" -> secondary (or a mono off-type). Each class kit: >=2 self
+  // damage + 1 coverage damage + 1 utility/status.
   function mv(name, power, o) {
     o = o || {};
     return { name: name, kind: (power > 0 ? "attack" : "status"), pow: power,
@@ -26,165 +29,196 @@
       eff: o.eff || null, prio: o.prio || 0, multi: o.multi || 1 };
   }
   var CLASS_MOVES = {
-    Aggressor:  [mv("Strike",1.0), mv("Heavy Blow",1.55,{acc:0.82}), mv("Reckless Charge",1.35,{eff:"selfDefDown"}), mv("Brace",0,{eff:"defUp"})],
-    Bulwark:    [mv("Strike",0.95), mv("Body Check",1.15), mv("Fortify",0,{eff:"defUp2"}), mv("Guard",0,{eff:"guard"})],
-    Skirmisher: [mv("Quick Jab",0.7,{prio:1,acc:0.98}), mv("Strike",1.0), mv("Evade",0,{eff:"evaUp"}), mv("Double Hit",0.5,{multi:2})],
-    Ambusher:   [mv("Ambush",1.5,{acc:0.85,eff:"critUp"}), mv("Strike",1.0), mv("Feint",0,{eff:"accDownEnemy"}), mv("Guard",0,{eff:"guard"})],
-    Venomancer: [mv("Venom Bite",0.65,{eff:"poison"}), mv("Toxic Spray",0,{acc:0.95,eff:"poison"}), mv("Strike",0.9), mv("Weaken",0,{eff:"atkDownEnemy"})],
-    Sentinel:   [mv("Strike",0.95), mv("Guard Stance",0,{eff:"guard"}), mv("Harden",0,{eff:"defUp"}), mv("Retaliate",1.25)],
-    Trickster:  [mv("Strike",0.9), mv("Sand Flick",0,{eff:"accDownEnemy"}), mv("Slow Hex",0,{eff:"spdDownEnemy"}), mv("Hex Bolt",1.05)],
-    Swarm:      [mv("Swarm",0.35,{multi:3}), mv("Strike",0.95), mv("Nibble",0.8), mv("Rally",0,{eff:"atkUp"})]
+    Aggressor:  [mv("Strike",1.0), mv("Heavy Blow",1.55,{acc:0.85}), mv("Flank Bolt",1.15,{type:"cover"}), mv("Rally",0,{eff:"atkUp"})],
+    Bulwark:    [mv("Strike",0.95), mv("Body Check",1.2), mv("Cover Jab",0.9,{type:"cover"}), mv("Fortify",0,{eff:"defUp2"})],
+    Skirmisher: [mv("Quick Jab",0.7,{prio:1,acc:0.98}), mv("Slash",1.0), mv("Cover Dart",0.9,{type:"cover"}), mv("Feint",0,{eff:"accDownEnemy"})],
+    Ambusher:   [mv("Ambush",1.5,{acc:0.85,eff:"critUp"}), mv("Strike",1.0), mv("Cover Strike",1.1,{type:"cover"}), mv("Guard",0,{eff:"guard"})],
+    Venomancer: [mv("Venom Bite",0.7,{eff:"corrode"}), mv("Strike",0.9), mv("Cover Spit",0.85,{type:"cover"}), mv("Toxic Spray",0,{eff:"corrode"})],
+    Sentinel:   [mv("Strike",0.95), mv("Retaliate",1.25), mv("Cover Ward",0.9,{type:"cover"}), mv("Sweep the Grate",0,{eff:"haze"})],
+    Trickster:  [mv("Hex Bolt",1.15), mv("Strike",0.95), mv("Cover Hex",1.0,{type:"cover"}), mv("Rust Hex",0,{eff:"rustlock"})],
+    Swarm:      [mv("Swarm",0.46,{multi:3}), mv("Nibble",1.0), mv("Cover Bite",0.9,{type:"cover"}), mv("Cinder Swarm",0,{eff:"smolder"})]
   };
 
   // ── Fighter ─────────────────────────────────────────────────────────
-  // Each level adds 8% to the combat stats (matches world-engine leveling).
-  var LEVEL_STEP = 0.08;
   function leveledStat(v, level) { return Math.round(v * (1 + LEVEL_STEP * ((level || 1) - 1))); }
   function buildFighter(cb, level) {
     level = level || 1;
     var s = ENG.bugStats(cb);
+    var primary = s.type, type2 = s.type2;
+    // mono coverage: an off-type (guaranteed != primary) so no mono bug is a
+    // dead counter with no recourse.
+    var coverType = type2 || ENG.TYPES[(ENG.TYPES.indexOf(primary) + 3) % ENG.TYPES.length];
+    var nat = s.nature || { up: null, down: null };
+    function stat(v, key) {
+      v = leveledStat(v, level);
+      if (nat.up === key) v = Math.round(v * 1.08);
+      if (nat.down === key) v = Math.round(v * 0.92);
+      return v;
+    }
     var moves = (CLASS_MOVES[s.cls] || CLASS_MOVES.Aggressor).map(function (m) {
       var c = {}; for (var k in m) c[k] = m[k];
-      if (c.type === "self") c.type = s.type;
+      c.type = (c.type === "self") ? primary : (c.type === "cover") ? coverType : c.type;
+      c.stab = (c.kind === "attack") && (c.type === primary || (type2 && c.type === type2));
       return c;
     });
-    var hp = leveledStat(s.stats.hp, level);
+    var hp = stat(s.stats.hp, "hp");
     return {
-      cb: cb, name: ENG.bugName(cb), type: s.type, cls: s.cls, kit: s.kit, level: level,
-      maxhp: hp, hp: hp,
-      atk: leveledStat(s.stats.atk, level), def: leveledStat(s.stats.def, level),
-      spd: leveledStat(s.stats.spd, level), acc: leveledStat(s.stats.acc, level),
-      eva: leveledStat(s.stats.eva, level), power: s.power,
-      moves: moves,
-      stages: { atk: 0, def: 0, spd: 0, acc: 0, eva: 0 },
-      poison: 0, guard: false, critUp: false
+      cb: cb, name: ENG.bugName(cb), type: primary, type2: type2, cls: s.cls, kit: s.kit,
+      level: level, nature: nat, maxhp: hp, hp: hp,
+      atk: stat(s.stats.atk, "atk"), def: stat(s.stats.def, "def"), spd: stat(s.stats.spd, "spd"),
+      acc: stat(s.stats.acc, "acc"), eva: stat(s.stats.eva, "eva"), power: s.power,
+      moves: moves, stages: { atk: 0, def: 0, spd: 0, acc: 0, eva: 0 },
+      corrode: 0, smolder: 0, rustlock: false, guard: false
     };
   }
-  // Pokemon-style stage multiplier, clamped to [-6, 6].
   function stageMul(st) { st = Math.max(-6, Math.min(6, st)); return st >= 0 ? (2 + st) / 2 : 2 / (2 - st); }
   function eatk(f) { return f.atk * stageMul(f.stages.atk); }
   function edef(f) { return f.def * stageMul(f.stages.def); }
-  function espd(f) { return f.spd * stageMul(f.stages.spd); }
+  function espd(f) { return f.spd * stageMul(f.stages.spd) * (f.rustlock ? 0.5 : 1); }
+  function bump(f, key, n) { var c = STAGE_CAP[key] || 3; f.stages[key] = Math.max(-c, Math.min(c, f.stages[key] + n)); }
 
-  // ── Resolution helpers ──────────────────────────────────────────────
   function hitChance(att, def, move) {
     var accMul = stageMul(att.stages.acc), evaMul = stageMul(def.stages.eva);
-    var p = move.acc * accMul / evaMul * (1 - def.eva / 300);
-    return Math.max(0.33, Math.min(0.99, p));
+    // EVA demoted: its contribution is capped small (degenerate under a seed).
+    var p = move.acc * accMul / evaMul * (1 - Math.min(0.15, def.eva / 600));
+    return Math.max(0.4, Math.min(0.99, p));
   }
+  // Integer-floored damage chain, fixed factor order (cross-engine safe).
   function damage(att, def, move, rng) {
-    var typeMul = ENG.typeMatchup(move.type, def.type);
+    var typeMul = ENG.typeMatchupDual(move.type, def.type, def.type2);
+    var TYPE = Math.round(typeMul * 1000);
+    var STABv = move.stab ? STAB : 1000;
     var critChance = 0.0625 + (move.eff === "critUp" ? 0.25 : 0);
-    var crit = rng() < critChance ? 1.6 : 1;
-    var variance = 0.88 + 0.12 * rng();
-    var raw = move.pow * (eatk(att) * 14) / (edef(def) + 22);
-    var dmg = raw * typeMul * crit * variance * (def.guard ? 0.5 : 1);
-    return { dmg: Math.max(1, Math.round(dmg)), typeMul: typeMul, crit: crit > 1 };
+    var isCrit = rng() < critChance;
+    // crit ignores attacker's negative ATK stage and defender's positive DEF stage
+    var ea = isCrit ? att.atk * stageMul(Math.max(0, att.stages.atk)) : eatk(att);
+    var ed = isCrit ? def.def * stageMul(Math.min(0, def.stages.def)) : edef(def);
+    var powI = Math.round(move.pow * 100);
+    var d = Math.floor(powI * ea * 14 / (100 * (ed + 22)));
+    d = Math.floor(d * STABv / 1000);
+    d = Math.floor(d * TYPE / 1000);
+    d = Math.floor(d * (isCrit ? 1600 : 1000) / 1000);
+    d = Math.floor(d * (850 + Math.floor(150 * rng())) / 1000);       // variance
+    if (att.smolder > 0) d = Math.floor(d * 500 / 1000);              // burned = half damage
+    if (def.guard) d = Math.floor(d * 500 / 1000);
+    return { dmg: Math.max(1, d), typeMul: typeMul, crit: isCrit };
   }
-  function bump(f, key, n) { f.stages[key] = Math.max(-6, Math.min(6, f.stages[key] + n)); }
+  function immune(def, status) {
+    if (status === "corrode") return def.type === "Ooze" || def.type2 === "Ooze";
+    if (status === "smolder") return def.type === "Ash" || def.type2 === "Ash";
+    if (status === "rustlock") return def.type === "Rust" || def.type === "Spark" || def.type2 === "Rust" || def.type2 === "Spark";
+    return false;
+  }
 
-  // Execute one move; push readable log lines; return {fainted:bool}.
+  // Execute one move; push log lines; mutate fighters.
   function applyMove(att, def, move, rng, log) {
-    // status effects
     if (move.kind === "status") {
-      if (move.eff === "defUp") { bump(att, "def", 2); log.push(att.name + " hardens its shell. (DEF up)"); }
-      else if (move.eff === "defUp2") { bump(att, "def", 3); log.push(att.name + " fortifies. (DEF up sharply)"); }
-      else if (move.eff === "atkUp") { bump(att, "atk", 2); log.push(att.name + " rallies. (ATK up)"); }
-      else if (move.eff === "evaUp") { bump(att, "eva", 2); log.push(att.name + " weaves. (harder to hit)"); }
+      if (move.eff === "atkUp") { bump(att, "atk", 2); log.push(att.name + " rallies. (ATK up)"); }
+      else if (move.eff === "defUp") { bump(att, "def", 2); log.push(att.name + " hardens. (DEF up)"); }
+      else if (move.eff === "defUp2") { bump(att, "def", 2); bump(att, "def", 1); log.push(att.name + " fortifies. (DEF up sharply)"); }
       else if (move.eff === "guard") { att.guard = true; log.push(att.name + " braces to guard."); }
-      else if (move.eff === "accDownEnemy") { bump(def, "acc", -2); log.push(att.name + " flings grit. " + def.name + "'s aim drops."); }
-      else if (move.eff === "spdDownEnemy") { bump(def, "spd", -2); log.push(att.name + " hexes " + def.name + ". (slowed)"); }
-      else if (move.eff === "atkDownEnemy") { bump(def, "atk", -2); log.push(att.name + " weakens " + def.name + ". (ATK down)"); }
-      else if (move.eff === "poison") {
-        if (def.poison <= 0) { def.poison = 3; log.push(att.name + " sprays toxin. " + def.name + " is poisoned!"); }
-        else log.push(att.name + " sprays toxin, but " + def.name + " is already poisoned.");
+      else if (move.eff === "accDownEnemy") { bump(def, "acc", -2); log.push(att.name + " flings grit; " + def.name + "'s aim drops."); }
+      else if (move.eff === "haze") { att.stages = { atk:0, def:0, spd:0, acc:0, eva:0 }; def.stages = { atk:0, def:0, spd:0, acc:0, eva:0 }; log.push(att.name + " sweeps the grate. All boosts reset."); }
+      else if (move.eff === "corrode") {
+        if (immune(def, "corrode")) log.push(def.name + " (Ooze) shrugs off the toxin.");
+        else if (def.corrode <= 0) { def.corrode = 4; log.push(att.name + " sprays toxin. " + def.name + " is corroding!"); }
+        else log.push(att.name + " sprays toxin, but " + def.name + " already corrodes.");
       }
-      return { fainted: false };
+      else if (move.eff === "rustlock") {
+        if (immune(def, "rustlock")) log.push(def.name + " cannot be rust-locked.");
+        else if (!def.rustlock) { def.rustlock = true; log.push(att.name + " rust-locks " + def.name + "! (slowed, may seize)"); }
+        else log.push(def.name + " is already rust-locked.");
+      }
+      else if (move.eff === "smolder") {
+        if (immune(def, "smolder")) log.push(def.name + " (Ash) cannot smolder.");
+        else if (def.smolder <= 0) { def.smolder = 3; log.push(att.name + " sets " + def.name + " smoldering! (weaker hits)"); }
+        else log.push(def.name + " is already smoldering.");
+      }
+      return;
     }
     // attack (possibly multi-hit)
-    var hits = move.multi || 1, landed = 0, total = 0, notedType = false;
+    var hits = move.multi || 1, landed = 0, total = 0, se = false;
     for (var h = 0; h < hits; h++) {
       if (def.hp <= 0) break;
       if (rng() > hitChance(att, def, move)) { if (hits === 1) log.push(att.name + " used " + move.name + " but missed."); continue; }
       var r = damage(att, def, move, rng);
-      def.hp = Math.max(0, def.hp - r.dmg);
-      landed++; total += r.dmg;
-      if (!notedType && r.typeMul !== 1) notedType = r.typeMul > 1;
+      def.hp = Math.max(0, def.hp - r.dmg); landed++; total += r.dmg;
+      if (!se && r.typeMul > 1) se = true;
     }
     if (landed > 0) {
-      var extra = (notedType === true ? " Super effective!" : "") + (landed > 1 ? " (" + landed + " hits)" : "");
-      log.push(att.name + " used " + move.name + " for " + total + " damage." + extra);
-      if (move.eff === "poison" && def.poison <= 0) { def.poison = 3; log.push(def.name + " is poisoned!"); }
-      if (move.eff === "selfDefDown") { bump(att, "def", -1); }
+      log.push(att.name + " used " + move.name + " for " + total + " damage."
+        + (se ? " Super effective!" : "") + (landed > 1 ? " (" + landed + " hits)" : ""));
+      if (move.eff === "corrode" && def.corrode <= 0 && !immune(def, "corrode")) { def.corrode = 4; log.push(def.name + " is corroding!"); }
     } else if (hits > 1) {
       log.push(att.name + " used " + move.name + " but missed.");
     }
-    return { fainted: def.hp <= 0 };
   }
 
-  // ── AI move choice (deterministic via rng) ──────────────────────────
+  // ── AI move choice (deterministic) ──────────────────────────────────
   function aiPick(self, foe, rng) {
-    var best = 0, bestScore = -1;
+    var best = 0, bestScore = -1, hurt = self.hp / self.maxhp;
     for (var i = 0; i < self.moves.length; i++) {
       var m = self.moves[i], score;
       if (m.kind === "attack") {
-        score = m.pow * (m.multi || 1) * ENG.typeMatchup(m.type, foe.type) * m.acc;
-      } else {
-        // value defense when hurt, poison when foe is healthy and unpoisoned
-        var hurt = self.hp / self.maxhp;
-        if (m.eff === "poison") score = (foe.poison <= 0 ? 0.9 : 0.1) + (foe.hp / foe.maxhp) * 0.4;
-        else if (m.eff === "guard" || m.eff === "defUp" || m.eff === "defUp2") score = (hurt < 0.5 ? 1.0 : 0.35);
-        else score = 0.5;
-      }
-      score += rng() * 0.05; // deterministic tiebreak
+        score = m.pow * (m.multi || 1) * ENG.typeMatchupDual(m.type, foe.type, foe.type2) * (m.stab ? 1.4 : 1) * m.acc;
+      } else if (m.eff === "corrode") score = (foe.corrode <= 0 && !immune(foe, "corrode") ? 1.0 : 0.05) + (foe.hp / foe.maxhp) * 0.4;
+      else if (m.eff === "smolder") score = (foe.smolder <= 0 && !immune(foe, "smolder") ? 0.85 : 0.05);
+      else if (m.eff === "rustlock") score = (!foe.rustlock && !immune(foe, "rustlock") && espd(foe) > espd(self) ? 0.95 : 0.1);
+      else if (m.eff === "haze") score = (foe.stages.atk + foe.stages.spd > 2 ? 1.1 : 0.15);
+      else if (m.eff === "guard" || m.eff === "defUp" || m.eff === "defUp2") score = (hurt < 0.5 ? 0.95 : 0.3);
+      else score = 0.45;
+      score += rng() * 0.05;
       if (score > bestScore) { bestScore = score; best = i; }
     }
     return best;
   }
 
-  // ── One round: both sides act in priority/speed order ───────────────
+  // ── One round ───────────────────────────────────────────────────────
   function resolveRound(state, aMoveIdx) {
     if (state.over) return state;
     var a = state.a, b = state.b, rng = state.rng, log = [];
     state.round++;
-    a.guard = false; b.guard = false; // guard lasts only the round it's set... set during this round below
+    a.guard = false; b.guard = false;
     var aMove = a.moves[aMoveIdx] || a.moves[0];
     var bMove = b.moves[aiPick(b, a, rng)];
 
-    // order: higher priority first, then higher effective speed, then A
+    // fair, arg-order-independent order: priority, then eff SPD, then lower cb
     var aFirst;
     if (aMove.prio !== bMove.prio) aFirst = aMove.prio > bMove.prio;
     else if (espd(a) !== espd(b)) aFirst = espd(a) > espd(b);
-    else aFirst = true;
+    else aFirst = a.cb < b.cb;
 
     var order = aFirst ? [[a, b, aMove], [b, a, bMove]] : [[b, a, bMove], [a, b, aMove]];
     for (var i = 0; i < order.length; i++) {
       var att = order[i][0], def = order[i][1], mv2 = order[i][2];
       if (att.hp <= 0) continue;
+      if (att.rustlock && rng() < 0.25) { log.push(att.name + " is rust-locked and seizes up!"); continue; }
       applyMove(att, def, mv2, rng, log);
       if (def.hp <= 0) { log.push(def.name + " is down!"); break; }
     }
 
-    // A direct KO this round decides the fight; end-of-round poison does not
-    // then kill the winner. Poison only bites when nobody landed a knockout.
+    // end-of-round DoT (only if no direct KO decided the round already)
     var koNow = (a.hp <= 0 || b.hp <= 0);
     if (!koNow) {
       [a, b].forEach(function (f) {
-        if (f.hp > 0 && f.poison > 0) {
-          var tick = Math.max(1, Math.round(f.maxhp / 12));
-          f.hp = Math.max(0, f.hp - tick); f.poison--;
-          log.push(f.name + " takes " + tick + " poison damage.");
-          if (f.hp <= 0) log.push(f.name + " succumbs to poison!");
+        if (f.hp <= 0) return;
+        var dot = 0;
+        if (f.corrode > 0) { dot += Math.ceil(f.maxhp / 8); f.corrode--; }
+        if (f.smolder > 0) { dot += Math.ceil(f.maxhp / 16); f.smolder--; }
+        if (dot > 0) {
+          f.hp = Math.max(0, f.hp - dot);
+          log.push(f.name + " takes " + dot + " lingering damage.");
+          if (f.hp <= 0) log.push(f.name + " succumbs!");
         }
       });
     }
 
     if (a.hp <= 0 || b.hp <= 0 || state.round >= 60) {
       state.over = true;
-      state.draw = (a.hp <= 0 && b.hp <= 0);   // simultaneous poison deaths
+      state.draw = (a.hp <= 0 && b.hp <= 0);
       state.winner = (a.hp > 0 && b.hp <= 0) ? "a"
         : (b.hp > 0 && a.hp <= 0) ? "b"
-        : (a.hp / a.maxhp >= b.hp / b.maxhp ? "a" : "b"); // draw/timeout: higher HP%
+        : (a.hp / a.maxhp >= b.hp / b.maxhp ? "a" : "b");
       if (state.draw) log.push("Both bugs fall. It is a draw.");
     }
     state.log = log;
@@ -193,27 +227,23 @@
 
   function startBattle(cbA, cbB, aLevel, bLevel) {
     return { a: buildFighter(cbA, aLevel), b: buildFighter(cbB, bLevel),
-      rng: ENG.seededRng(cbA + "|" + cbB + "|battle-v1"),
+      // seed is arg-order-independent (sorted) so resolveBattle(A,B) and (B,A)
+      // share one rng stream; combined with the codeblock tie-break the whole
+      // battle is fair regardless of which bug is passed first.
+      rng: ENG.seededRng([cbA, cbB].sort().join("|") + "|battle-v1"),
       round: 0, over: false, draw: false, winner: null, log: [] };
   }
-  // interactive: player controls A, picks a move index; B answers via AI
   function playerRound(state, aMoveIdx) { return resolveRound(state, aMoveIdx); }
-
-  // auto-battle: both AI. Returns { winner:'a'|'b', winnerName, rounds, log }
   function resolveBattle(cbA, cbB, aLevel, bLevel) {
     var st = startBattle(cbA, cbB, aLevel, bLevel), full = [];
-    while (!st.over) {
-      resolveRound(st, aiPick(st.a, st.b, st.rng));
-      full = full.concat(st.log);
-    }
+    while (!st.over) { resolveRound(st, aiPick(st.a, st.b, st.rng)); full = full.concat(st.log); }
     return { winner: st.winner, winnerName: (st.winner === "a" ? st.a : st.b).name,
       draw: st.draw, rounds: st.round, log: full,
       aHp: st.a.hp, bHp: st.b.hp, aName: st.a.name, bName: st.b.name };
   }
 
   var _api = { buildFighter: buildFighter, startBattle: startBattle,
-    playerRound: playerRound, resolveBattle: resolveBattle,
-    CLASS_MOVES: CLASS_MOVES };
+    playerRound: playerRound, resolveBattle: resolveBattle, CLASS_MOVES: CLASS_MOVES };
   if (typeof module !== "undefined" && module.exports) module.exports = _api;
   if (typeof window !== "undefined") { window.BATTLE_ENGINE = _api; }
 })();

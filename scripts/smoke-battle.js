@@ -15,6 +15,7 @@
 var path = require('path');
 var crypto = require('crypto');
 var B = require(path.join(__dirname, '..', 'battle-engine.js'));
+var E = require(path.join(__dirname, '..', 'bug-engine.js'));
 
 function cb(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
 
@@ -32,12 +33,38 @@ check('battle API present', function () {
   return { ok: missing.length === 0, detail: missing.length ? 'missing ' + missing.join(',') : 'all present' };
 });
 
-check('buildFighter: 4 self-typed moves, full HP', function () {
-  var f = B.buildFighter(A);
-  var ok = f.moves.length === 4 && f.hp === f.maxhp && f.hp > 0
-    && f.moves.filter(function (m) { return m.kind === 'attack'; })
-        .every(function (m) { return m.type === f.type; });
-  return { ok: ok, detail: f.name + ' / ' + f.type + ' / ' + f.cls + ' / hp ' + f.maxhp };
+check('buildFighter: 4 moves, >=2 self + 1 coverage, full HP', function () {
+  var bad = 0, sawCover = false;
+  for (var i = 0; i < 80; i++) {
+    var f = B.buildFighter(cb('kit' + i), 5);
+    var atk = f.moves.filter(function (m) { return m.kind === 'attack'; });
+    var selfT = atk.filter(function (m) { return m.type === f.type; }).length;
+    var cover = atk.filter(function (m) { return m.type !== f.type; }).length; // off-primary
+    if (f.moves.length !== 4 || f.hp !== f.maxhp || selfT < 2 || cover < 1) bad++;
+    if (cover >= 1) sawCover = true;
+  }
+  return { ok: bad === 0 && sawCover, detail: bad ? bad + ' malformed kits' : '>=2 self + coverage on all' };
+});
+
+check('dual-typing yields the {0.39..2.56} effectiveness band', function () {
+  var seen = {};
+  for (var i = 0; i < 400; i++) {
+    var s = E.bugStats(cb('dt' + i));
+    for (var k = 0; k < E.TYPES.length; k++) seen[E.typeMatchupDual(E.TYPES[k], s.type, s.type2).toFixed(3)] = 1;
+  }
+  var vals = Object.keys(seen).sort();
+  var ok = vals.indexOf('0.391') >= 0 && vals.indexOf('2.560') >= 0 && vals.indexOf('1.000') >= 0;
+  return { ok: ok, detail: vals.join(' ') };
+});
+
+check('STAB: bugs get a same-type bonus flag on their own-type attacks', function () {
+  var bad = 0;
+  for (var i = 0; i < 60; i++) {
+    var f = B.buildFighter(cb('stab' + i), 3);
+    var selfAtk = f.moves.filter(function (m) { return m.kind === 'attack' && m.type === f.type; });
+    if (!selfAtk.every(function (m) { return m.stab === true; })) bad++;
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' missing STAB' : 'own-type attacks flagged STAB' };
 });
 
 check('resolveBattle is deterministic', function () {
@@ -93,6 +120,19 @@ check('a bad move index does not crash', function () {
   var st = B.startBattle(A, C);
   B.playerRound(st, 99);   // out of range -> falls back to move 0
   return { ok: st.round === 1 && (st.a.hp <= st.a.maxhp), detail: 'round advanced safely' };
+});
+
+check('arg-order symmetry: resolveBattle(A,B) agrees with (B,A)', function () {
+  var bad = 0;
+  for (var i = 0; i < 200; i++) {
+    var x = cb('sym' + i), y = cb('sym2' + i);
+    var ab = B.resolveBattle(x, y, 5, 5), ba = B.resolveBattle(y, x, 5, 5);
+    if (ab.draw !== ba.draw) { bad++; continue; }
+    var w1 = ab.winner === 'a' ? ab.aName : ab.bName;
+    var w2 = ba.winner === 'a' ? ba.aName : ba.bName;
+    if (!ab.draw && w1 !== w2) bad++;   // same bug wins regardless of arg order
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' order-dependent' : 'winner independent of arg order' };
 });
 
 // ── Output ─────────────────────────────────────────────────────────────

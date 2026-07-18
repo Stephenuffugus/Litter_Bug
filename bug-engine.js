@@ -647,6 +647,14 @@
     if (c.weak.indexOf(def) >= 0) return 0.625;
     return 1;
   }
+  // Dual-type effectiveness: product of the two per-type factors. With our
+  // reciprocal 1.6/0.625 base this yields {0.39, 0.625, 1, 1.6, 2.56} -- a
+  // gentle resistance/weakness band, no immunities, no hard 0.25/4x.
+  function typeMatchupDual(atk, defPrimary, defSecondary) {
+    var m = typeMatchup(atk, defPrimary);
+    if (defSecondary) m *= typeMatchup(atk, defSecondary);
+    return m;
+  }
 
   // Eight tactical classes, from the bug's behavior trait. Each is a kit
   // hint the turn-based battle engine (P2) will read.
@@ -689,8 +697,18 @@
     var cls = CLASSES[t.behavior % CLASSES.length];
     var tags = [winged ? 'Flying' : 'Grounded'];
     if (t.head % 2) tags.push('Mandibles');
+    // Dual-typing: primary comes from the palette (legible), secondary from a
+    // free byte. ~37.5% of bugs are mono (secondary null) for a cozy read.
+    var primary = PALETTE_TYPE[t.palette] || TYPES[0];
+    var r19 = hb(codeblock, 19);
+    var others = TYPES.filter(function (x) { return x !== primary; });
+    var type2 = r19 < 96 ? null : others[r19 % others.length];
+    // Nature: one stat up 8%, one down 8% (neutral if they collide).
+    var SK = ['hp', 'atk', 'def', 'spd', 'acc', 'eva'];
+    var nUp = SK[hb(codeblock, 20) % 6], nDown = SK[hb(codeblock, 21) % 6];
+    var nature = (nUp === nDown) ? { up: null, down: null } : { up: nUp, down: nDown };
     return {
-      type: PALETTE_TYPE[t.palette] || TYPES[0],
+      type: primary, type2: type2, nature: nature,
       cls: cls.name, kit: cls.kit,
       stats: stats, power: power,
       rarity: rarityFor(hb(codeblock, 24)), tags: tags
@@ -755,7 +773,7 @@
     bugName: bugName, bugSpecies: bugSpecies, bugDesignation: bugDesignation,
     bugLore: bugLore, bugIdentity: bugIdentity, seededRng: seededRng, PALETTES: PALETTES,
     TYPES: TYPES, TYPE_CHART: TYPE_CHART, typeMatchup: typeMatchup,
-    CLASSES: CLASSES, bugStats: bugStats,
+    typeMatchupDual: typeMatchupDual, CLASSES: CLASSES, bugStats: bugStats,
     WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,
     LEG_BANK: LEG_BANK, ANTENNA_BANK: ANTENNA_BANK, PATTERN_BANK: PATTERN_BANK,
     serializeTrace: serializeTrace, mintCodeblock: mintCodeblock,
