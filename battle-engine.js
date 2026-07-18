@@ -110,8 +110,10 @@
     return false;
   }
 
-  // Execute one move; push log lines; mutate fighters.
-  function applyMove(att, def, move, rng, log) {
+  // Execute one move; push log lines + structured events; mutate fighters.
+  // byL/deL are 'a'/'b' side labels so the UI can animate from `ev` not regex.
+  function applyMove(att, def, move, rng, log, ev, byL, deL) {
+    ev = ev || [];
     if (move.kind === "status") {
       if (move.eff === "atkUp") { bump(att, "atk", 2); log.push(att.name + " rallies. (ATK up)"); }
       else if (move.eff === "defUp") { bump(att, "def", 2); log.push(att.name + " hardens. (DEF up)"); }
@@ -134,28 +136,36 @@
         else if (def.smolder <= 0) { def.smolder = 3; log.push(att.name + " sets " + def.name + " smoldering! (weaker hits)"); }
         else log.push(def.name + " is already smoldering.");
       }
+      ev.push({ kind: "status", by: byL, target: deL, eff: move.eff, move: move.name });
       return;
     }
     // attack (possibly multi-hit)
-    var hits = move.multi || 1, landed = 0, total = 0, se = false;
+    var hits = move.multi || 1, landed = 0, total = 0, se = 1, anyCrit = false;
     for (var h = 0; h < hits; h++) {
       if (def.hp <= 0) break;
       if (rng() > hitChance(att, def, move)) { if (hits === 1) log.push(att.name + " used " + move.name + " but missed."); continue; }
       var r = damage(att, def, move, rng);
       def.hp = Math.max(0, def.hp - r.dmg); landed++; total += r.dmg;
-      if (!se && r.typeMul > 1) se = true;
+      if (r.typeMul !== 1) se = r.typeMul;
+      if (r.crit) anyCrit = true;
     }
     if (landed > 0) {
       log.push(att.name + " used " + move.name + " for " + total + " damage."
-        + (se ? " Super effective!" : "") + (landed > 1 ? " (" + landed + " hits)" : ""));
+        + (se > 1 ? " Super effective!" : "") + (landed > 1 ? " (" + landed + " hits)" : ""));
       if (move.eff === "corrode" && def.corrode <= 0 && !immune(def, "corrode")) { def.corrode = 4; log.push(def.name + " is corroding!"); }
-    } else if (hits > 1) {
-      log.push(att.name + " used " + move.name + " but missed.");
+      ev.push({ kind: "hit", by: byL, target: deL, move: move.name, dmg: total, hits: landed,
+        crit: anyCrit, mult: se, hpAfter: def.hp });
+    } else {
+      if (hits > 1) log.push(att.name + " used " + move.name + " but missed.");
+      ev.push({ kind: "miss", by: byL, target: deL, move: move.name });
     }
   }
 
   // ── AI move choice (deterministic) ──────────────────────────────────
-  function aiPick(self, foe, rng) {
+  // Deterministic (no rng): a pure function of state, so the foe's next move
+  // can be TELEGRAPHED (previewFoeMove) and equal what resolveRound picks.
+  // Ties go to the lowest index (the > comparison already does this).
+  function aiPick(self, foe) {
     var best = 0, bestScore = -1, hurt = self.hp / self.maxhp;
     for (var i = 0; i < self.moves.length; i++) {
       var m = self.moves[i], score;
@@ -167,20 +177,22 @@
       else if (m.eff === "haze") score = (foe.stages.atk + foe.stages.spd > 2 ? 1.1 : 0.15);
       else if (m.eff === "guard" || m.eff === "defUp" || m.eff === "defUp2") score = (hurt < 0.5 ? 0.95 : 0.3);
       else score = 0.45;
-      score += rng() * 0.05;
       if (score > bestScore) { bestScore = score; best = i; }
     }
     return best;
   }
+  // The move the foe will use this round, computed on pre-action state.
+  function previewFoeMove(state) { return state.b.moves[aiPick(state.b, state.a)]; }
 
   // ── One round ───────────────────────────────────────────────────────
   function resolveRound(state, aMoveIdx) {
     if (state.over) return state;
-    var a = state.a, b = state.b, rng = state.rng, log = [];
+    var a = state.a, b = state.b, rng = state.rng, log = [], ev = [];
+    function sideOf(f) { return f === a ? "a" : "b"; }
     state.round++;
     a.guard = false; b.guard = false;
     var aMove = a.moves[aMoveIdx] || a.moves[0];
-    var bMove = b.moves[aiPick(b, a, rng)];
+    var bMove = b.moves[aiPick(b, a)];
 
     // fair, arg-order-independent order: priority, then eff SPD, then lower cb
     var aFirst;
@@ -192,9 +204,12 @@
     for (var i = 0; i < order.length; i++) {
       var att = order[i][0], def = order[i][1], mv2 = order[i][2];
       if (att.hp <= 0) continue;
-      if (att.rustlock && rng() < 0.25) { log.push(att.name + " is rust-locked and seizes up!"); continue; }
-      applyMove(att, def, mv2, rng, log);
-      if (def.hp <= 0) { log.push(def.name + " is down!"); break; }
+      if (att.rustlock && rng() < 0.25) {
+        log.push(att.name + " is rust-locked and seizes up!");
+        ev.push({ kind: "skip", side: sideOf(att), reason: "rustlock" }); continue;
+      }
+      applyMove(att, def, mv2, rng, log, ev, sideOf(att), sideOf(def));
+      if (def.hp <= 0) { log.push(def.name + " is down!"); ev.push({ kind: "ko", side: sideOf(def) }); break; }
     }
 
     // end-of-round DoT (only if no direct KO decided the round already)
@@ -208,7 +223,8 @@
         if (dot > 0) {
           f.hp = Math.max(0, f.hp - dot);
           log.push(f.name + " takes " + dot + " lingering damage.");
-          if (f.hp <= 0) log.push(f.name + " succumbs!");
+          ev.push({ kind: "dot", side: sideOf(f), dmg: dot, hpAfter: f.hp });
+          if (f.hp <= 0) { log.push(f.name + " succumbs!"); ev.push({ kind: "ko", side: sideOf(f) }); }
         }
       });
     }
@@ -222,6 +238,7 @@
       if (state.draw) log.push("Both bugs fall. It is a draw.");
     }
     state.log = log;
+    state.events = ev;
     return state;
   }
 
@@ -236,14 +253,15 @@
   function playerRound(state, aMoveIdx) { return resolveRound(state, aMoveIdx); }
   function resolveBattle(cbA, cbB, aLevel, bLevel) {
     var st = startBattle(cbA, cbB, aLevel, bLevel), full = [];
-    while (!st.over) { resolveRound(st, aiPick(st.a, st.b, st.rng)); full = full.concat(st.log); }
+    while (!st.over) { resolveRound(st, aiPick(st.a, st.b)); full = full.concat(st.log); }
     return { winner: st.winner, winnerName: (st.winner === "a" ? st.a : st.b).name,
       draw: st.draw, rounds: st.round, log: full,
       aHp: st.a.hp, bHp: st.b.hp, aName: st.a.name, bName: st.b.name };
   }
 
   var _api = { buildFighter: buildFighter, startBattle: startBattle,
-    playerRound: playerRound, resolveBattle: resolveBattle, CLASS_MOVES: CLASS_MOVES };
+    playerRound: playerRound, resolveBattle: resolveBattle,
+    previewFoeMove: previewFoeMove, CLASS_MOVES: CLASS_MOVES };
   if (typeof module !== "undefined" && module.exports) module.exports = _api;
   if (typeof window !== "undefined") { window.BATTLE_ENGINE = _api; }
 })();

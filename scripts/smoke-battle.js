@@ -135,6 +135,32 @@ check('arg-order symmetry: resolveBattle(A,B) agrees with (B,A)', function () {
   return { ok: bad === 0, detail: bad ? bad + ' order-dependent' : 'winner independent of arg order' };
 });
 
+check('previewFoeMove is deterministic and drives the foe (telegraph)', function () {
+  var bad = 0;
+  for (var i = 0; i < 80; i++) {
+    var st = B.startBattle(cb('pf' + i), cb('pf2' + i), 4, 4);
+    var p1 = B.previewFoeMove(st), p2 = B.previewFoeMove(st);
+    if (p1 !== p2 || st.b.moves.indexOf(p1) < 0) { bad++; continue; }
+    B.playerRound(st, 0);
+    if (!(st.events || []).some(function (e) { return e.side === 'b' || e.by === 'b'; })) bad++;
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' mismatches' : 'stable telegraph, foe acted (80 battles)' };
+});
+
+check('resolveRound emits a structured event stream', function () {
+  var st = B.startBattle(cb('ev1'), cb('ev2'), 4, 4), rounds = 0, sawHit = false, bad = 0;
+  var kinds = ['hit', 'miss', 'status', 'dot', 'skip', 'ko'];
+  while (!st.over && rounds < 60) {
+    B.playerRound(st, rounds % 4); rounds++;
+    if (!Array.isArray(st.events)) { bad++; break; }
+    st.events.forEach(function (e) {
+      if (kinds.indexOf(e.kind) < 0) bad++;
+      if (e.kind === 'hit') { sawHit = true; if (typeof e.dmg !== 'number' || typeof e.hpAfter !== 'number') bad++; }
+    });
+  }
+  return { ok: bad === 0 && sawHit, detail: bad ? bad + ' bad events' : 'valid events incl. hit dmg/hpAfter' };
+});
+
 // ── Output ─────────────────────────────────────────────────────────────
 console.log('');
 console.log('=== Litter Bug battle-engine smoke ===');
