@@ -1,0 +1,479 @@
+// bug-engine.js — Litter Bug shared bug generator (the "patented codeblock" core).
+//
+// Single source of truth for: input play-trace -> codeblock (SHA-256) -> bug.
+// Extracted VERBATIM from bug-lab.html (lines 75-489) so behavior is identical,
+// plus the new mint core (serializeTrace / mintCodeblock / bugFromCodeblock).
+//
+// Loads in the browser (attaches to window) and in Node (module.exports), so the
+// same roll can be reproduced client-side, and later verified server-side.
+//
+// NOTE (Phase 0): the art BANKS below are duplicated from bug-lab.html for now.
+// bug-lab.html and preview.html still carry their own inline copies. Migrating
+// those two pages onto this module (and pointing scripts/import-art.js here) is
+// the immediate follow-up. Banks are 8-entry placeholders today, so no real drift.
+
+;(function () {
+  "use strict";
+  // ── Hash a string to SHA-256 hex via WebCrypto. ─────────────────────
+  async function sha256Hex(s) {
+    var enc = new TextEncoder().encode(s);
+    var buf = await crypto.subtle.digest('SHA-256', enc);
+    var bytes = new Uint8Array(buf);
+    var out = '';
+    for (var i = 0; i < bytes.length; i++) {
+      var h = bytes[i].toString(16);
+      out += h.length === 1 ? '0' + h : h;
+    }
+    return out;
+  }
+
+  // ── Read hash bytes / nibbles. ──────────────────────────────────────
+  // hb(n) → byte n as 0..255. hc(n) → nibble n as 0..15.
+  function hb(hash, n) { return parseInt(hash.substr(n * 2, 2), 16); }
+  function hc(hash, n) { return parseInt(hash.substr(n, 1), 16); }
+
+  // ── Hex color to {r,g,b} as 0..1 floats for feColorMatrix. ──────────
+  function hexToRGB(hex) {
+    var h = hex.replace('#', '');
+    return {
+      r: parseInt(h.substr(0, 2), 16) / 255,
+      g: parseInt(h.substr(2, 2), 16) / 255,
+      b: parseInt(h.substr(4, 2), 16) / 255
+    };
+  }
+
+  // ── Map a hash to insect traits. ────────────────────────────────────
+  // Bytes 0..18 carry anatomy; 19..27 are reserved for behavior later.
+  // Bank sizes are placeholders for v0; replace with real catalogs.
+  function hashToBugTraits(hash) {
+    return {
+      body:      hb(hash,  0) % 30,     // 30 body shapes (placeholder uses 3)
+      head:      hb(hash,  4) % 25,     // 25 heads (placeholder uses 2)
+      wing:      hb(hash,  8) % 40,     // 40 wing types
+      leg:      hb(hash, 12) % 20,      // 20 leg sets
+      antenna:   hb(hash, 14) % 15,     // 15 antenna sets
+      pattern:   hb(hash, 16) % 50,     // 50 surface patterns
+      palette:   [hc(hash, 18), hc(hash, 19), hc(hash, 20), hc(hash, 21)],
+      behavior:  hb(hash, 22) % 12,
+      // Plumbing
+      bodyLen:   80 + (hb(hash, 1) % 40),  // 80..120
+      bodyW:     40 + (hb(hash, 2) % 30),  // 40..70
+      wingScale: 0.85 + ((hb(hash, 9) % 30) / 100), // 0.85..1.14
+      headSize:  18 + (hb(hash, 5) % 12)   // 18..30
+    };
+  }
+
+  // ── Palette. 16 entries indexed by nibbles. ─────────────────────────
+  // Picked to feel earthy / cozy / not synthetic. Refine when art lands.
+  var PAL = [
+    '#3a4634', '#7ab356', '#c8a84b', '#e8dcc8',
+    '#a85a3a', '#4a3a2e', '#2a3a4a', '#8a6f4a',
+    '#5a8c3a', '#d4842a', '#a0c4e8', '#6b4f3a',
+    '#3e5a3e', '#b8985a', '#5a6e4a', '#8a9178'
+  ];
+
+  // ── Wing bank. ─────────────────────────────────────────────────────
+  // Catalog of available wings + their metadata. Each entry:
+  //   file:       PNG filename in assets/wings/
+  //   name:       human-readable name shown in UI / contact sheets
+  //   tintable:   true = white silhouette gets feColorMatrix-tinted to
+  //               the bug's accent color; false = render as-is (colored
+  //               art delivered by the artist).
+  //   attachment: [x, y] in PNG pixels (256x128 normalized) where the
+  //               wing attaches to the body. Used to align the rotated
+  //               wing on the bug's thorax. Default [24, 64].
+  //
+  // This block is REWRITTEN by `node scripts/import-art.js wings`
+  // (or `npm run wings`). Edit wings.json instead, or drop new art
+  // into assets/wings/raw/ and run the import script. Manual edits
+  // between the sentinels will be lost.
+  // WING_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var WING_BANK = [
+    { file: "wing-01.png", name: "Rounded", tintable: true, attachment: [24, 64] },
+    { file: "wing-02.png", name: "Pointed", tintable: true, attachment: [24, 64] },
+    { file: "wing-03.png", name: "Elongated", tintable: true, attachment: [24, 64] },
+    { file: "wing-04.png", name: "Lobed", tintable: true, attachment: [24, 64] },
+    { file: "wing-05.png", name: "Triangular", tintable: true, attachment: [24, 64] },
+    { file: "wing-06.png", name: "Crescent", tintable: true, attachment: [24, 64] },
+    { file: "wing-07.png", name: "Swept", tintable: true, attachment: [24, 64] },
+    { file: "wing-08.png", name: "Compound", tintable: true, attachment: [24, 64] }
+  ];
+  // WING_BANK_AUTOGEN_END
+
+  // ── Body bank. ─────────────────────────────────────────────────────
+  // PNG silhouettes of bug bodies (top-down, head end on the right).
+  // 200x100 normalized; attachment at right edge (200, 50) is where
+  // the head bolts on. Tinted to bug's primary color at render time.
+  // Managed by `node scripts/import-art.js bodies` / `npm run bodies`.
+  // BODY_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var BODY_BANK = [
+    { file: "body-01.png", name: "Oval", tintable: true, attachment: [200, 50] },
+    { file: "body-02.png", name: "Slender", tintable: true, attachment: [200, 50] },
+    { file: "body-03.png", name: "Plump", tintable: true, attachment: [200, 50] },
+    { file: "body-04.png", name: "Segmented", tintable: true, attachment: [200, 50] },
+    { file: "body-05.png", name: "Tapered", tintable: true, attachment: [200, 50] },
+    { file: "body-06.png", name: "Round", tintable: true, attachment: [200, 50] },
+    { file: "body-07.png", name: "Elongated", tintable: true, attachment: [200, 50] },
+    { file: "body-08.png", name: "Compact", tintable: true, attachment: [200, 50] }
+  ];
+  // BODY_BANK_AUTOGEN_END
+
+  // ── Leg bank. ──────────────────────────────────────────────────────
+  // Procedural — no PNG art. Each entry is { name, count, length,
+  // segments, thickness, pose, rarity }. The lab interprets these
+  // params into 6 (or 8) line strokes per bug. Edit assets/legs/legs.json
+  // and run `npm run legs` to push changes here.
+  // LEG_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var LEG_BANK = [
+    {"name":"Sprinter","count":6,"length":22,"segments":2,"thickness":2.5,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Crouched","count":6,"length":16,"segments":2,"thickness":2.8,"pose":"low","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Long-Reach","count":6,"length":28,"segments":2,"thickness":2,"pose":"spread","rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Stubby","count":6,"length":13,"segments":1,"thickness":3,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Mantis","count":6,"length":26,"segments":3,"thickness":2.2,"pose":"forward","rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Eight-Pack","count":8,"length":20,"segments":2,"thickness":1.8,"pose":"spread","rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Bristled","count":6,"length":18,"segments":2,"thickness":1.5,"pose":"splayed","rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Smooth","count":6,"length":22,"segments":1,"thickness":2.5,"pose":"spread","rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"}
+  ];
+  // LEG_BANK_AUTOGEN_END
+
+  // ── Antenna bank. ──────────────────────────────────────────────────
+  // Procedural — no PNG art. Each entry is { name, length, curl,
+  // thickness, shape, spread, rarity }. The lab interprets these into
+  // two bezier-curve antennae per bug. Edit assets/antennae/antennae.json
+  // and run `npm run antennae` to push changes here.
+  // ANTENNA_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var ANTENNA_BANK = [
+    {"name":"Threadlike","length":24,"curl":0.4,"thickness":1.5,"shape":"straight","spread":30,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Curled","length":22,"curl":0.8,"thickness":1.6,"shape":"curved","spread":28,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Clubbed","length":26,"curl":0.4,"thickness":1.8,"shape":"club-tipped","spread":32,"rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Feathered","length":28,"curl":0.5,"thickness":2.4,"shape":"feathered","spread":36,"rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Short","length":14,"curl":0.5,"thickness":1.6,"shape":"curved","spread":26,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Long","length":38,"curl":0.4,"thickness":1.2,"shape":"straight","spread":42,"rarity":"uncommon","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Elbowed","length":24,"curl":0.5,"thickness":2,"shape":"bent","spread":30,"rarity":"rare","source":"placeholder-procedural","addedAt":"2026-05-20"},
+    {"name":"Bristle","length":20,"curl":0.3,"thickness":1.5,"shape":"straight","spread":24,"rarity":"common","source":"placeholder-procedural","addedAt":"2026-05-20"}
+  ];
+  // ANTENNA_BANK_AUTOGEN_END
+
+  // ── Pattern bank. ──────────────────────────────────────────────────
+  // PNG overlays applied on top of the body silhouette. 200x100
+  // normalized (matches body). Tinted to bug's dark color so markings
+  // read as shadows on the body surface.
+  // Managed by `node scripts/import-art.js patterns` / `npm run patterns`.
+  // PATTERN_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var PATTERN_BANK = [
+    { file: "pattern-01.png", name: "Stripes Vertical", tintable: true, attachment: [100, 50] },
+    { file: "pattern-02.png", name: "Bands", tintable: true, attachment: [100, 50] },
+    { file: "pattern-03.png", name: "Spots", tintable: true, attachment: [100, 50] },
+    { file: "pattern-04.png", name: "Eyespots", tintable: true, attachment: [100, 50] },
+    { file: "pattern-05.png", name: "Speckled", tintable: true, attachment: [100, 50] },
+    { file: "pattern-06.png", name: "Dashes", tintable: true, attachment: [100, 50] },
+    { file: "pattern-07.png", name: "Swirl", tintable: true, attachment: [100, 50] },
+    { file: "pattern-08.png", name: "Chevrons", tintable: true, attachment: [100, 50] }
+  ];
+  // PATTERN_BANK_AUTOGEN_END
+
+  // ── Head bank. ─────────────────────────────────────────────────────
+  // PNG silhouettes of bug heads (face on the right, neck on the left).
+  // 96x96 normalized; attachment at left edge (0, 48) is where the
+  // head meets the body. Tinted to bug's dark palette color at render
+  // time so eyes/mandibles read as shadowed accents on the body.
+  // Managed by `node scripts/import-art.js heads` / `npm run heads`.
+  // HEAD_BANK_AUTOGEN_START — managed by scripts/import-art.js (do not edit by hand)
+  var HEAD_BANK = [
+    { file: "head-01.png", name: "Round", tintable: true, attachment: [0, 48] },
+    { file: "head-02.png", name: "Triangular", tintable: true, attachment: [0, 48] },
+    { file: "head-03.png", name: "Bulbous", tintable: true, attachment: [0, 48] },
+    { file: "head-04.png", name: "Squared", tintable: true, attachment: [0, 48] },
+    { file: "head-05.png", name: "Pointed", tintable: true, attachment: [0, 48] },
+    { file: "head-06.png", name: "Broad", tintable: true, attachment: [0, 48] },
+    { file: "head-07.png", name: "Compact", tintable: true, attachment: [0, 48] },
+    { file: "head-08.png", name: "Lobed", tintable: true, attachment: [0, 48] }
+  ];
+  // HEAD_BANK_AUTOGEN_END
+
+  // ── _generateBugSVG(hash, size). ────────────────────────────────────
+  // Draws an insect facing right inside a viewBox of 220x200.
+  // Layers (back-to-front): defs (tint filters) → wings (PNG)
+  //   → legs → body (PNG, primary-tinted) → pattern → head → antennae.
+  // Bodies and wings are PNG-driven; heads / patterns will join when
+  // their banks land. Legs and antennae are inline SVG line art.
+  function _generateBugSVG(hash, size) {
+    var t = hashToBugTraits(hash);
+    var uid = hash.substr(0, 8);
+    var cx = 100, cy = 100;
+
+    var primary = PAL[t.palette[0]];
+    var secondary = PAL[t.palette[1]];
+    var accent = PAL[t.palette[2]];
+    var dark = PAL[t.palette[3] % 8];
+    var primaryRGB = hexToRGB(primary);
+    var accentRGB = hexToRGB(accent);
+    var darkRGB = hexToRGB(dark);
+
+    // Defs: per-bug tint filters, one for each PNG layer.
+    //   bt-<uid> = body tint (primary color)
+    //   wt-<uid> = wing tint (accent color)
+    //   ht-<uid> = head tint (dark color)
+    // Unique IDs per hash so multiple bugs on the page don't share
+    // and clobber each other.
+    var bodyTintId = 'bt-' + uid;
+    var wingTintId = 'wt-' + uid;
+    var headTintId = 'ht-' + uid;
+    function tintFilter(id, rgb) {
+      return '<filter id="' + id + '" x="-5%" y="-5%" width="110%" height="110%">'
+        + '<feColorMatrix type="matrix" values="'
+        + rgb.r + ' 0 0 0 0  '
+        + '0 ' + rgb.g + ' 0 0 0  '
+        + '0 0 ' + rgb.b + ' 0 0  '
+        + '0 0 0 1 0"/>'
+        + '</filter>';
+    }
+    var defs = ''
+      + '<defs>'
+      + tintFilter(bodyTintId, primaryRGB)
+      + tintFilter(wingTintId, accentRGB)
+      + tintFilter(headTintId, darkRGB)
+      + '</defs>';
+
+    // Body. PNG from BODY_BANK rendered at 160x80, centered horizontally
+    // around the bug's body axis (cx=100, cy=100). Hash drives a small
+    // scale variation so not every bug is identical-sized.
+    var bodyScale = 0.92 + ((hb(hash, 1) % 17) / 100); // 0.92..1.08
+    var bodyDrawW = 160 * bodyScale;
+    var bodyDrawH = 80 * bodyScale;
+    var bodyX = cx - bodyDrawW / 2;
+    var bodyY = cy - bodyDrawH / 2;
+    var bodyHalfLen = bodyDrawW / 2;
+    var bodyHalfW = bodyDrawH / 2;
+    var body = '';
+    if (BODY_BANK.length > 0) {
+      var bodyEntry = BODY_BANK[t.body % BODY_BANK.length];
+      var bodyHref = 'assets/bodies/' + bodyEntry.file;
+      var bodyTintAttr = (bodyEntry.tintable === false) ? '' : (' filter="url(#' + bodyTintId + ')"');
+      body = '<image href="' + bodyHref + '"'
+        + ' x="' + bodyX + '" y="' + bodyY
+        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"'
+        + bodyTintAttr + ' />';
+    } else {
+      // Fallback for the brief window between adding sentinels and
+      // running the import script. Should not be hit in normal use.
+      body = '<ellipse cx="' + cx + '" cy="' + cy
+        + '" rx="' + bodyHalfLen + '" ry="' + bodyHalfW
+        + '" fill="' + primary + '" />';
+    }
+
+    // Wings: PNG sprites from the bank, picked by traits.wing.
+    // tintable=true wings get the feColorMatrix filter (silhouettes →
+    // bug's accent color). tintable=false wings render as authored.
+    // Per-wing attachment lets art with off-center origins still align
+    // on the thorax.
+    var wing = WING_BANK[t.wing % WING_BANK.length];
+    var wingHref = 'assets/wings/' + wing.file;
+    var wW = 140 * t.wingScale;
+    var wH = 70 * t.wingScale;
+    var attachX = cx - bodyHalfLen * 0.15;
+    var attachY = cy;
+    var ax = (wing.attachment && wing.attachment[0]) || 24;
+    var ay = (wing.attachment && wing.attachment[1]) || 64;
+    var px = attachX - wW * (ax / 256);
+    var py = attachY - wH * (ay / 128);
+    var tintAttr = (wing.tintable === false) ? '' : (' filter="url(#' + wingTintId + ')"');
+    var wings = ''
+      + '<g transform="rotate(165 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
+      + '<image href="' + wingHref + '" x="' + px + '" y="' + py
+      + '" width="' + wW + '" height="' + wH + '" />'
+      + '</g>'
+      + '<g transform="rotate(195 ' + attachX + ' ' + attachY + ')"' + tintAttr + ' opacity="0.75">'
+      + '<image href="' + wingHref + '" x="' + px + '" y="' + py
+      + '" width="' + wW + '" height="' + wH + '" />'
+      + '</g>';
+
+    // Legs: read params from LEG_BANK and draw `count` line strokes
+    // (count/2 per side) emerging from the body's underside and topside.
+    // Each leg's tip angles outward based on `pose` and leg index;
+    // length and thickness come directly from the bank entry.
+    var legs = '';
+    var legEntry = (LEG_BANK.length > 0)
+      ? LEG_BANK[t.leg % LEG_BANK.length]
+      : { count: 6, length: 22, segments: 1, thickness: 2.5, pose: 'spread' };
+    var legCount = legEntry.count || 6;
+    var pairs = Math.max(1, Math.floor(legCount / 2));
+    var legLen = legEntry.length || 22;
+    var legThick = legEntry.thickness || 2.5;
+    var legPose = legEntry.pose || 'spread';
+    for (var lp = 0; lp < pairs; lp++) {
+      var t01 = pairs === 1 ? 0.5 : (lp / (pairs - 1));
+      var legAx = cx - bodyHalfLen * 0.6 + bodyHalfLen * 1.2 * t01;
+      // Tip x-offset varies with pose and position. 'forward' tilts all
+      // tips toward the head end; 'spread' fans them outward (rear legs
+      // angle back, front legs angle forward); 'low' keeps tips below
+      // attachment; 'splayed' fans more aggressively than 'spread'.
+      var fan = 0;
+      if (legPose === 'forward') fan = 12;
+      else if (legPose === 'spread') fan = -14 + 28 * t01;
+      else if (legPose === 'splayed') fan = -22 + 44 * t01;
+      else if (legPose === 'low') fan = 0;
+      var tipDx = fan;
+      var tipDy = legLen;
+      var topAttachY = cy - bodyHalfW * 0.85;
+      var botAttachY = cy + bodyHalfW * 0.85;
+      legs += '<line x1="' + legAx + '" y1="' + botAttachY
+        + '" x2="' + (legAx + tipDx) + '" y2="' + (botAttachY + tipDy)
+        + '" stroke="' + dark + '" stroke-width="' + legThick
+        + '" stroke-linecap="round" />'
+        + '<line x1="' + legAx + '" y1="' + topAttachY
+        + '" x2="' + (legAx + tipDx) + '" y2="' + (topAttachY - tipDy)
+        + '" stroke="' + dark + '" stroke-width="' + legThick
+        + '" stroke-linecap="round" />';
+    }
+
+    // Head: PNG from HEAD_BANK at body's right-edge attachment.
+    // Picked deterministically by traits.head. Tinted to bug's dark
+    // palette color so eyes/mandibles read as shadowed accents.
+    // hx is the bug's head-center x, used downstream for antennae.
+    var headW = 40 + (hb(hash, 5) % 12); // 40..52 — small hash-driven scale
+    var headH = headW; // square viewBox source
+    var bodyAttachX = cx + bodyHalfLen;
+    var bodyAttachY = cy;
+    var hx = bodyAttachX + headW * 0.35; // head center
+    var head = '';
+    if (HEAD_BANK.length > 0) {
+      var headEntry = HEAD_BANK[t.head % HEAD_BANK.length];
+      var headHref = 'assets/heads/' + headEntry.file;
+      var hax = (headEntry.attachment && headEntry.attachment[0]) || 0;
+      var hay = (headEntry.attachment && headEntry.attachment[1]) || 48;
+      // Place so head's PNG-attachment lands on body's attachment.
+      var headX = bodyAttachX - headW * (hax / 96);
+      var headY = bodyAttachY - headH * (hay / 96);
+      var headTintAttr = (headEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
+      head = '<image href="' + headHref + '"'
+        + ' x="' + headX + '" y="' + headY
+        + '" width="' + headW + '" height="' + headH + '"'
+        + headTintAttr + ' />'
+        // Eye dot stays inline so palette accent reads as the eye shine.
+        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    } else {
+      // Inline-circle fallback if HEAD_BANK is empty.
+      head = '<circle cx="' + hx + '" cy="' + cy + '" r="' + (headW / 2)
+        + '" fill="' + dark + '" />'
+        + '<circle cx="' + (hx + 3) + '" cy="' + (cy - 3) + '" r="2.2" fill="#f0e8c8" />';
+    }
+
+    // Antennae: read params from ANTENNA_BANK. Two bezier curves emerge
+    // from the head front, fanning up-and-out at the entry's `spread`
+    // angle. `curl` controls how much the bezier midpoint pulls back
+    // toward the head; higher curl gives more recurve.
+    var antEntry = (ANTENNA_BANK.length > 0)
+      ? ANTENNA_BANK[t.antenna % ANTENNA_BANK.length]
+      : { length: 24, curl: 0.4, thickness: 1.8, shape: 'straight', spread: 30 };
+    var antLen = antEntry.length || 24;
+    var antCurl = (antEntry.curl !== undefined) ? antEntry.curl : 0.4;
+    var antThick = antEntry.thickness || 1.8;
+    var antSpread = antEntry.spread || 30;
+    var antStartX = hx + headW * 0.3; // emerge from head front
+    var antRad = antSpread * Math.PI / 180;
+    // Tip points "up and slightly forward" for top antenna, mirrored
+    // for bottom. Direction is +x slightly, -y mostly (so it sweeps up).
+    var topDx = Math.sin(antRad) * antLen;
+    var topDy = -Math.cos(antRad) * antLen;
+    var topTipX = antStartX + topDx;
+    var topTipY = (cy - 4) + topDy;
+    // Bezier control: pull back toward the head (so the curve recurves)
+    // by `curl` factor.
+    var topCtrlX = antStartX + topDx * (1 - antCurl);
+    var topCtrlY = (cy - 4) + topDy * antCurl;
+    var botTipX = antStartX + topDx;
+    var botTipY = (cy + 4) - topDy;
+    var botCtrlX = antStartX + topDx * (1 - antCurl);
+    var botCtrlY = (cy + 4) - topDy * antCurl;
+    var antennae = ''
+      + '<path d="M' + antStartX + ' ' + (cy - 4)
+      + ' Q' + topCtrlX + ' ' + topCtrlY
+      + ', ' + topTipX + ' ' + topTipY
+      + '" stroke="' + dark + '" stroke-width="' + antThick
+      + '" fill="none" stroke-linecap="round" />'
+      + '<path d="M' + antStartX + ' ' + (cy + 4)
+      + ' Q' + botCtrlX + ' ' + botCtrlY
+      + ', ' + botTipX + ' ' + botTipY
+      + '" stroke="' + dark + '" stroke-width="' + antThick
+      + '" fill="none" stroke-linecap="round" />';
+
+    // Pattern: PNG from PATTERN_BANK overlaid on the body. Same draw
+    // dims as the body so the markings align. Tinted to dark (reusing
+    // the head tint filter — same color, no extra defs needed).
+    var pattern = '';
+    if (PATTERN_BANK.length > 0) {
+      var patEntry = PATTERN_BANK[t.pattern % PATTERN_BANK.length];
+      var patHref = 'assets/patterns/' + patEntry.file;
+      var patTintAttr = (patEntry.tintable === false) ? '' : (' filter="url(#' + headTintId + ')"');
+      pattern = '<image href="' + patHref + '"'
+        + ' x="' + bodyX + '" y="' + bodyY
+        + '" width="' + bodyDrawW + '" height="' + bodyDrawH + '"'
+        + patTintAttr + ' opacity="0.65" />';
+    }
+
+    return ''
+      + '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"'
+      + ' width="' + size + '" height="' + size + '">'
+      + defs + wings + legs + body + pattern + head + antennae
+      + '</svg>';
+  }
+
+  // ── Cozy procedural nickname so each card has something to read. ────
+  // Two-word generator, deterministic from hash bytes.
+  var ADJ = ['Mossy','Tin','Husk','Glass','Rust','Sleepy','Paper','Brittle',
+             'Velvet','Salt','Cobweb','Dusty','Lichen','Brass','Quiet','Wax'];
+  var NOUN = ['Beetle','Moth','Hopper','Skip','Click','Watcher','Drowse','Knot',
+              'Mite','Crawler','Spinner','Filing','Hum','Crawl','Drift','Snip'];
+  function bugName(hash) {
+    return ADJ[hb(hash, 23) % ADJ.length] + ' '
+         + NOUN[hb(hash, 24) % NOUN.length];
+  }
+
+  // ── NEW: the codeblock mint (play -> codeblock). ────────────────────
+  // serializeTrace: canonical, order-sensitive string from a play trace.
+  // A trace is an array of moves; each move is { i: <int action/cell>, dt:
+  // <int ms since previous move> }. The serialization is deterministic so
+  // the SAME trace always yields the SAME codeblock, which is what lets a
+  // server later recompute and verify a submitted bug.
+  function serializeTrace(trace) {
+    if (!Array.isArray(trace)) return "lb1|";
+    return "lb1|" + trace.map(function (m) {
+      return ((m && m.i) | 0) + "." + ((m && m.dt) | 0);
+    }).join(";");
+  }
+
+  // mintCodeblock: fold a salt into the serialized trace, then SHA-256.
+  // The salt is the "server secret" seam (director decision 2026-07-17):
+  // in production the salt is held server-side so nobody can pre-compute or
+  // replay an input to farm a specific bug. In Phase 0 it is a fixed local
+  // stand-in. Returns a 64-hex codeblock string.
+  async function mintCodeblock(salt, trace) {
+    return sha256Hex(String(salt) + "#" + serializeTrace(trace));
+  }
+
+  // bugFromCodeblock: convenience — codeblock -> { traits, name, svg }.
+  function bugFromCodeblock(codeblock, size) {
+    return {
+      traits: hashToBugTraits(codeblock),
+      name: bugName(codeblock),
+      svg: _generateBugSVG(codeblock, size || 160)
+    };
+  }
+
+  // ── Exports (browser + Node). ───────────────────────────────────────
+  var _api = {
+    sha256Hex: sha256Hex, hb: hb, hc: hc, hexToRGB: hexToRGB,
+    hashToBugTraits: hashToBugTraits, _generateBugSVG: _generateBugSVG,
+    bugName: bugName, PAL: PAL,
+    WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,
+    LEG_BANK: LEG_BANK, ANTENNA_BANK: ANTENNA_BANK, PATTERN_BANK: PATTERN_BANK,
+    serializeTrace: serializeTrace, mintCodeblock: mintCodeblock,
+    bugFromCodeblock: bugFromCodeblock
+  };
+  if (typeof module !== "undefined" && module.exports) { module.exports = _api; }
+  if (typeof window !== "undefined") {
+    window.BUG_ENGINE = _api;
+    Object.keys(_api).forEach(function (k) { window[k] = _api[k]; });
+  }
+})();

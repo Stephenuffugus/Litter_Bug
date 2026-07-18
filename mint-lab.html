@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Litter Bug / mint lab</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; background: #0d100c; color: #e8dcc8;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; }
+  header { padding: 14px 16px 8px; border-bottom: 1px solid #1c1f1a; }
+  h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
+  .sub { margin-top: 3px; font-size: 12px; color: #8a9178; max-width: 46ch; }
+  main { padding: 14px; max-width: 460px; margin: 0 auto; }
+
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+  .trialhead { display: flex; align-items: baseline; justify-content: space-between;
+    width: 100%; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px; color: #8a9178; }
+  .trialhead .count { color: #c8a84b; }
+
+  .board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+    width: 100%; aspect-ratio: 1 / 1; touch-action: manipulation; }
+  .cell { background: #15191a; border: 1px solid #22271f; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background .06s, transform .06s; user-select: none;
+    font-size: 20px; color: #3a4634; min-height: 44px; }
+  .cell:active { transform: scale(.94); }
+  .cell.target { background: #2a3a1f; border-color: #7ab356;
+    box-shadow: 0 0 14px rgba(122,179,86,.35); color: #b6e08a; }
+  .cell.hit { background: #34301a; border-color: #c8a84b; }
+  .board.done .cell { opacity: .45; cursor: default; }
+
+  .btnrow { display: flex; gap: 8px; width: 100%; flex-wrap: wrap; }
+  button { flex: 1 1 auto; padding: 12px 14px; background: #1d251c; color: #e8dcc8;
+    border: 1px solid #3a4634; border-radius: 10px; font-size: 15px;
+    min-height: 48px; cursor: pointer; }
+  button:active { background: #2a3527; }
+  button.primary { background: #2a3a1f; border-color: #7ab356; color: #d8ecc4; }
+  button:disabled { opacity: .4; cursor: default; }
+
+  .result { width: 100%; display: none; flex-direction: column; align-items: center;
+    gap: 8px; padding-top: 4px; }
+  .result.show { display: flex; }
+  .bugwrap { background: #131614; border: 1px solid #1f231d; border-radius: 16px;
+    padding: 14px; }
+  .bugwrap svg { width: 200px; height: 200px; display: block; }
+  .bugname { font-size: 17px; font-weight: 600; color: #c8a84b; }
+  .codeblock { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; color: #7ab356; word-break: break-all; text-align: center;
+    background: #10140f; border: 1px solid #1f231d; border-radius: 8px;
+    padding: 8px 10px; width: 100%; box-sizing: border-box; }
+  .codeblock .lbl { color: #6f7766; display: block; margin-bottom: 3px;
+    font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+  .trace { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10.5px; color: #6f7766; word-break: break-all; text-align: center;
+    width: 100%; }
+  .verdict { font-size: 12px; min-height: 16px; }
+  .verdict.ok { color: #7ab356; }
+  .verdict.bad { color: #c86a4b; }
+
+  footer { padding: 14px 16px 28px; color: #6f7766; font-size: 12px;
+    border-top: 1px solid #1c1f1a; max-width: 460px; margin: 8px auto 0; }
+  footer code { background: #15191a; padding: 1px 5px; border-radius: 4px; }
+  footer .salt { color: #8a9178; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Litter Bug / mint lab</h1>
+  <div class="sub">Phase 0. Play the trial. Your taps and timing become a
+    codeblock (SHA-256). The codeblock rolls your bug. Same recorded play
+    always mints the same bug, which is what a server can verify later.</div>
+</header>
+<main>
+  <div class="stage">
+    <div class="trialhead">
+      <span id="prompt">Tap start, then hit the lit cells.</span>
+      <span class="count"><span id="tapCount">0</span>/<span id="tapGoal">8</span></span>
+    </div>
+
+    <div id="board" class="board" aria-label="mint trial board"></div>
+
+    <div class="btnrow">
+      <button id="startBtn" class="primary">Start trial</button>
+    </div>
+
+    <div id="result" class="result">
+      <div class="bugwrap" id="bugwrap"></div>
+      <div class="bugname" id="bugname"></div>
+      <div class="codeblock">
+        <span class="lbl">codeblock</span>
+        <span id="cbHex"></span>
+      </div>
+      <div class="trace" id="traceStr"></div>
+      <div class="btnrow">
+        <button id="verifyBtn">Verify (re-mint same play)</button>
+        <button id="againBtn" class="primary">Play again</button>
+      </div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </div>
+</main>
+<footer>
+  The salt folded into your play is a fixed local stand-in
+  (<code class="salt" id="saltLbl"></code>). In the real game this is a
+  per-player secret held server-side, so nobody can replay an input to farm a
+  specific bug. Everything here runs on <code>bug-engine.js</code>, the same
+  module a battle screen and the map will share.
+</footer>
+
+<script src="bug-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // Phase 0 salt: a fixed local stand-in for the per-player server secret
+  // (director decision 2026-07-17: "fold in a server secret"). The mint seam
+  // is here today; the secret moves server-side at the hardening phase.
+  var DEMO_SALT = 'litterbug-phase0-local-salt';
+  var TRIAL_LEN = 8;
+  var GRID = 25; // 5x5
+
+  var boardEl = document.getElementById('board');
+  var startBtn = document.getElementById('startBtn');
+  var verifyBtn = document.getElementById('verifyBtn');
+  var againBtn = document.getElementById('againBtn');
+  var resultEl = document.getElementById('result');
+  var promptEl = document.getElementById('prompt');
+  var tapCountEl = document.getElementById('tapCount');
+  document.getElementById('tapGoal').textContent = TRIAL_LEN;
+  document.getElementById('saltLbl').textContent = DEMO_SALT;
+
+  var cells = [];
+  var trace = [];        // [{ i: cellIndex, dt: ms since previous tap }]
+  var target = -1;
+  var lastT = 0;
+  var playing = false;
+  var startClock = 0;
+
+  // Build the board once.
+  for (var c = 0; c < GRID; c++) {
+    var cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.setAttribute('data-i', c);
+    cell.textContent = '·'; // middle dot
+    boardEl.appendChild(cell);
+    cells.push(cell);
+  }
+
+  // Deterministic-enough game randomness for WHERE the target shows. This
+  // only drives the chase; the player's real signal is which cell they hit
+  // and their reaction timing, both captured into the trace.
+  function pickTarget() {
+    var next;
+    do { next = Math.floor(Math.random() * GRID); } while (next === target);
+    if (target >= 0) cells[target].classList.remove('target');
+    target = next;
+    cells[target].classList.add('target');
+  }
+
+  function nowMs() {
+    // performance.now when available (monotonic, sub-ms); Date.now fallback.
+    return (typeof performance !== 'undefined' && performance.now)
+      ? performance.now() : Date.now();
+  }
+
+  function startTrial() {
+    trace = [];
+    target = -1;
+    lastT = 0;
+    playing = true;
+    startClock = nowMs();
+    resultEl.classList.remove('show');
+    boardEl.classList.remove('done');
+    cells.forEach(function (el) { el.classList.remove('hit', 'target'); });
+    tapCountEl.textContent = '0';
+    promptEl.textContent = 'Hit the lit cells.';
+    startBtn.disabled = true;
+    pickTarget();
+  }
+
+  function onCellTap(idx) {
+    if (!playing) return;
+    var t = nowMs();
+    // dt: ms since the previous tap (or since start for the first tap),
+    // rounded to an integer. This timing IS the unique human signal.
+    var prev = lastT || startClock;
+    var dt = Math.round(t - prev);
+    lastT = t;
+    trace.push({ i: idx, dt: dt });
+
+    cells[idx].classList.add('hit');
+    tapCountEl.textContent = String(trace.length);
+
+    if (trace.length >= TRIAL_LEN) {
+      finishTrial();
+    } else {
+      pickTarget();
+    }
+  }
+
+  boardEl.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('.cell') : null;
+    if (!el) return;
+    onCellTap(parseInt(el.getAttribute('data-i'), 10));
+  });
+
+  async function finishTrial() {
+    playing = false;
+    boardEl.classList.add('done');
+    if (target >= 0) cells[target].classList.remove('target');
+    startBtn.disabled = false;
+    promptEl.textContent = 'Trial complete. Your bug:';
+
+    var cb = await window.mintCodeblock(DEMO_SALT, trace);
+    var bug = window.bugFromCodeblock(cb, 200);
+
+    document.getElementById('bugwrap').innerHTML = bug.svg;
+    document.getElementById('bugname').textContent = bug.name;
+    document.getElementById('cbHex').textContent = cb;
+    document.getElementById('traceStr').textContent = window.serializeTrace(trace);
+    document.getElementById('verdict').textContent = '';
+    document.getElementById('verdict').className = 'verdict';
+    resultEl.classList.add('show');
+
+    // Stash for the verify button.
+    resultEl.dataset.cb = cb;
+  }
+
+  // Verify: re-mint from the exact captured trace and confirm the codeblock
+  // is identical. This is the determinism guarantee a server relies on to
+  // check that a submitted bug really came from the submitted play.
+  verifyBtn.addEventListener('click', async function () {
+    var v = document.getElementById('verdict');
+    var expected = resultEl.dataset.cb;
+    var again = await window.mintCodeblock(DEMO_SALT, trace);
+    if (again === expected) {
+      v.textContent = 'Verified: same play re-mints the same codeblock.';
+      v.className = 'verdict ok';
+    } else {
+      v.textContent = 'MISMATCH: ' + again.slice(0, 12) + ' != ' + expected.slice(0, 12);
+      v.className = 'verdict bad';
+    }
+  });
+
+  startBtn.addEventListener('click', startTrial);
+  againBtn.addEventListener('click', startTrial);
+})();
+</script>
+</body>
+</html>
