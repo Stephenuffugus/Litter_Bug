@@ -6,85 +6,128 @@
 <title>Litter Bug / arena</title>
 <style>
   :root { color-scheme: dark; }
-  html, body { margin: 0; padding: 0; background: #0d100c; color: #e8dcc8;
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0d100c; color: #e8dcc8;
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    -webkit-tap-highlight-color: transparent; }
-  header { padding: 12px 16px 8px; border-bottom: 1px solid #1c1f1a; }
-  h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
-  .sub { margin-top: 2px; font-size: 12px; color: #8a9178; }
-  main { padding: 12px; max-width: 480px; margin: 0 auto; }
+    -webkit-tap-highlight-color: transparent; overflow: hidden; }
+  body { display: flex; flex-direction: column; }
 
-  .arena { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
-  .panel { background: #131614; border: 1px solid #1f231d; border-radius: 12px; padding: 8px 10px; }
-  .panel.foe { text-align: right; }
-  .pname { font-size: 12.5px; font-weight: 600; color: #c8a84b; line-height: 1.2;
-    min-height: 30px; }
-  .prow { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8a9178; margin-top: 2px; }
-  .foe .prow { justify-content: flex-end; }
-  .tbadge { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-    padding: 2px 6px; border-radius: 5px; color: #0d100c; }
-  .art { height: 120px; display: flex; align-items: center; justify-content: center; }
-  .art svg { width: 120px; height: 120px; }
-  .foe .art svg { transform: scaleX(-1); }   /* face each other */
-  .hpwrap { margin-top: 4px; }
-  .hptrack { height: 9px; background: #1c211a; border-radius: 5px; overflow: hidden; }
-  .hpfill { height: 100%; border-radius: 5px; transition: width .35s ease; }
-  .hptext { font-family: ui-monospace, Menlo, monospace; font-size: 10.5px; color: #8a9178; margin-top: 2px; }
-  .pois { color: #b487ac; font-size: 10px; }
+  header { padding: 8px 12px; border-bottom: 1px solid #1c1f1a; display: flex; align-items: center; gap: 8px; }
+  h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .02em; }
+  .pace { margin-left: auto; display: flex; gap: 6px; }
+  .pace button { padding: 6px 9px; background: #15191a; color: #cdbfa6; border: 1px solid #2a2f28;
+    border-radius: 8px; font-size: 11px; min-height: 34px; cursor: pointer; }
+  .pace button.on { background: #2a3a1f; border-color: #7ab356; color: #d8ecc4; }
 
-  .vs { text-align: center; color: #6f7766; font-size: 12px; margin: 8px 0 4px; letter-spacing: .1em; }
+  .arena { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;
+    justify-content: space-between; padding: 6px 12px; }
+  .arena.shake { animation: shake .16s; } .arena.shakeBig { animation: shakeBig .24s; }
+  @keyframes shake { 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+  @keyframes shakeBig { 20%{transform:translate(-7px,2px)} 60%{transform:translate(6px,-2px)} 90%{transform:translate(-3px,0)} }
 
-  .log { background: #10140f; border: 1px solid #1f231d; border-radius: 10px;
-    padding: 8px 10px; height: 132px; overflow-y: auto; margin: 10px 0;
-    font-size: 12.5px; line-height: 1.5; color: #cdbfa6; }
-  .log div { margin: 1px 0; }
-  .log .rd { color: #6f7766; font-size: 10.5px; letter-spacing: .05em; margin-top: 6px; text-transform: uppercase; }
-  .log .ko { color: #e0a13c; font-weight: 600; }
-  .log .se { color: #7ab356; }
+  .panel { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+  .panel.foe { grid-template-columns: auto 1fr; }
+  .pinfo .nm { font-size: 13px; font-weight: 600; color: #c8a84b; }
+  .pinfo .row { display: flex; gap: 5px; align-items: center; margin-top: 2px; flex-wrap: wrap; }
+  .foe .pinfo { text-align: right; } .foe .pinfo .row { justify-content: flex-end; }
+  .tbadge { font-size: 9.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    padding: 1px 6px; border-radius: 5px; color: #0d100c; }
+  .cls { font-size: 11px; color: #8a9178; }
+  .hpwrap { position: relative; height: 12px; background: #1c211a; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+  .hpchip { position: absolute; inset: 0; width: 100%; background: #6a3b34; border-radius: 6px; transition: width .55s .12s ease; }
+  .hpfront { position: absolute; inset: 0; width: 100%; border-radius: 6px; transition: width .3s ease; }
+  .hptext { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: #8a9178; margin-top: 2px; }
+  .status { display: flex; gap: 4px; margin-top: 3px; min-height: 15px; }
+  .foe .status { justify-content: flex-end; }
+  .st { font-size: 10px; padding: 0 5px; border-radius: 8px; background: #15191a; border: 1px solid #2a2f28; color: #cdbfa6; }
+  .st.bad { color: #e0907a; } .st.good { color: #7ab356; }
+  .art { position: relative; }
+  .art svg { width: 108px; height: 108px; display: block; }
+  .foe .art svg { transform: scaleX(-1); }
+  .art .flash { position: absolute; inset: 0; background: #fff; opacity: 0; border-radius: 12px; pointer-events: none; }
+  .art.hit .flash { animation: flash .18s; }
+  @keyframes flash { 0%{opacity:.75} 100%{opacity:0} }
+  .art.recoil { animation: recoil .35s; } @keyframes recoil { 30%{transform:translateX(6px)} }
+  .foe .art.recoil { animation: recoilF .35s; } @keyframes recoilF { 30%{transform:translateX(-6px) scaleX(-1)} 100%{transform:scaleX(-1)} }
 
-  .moves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .move { text-align: left; padding: 10px 12px; background: #1d251c; color: #e8dcc8;
-    border: 1px solid #3a4634; border-radius: 10px; min-height: 52px; cursor: pointer; }
-  .move:active { background: #2a3527; }
-  .move .mn { font-size: 13.5px; font-weight: 600; }
-  .move .md { font-size: 10.5px; color: #8a9178; margin-top: 2px; }
-  .move .eff { font-weight: 700; }
-  .move .eff.up { color: #7ab356; } .move .eff.down { color: #c86a4b; }
-  .move:disabled { opacity: .4; cursor: default; }
+  .intent { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #cdbfa6;
+    background: #15120f; border: 1px solid #3a2f22; border-radius: 8px; padding: 3px 8px; margin-top: 4px; }
+  .intent b { color: #e0a13c; } .intent .g { font-weight: 700; }
+  .intent .g.up { color: #7ab356; } .intent .g.down { color: #c86a4b; }
 
-  .banner { text-align: center; padding: 10px; border-radius: 10px; margin: 4px 0 10px;
-    font-size: 15px; font-weight: 600; display: none; }
-  .banner.show { display: block; }
-  .banner.win { background: #2a3a1f; border: 1px solid #7ab356; color: #d8ecc4; }
-  .banner.lose { background: #3a201c; border: 1px solid #c86a4b; color: #f0c4b4; }
-  .banner.draw { background: #23262a; border: 1px solid #6f7766; color: #cdbfa6; }
+  .mid { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+  .callout { position: absolute; left: 0; right: 0; text-align: center; font-size: 20px; font-weight: 700;
+    color: #7ab356; opacity: 0; pointer-events: none; text-shadow: 0 2px 6px #000; }
+  .callout.show { animation: callout 1s; }
+  @keyframes callout { 0%{opacity:0;transform:scale(.8)} 15%{opacity:1;transform:scale(1.05)} 70%{opacity:1} 100%{opacity:0} }
+  .dmglayer { position: absolute; inset: 0; pointer-events: none; }
+  .dmg { position: absolute; font-family: ui-monospace, Menlo, monospace; font-weight: 700; font-size: 18px;
+    color: #f0e8d0; text-shadow: 0 2px 4px #000; animation: dmgfloat .8s forwards; }
+  .dmg.big { font-size: 27px; color: #f0b048; } .dmg.miss { color: #8a9178; font-size: 15px; }
+  @keyframes dmgfloat { 0%{opacity:0;transform:translateY(6px) scale(1.4)} 12%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-34px)} }
 
-  .controls { display: flex; gap: 8px; }
-  .controls button { flex: 1; padding: 12px; background: #15191a; color: #e8dcc8;
-    border: 1px solid #2a2f28; border-radius: 10px; min-height: 48px; font-size: 14px; cursor: pointer; }
-  .controls button.primary { background: #2a3a1f; border-color: #7ab356; color: #d8ecc4; }
+  .log { border-top: 1px solid #1c1f1a; padding: 5px 12px; height: 40px; overflow: hidden;
+    font-size: 12px; color: #8a9178; display: flex; flex-direction: column; justify-content: flex-end; }
+  .log .se { color: #7ab356; } .log .ko { color: #e0a13c; }
+
+  .order { text-align: center; font-size: 10.5px; color: #6f7766; padding: 3px; letter-spacing: .04em; }
+  .moves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .move { text-align: left; padding: 8px 10px; background: #1d251c; color: #e8dcc8; border: 1px solid #3a4634;
+    border-radius: 12px; min-height: 58px; cursor: pointer; transition: transform .05s; }
+  .move:active, .move.press { transform: scale(.96); background: #2a3527; }
+  .move:disabled { opacity: .45; }
+  .move .mn { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .move .pip { color: #c8a84b; font-size: 11px; }
+  .move .glyph { font-weight: 700; margin-left: auto; font-size: 12px; }
+  .move .glyph.up { color: #7ab356; } .move .glyph.down { color: #c86a4b; }
+  .move .l2 { font-size: 10.5px; color: #b6ad98; margin-top: 2px; font-family: ui-monospace, Menlo, monospace; }
+  .move .l3 { font-size: 10px; color: #8a9178; margin-top: 1px; }
+  .move .first { font-size: 9px; color: #7ab356; }
+
+  .controls { display: flex; gap: 8px; padding: 0 12px 8px; }
+  .controls button { flex: 1; padding: 9px; background: #15191a; color: #cdbfa6; border: 1px solid #2a2f28;
+    border-radius: 8px; font-size: 12px; min-height: 40px; cursor: pointer; }
+
+  .banner { position: absolute; inset: 0; background: rgba(6,8,6,.7); display: none; align-items: center;
+    justify-content: center; z-index: 10; }
+  .banner.show { display: flex; }
+  .banner .card { background: #131614; border: 1px solid #2a2f28; border-radius: 16px; padding: 20px 24px;
+    text-align: center; max-width: 300px; }
+  .banner h2 { margin: 0 0 10px; font-size: 20px; }
+  .banner h2.win { color: #7ab356; } .banner h2.lose { color: #c86a4b; } .banner h2.draw { color: #cdbfa6; }
+  .banner button { width: 100%; padding: 12px; background: #2a3a1f; color: #d8ecc4; border: 1px solid #7ab356;
+    border-radius: 10px; font-size: 15px; cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) {
+    .arena.shake, .arena.shakeBig, .art.hit .flash, .art.recoil { animation: none !important; }
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>Litter Bug / arena</h1>
-  <div class="sub">Turn-based duel. Pick a move; type advantage does double, the wrong type does half.</div>
+  <div class="pace">
+    <button id="spd">1x</button>
+    <button id="auto">auto</button>
+    <button id="skip">skip &#9197;</button>
+  </div>
 </header>
-<main>
-  <div class="arena">
-    <div class="panel you" id="pYou"></div>
-    <div class="panel foe" id="pFoe"></div>
-  </div>
-  <div class="vs">— vs —</div>
 
-  <div class="banner" id="banner"></div>
-  <div class="log" id="log"></div>
-  <div class="moves" id="moves"></div>
-  <div class="controls" style="margin-top:10px;">
-    <button id="newFoe">New opponent</button>
-    <button id="newBoth" class="primary">Roll new bugs</button>
-  </div>
-</main>
+<div class="arena" id="arena">
+  <div class="panel foe" id="pFoe"></div>
+  <div class="mid"><div class="callout" id="callout"></div></div>
+  <div class="panel you" id="pYou"></div>
+  <div class="dmglayer" id="dmglayer"></div>
+  <div class="banner" id="banner"><div class="card" id="bcard"></div></div>
+</div>
+
+<div class="log" id="log"></div>
+<div class="order" id="order"></div>
+<div class="moves" id="moves"></div>
+<div class="controls">
+  <button id="newFoe">New opponent</button>
+  <button id="newBoth">Roll new bugs</button>
+</div>
 
 <script src="bug-engine.js"></script>
 <script src="battle-engine.js"></script>
@@ -92,101 +135,161 @@
 (function () {
   'use strict';
   var E = window.BUG_ENGINE, BAT = window.BATTLE_ENGINE;
-  var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f',
-    Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
+  var TYPE_COLOR = { Rust:'#b06a3a', Moss:'#5a9a52', Spark:'#d99a2f', Ooze:'#8a6fb0', Glass:'#6fa8c4', Ash:'#7a7a74' };
+  var STATUS = { corrode:{t:'&#9763; corrode',c:'bad'}, smolder:{t:'&#9832; smolder',c:'bad'}, rustlock:{t:'&#9202; locked',c:'bad'}, guard:{t:'&#128737; guard',c:'good'} };
+  var youCB, foeCB, state, speed = 1, auto = false, skipping = false, animating = false, logLines = [];
 
-  var youCB, foeCB, state, logLines;
-
-  function randomCB() {
-    var b = new Uint8Array(32);
-    (window.crypto || window.msCrypto).getRandomValues(b);
-    var s = ''; for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2);
-    return s;
-  }
+  function randCB(){ var b=new Uint8Array(32);(window.crypto||window.msCrypto).getRandomValues(b);var s='';for(var i=0;i<b.length;i++)s+=('0'+b[i].toString(16)).slice(-2);return s; }
+  function effWord(m){ if(m>2)return{l:'Shatters',g:'&#9650;&#9650;',c:'up'}; if(m>1.05)return{l:'Strong',g:'&#9650;',c:'up'}; if(m<0.5)return{l:'Barely dents',g:'&#9660;&#9660;',c:'down'}; if(m<0.95)return{l:'Resists',g:'&#9660;',c:'down'}; return{l:'Neutral',g:'',c:''}; }
+  function tbadges(f){ var t2=f.type2?'<span class="tbadge" style="background:'+(TYPE_COLOR[f.type2]||'#8a9178')+'">'+f.type2+'</span>':''; return '<span class="tbadge" style="background:'+(TYPE_COLOR[f.type]||'#8a9178')+'">'+f.type+'</span>'+t2; }
+  function statusChips(f){ var s=''; ['corrode','smolder','rustlock'].forEach(function(k){ if(f[k]) s+='<span class="st '+STATUS[k].c+'">'+STATUS[k].t+(typeof f[k]==='number'&&f[k]>0?' '+f[k]:'')+'</span>'; });
+    var st=f.stages; ['atk','def','spd'].forEach(function(k){ if(st[k]) s+='<span class="st '+(st[k]>0?'good':'bad')+'">'+k.toUpperCase()+(st[k]>0?'&#9650;':'&#9660;')+Math.abs(st[k])+'</span>'; }); return s; }
 
   function panelHTML(f, foe) {
-    var tcol = TYPE_COLOR[f.type] || '#8a9178';
-    var pct = Math.max(0, Math.round(f.hp / f.maxhp * 100));
-    var hpcol = pct > 50 ? '#7ab356' : pct > 22 ? '#d99a2f' : '#c86a4b';
-    var t2 = f.type2 ? ' <span class="tbadge" style="background:' + (TYPE_COLOR[f.type2] || '#8a9178') + '">' + f.type2 + '</span>' : '';
-    return '<div class="pname">' + f.name + '</div>'
-      + '<div class="prow"><span class="tbadge" style="background:' + tcol + '">' + f.type + '</span>' + t2
-      + '<span>' + f.cls + '</span></div>'
-      + '<div class="art">' + E._generateBugSVG(f.cb, 120) + '</div>'
-      + '<div class="hpwrap"><div class="hptrack"><div class="hpfill" style="width:' + pct + '%;background:' + hpcol + '"></div></div>'
-      + '<div class="hptext">' + f.hp + ' / ' + f.maxhp + ' HP'
-      + (f.poison > 0 ? ' <span class="pois">&#9763; poisoned</span>' : '') + '</div></div>';
+    var side = foe ? 'b' : 'a', pct = Math.max(0, Math.round(f.hp/f.maxhp*100));
+    var hpc = pct>50?'#7ab356':pct>22?'#d99a2f':'#c86a4b';
+    var art = '<div class="art" id="art-'+side+'">'+E._generateBugSVG(f.cb,108)+'<div class="flash"></div></div>';
+    var intent = '';
+    if (foe && !state.over) {
+      var fm = BAT.previewFoeMove(state), ic;
+      if (fm.kind==='attack'){ var db=BAT.damageBand(f, state.a, fm), ew=effWord(db.mult); ic='&#9876; '+fm.name+' <b>~'+Math.round((db.min+db.max)/2)+'</b> <span class="g '+ew.c+'">'+ew.g+'</span>'; }
+      else ic='&#9881; '+fm.name;
+      intent = '<div class="intent">next: '+ic+'</div>';
+    }
+    var info = '<div class="pinfo"><div class="nm">'+f.name+' <span class="cls" style="font-weight:400">L'+f.level+'</span></div>'
+      + '<div class="row">'+tbadges(f)+'<span class="cls">'+f.cls+'</span></div>'
+      + '<div class="hpwrap"><div class="hpchip" id="hpchip-'+side+'" style="width:'+pct+'%"></div><div class="hpfront" id="hpfront-'+side+'" style="width:'+pct+'%;background:'+hpc+'"></div></div>'
+      + '<div class="hptext" id="hptext-'+side+'">'+f.hp+' / '+f.maxhp+'</div>'
+      + '<div class="status" id="status-'+side+'">'+statusChips(f)+'</div>' + intent + '</div>';
+    return foe ? art + info : info + art;
+  }
+
+  function firstMover(myMove, foeMove) {
+    if (myMove.prio !== foeMove.prio) return myMove.prio > foeMove.prio;
+    var ea = state.a.spd, eb = state.b.spd; // resting-stage approximation
+    if (ea !== eb) return ea > eb;
+    return state.a.cb < state.b.cb;
   }
 
   function movesHTML() {
-    var you = state.a, foe = state.b;
+    if (state.over) return '';
+    var you = state.a, foe = state.b, fm = BAT.previewFoeMove(state);
     return you.moves.map(function (m, i) {
-      var desc, eff = '';
-      if (m.kind === 'attack') {
-        var mult = window.BUG_ENGINE.typeMatchupDual(m.type, foe.type, foe.type2);
-        desc = m.type + (m.stab ? ' &middot;STAB' : '') + '  ' + (m.desc || '');
-        if (mult > 1.05) eff = ' <span class="eff up">' + (mult > 2 ? 'x2.5' : 'strong') + '</span>';
-        else if (mult < 0.95) eff = ' <span class="eff down">' + (mult < 0.5 ? 'x0.4' : 'weak') + '</span>';
-      } else {
-        desc = m.desc || 'status';
-      }
-      var over = state.over ? ' disabled' : '';
-      return '<button class="move" data-i="' + i + '"' + over + '>'
-        + '<div class="mn">' + m.name + eff + '</div><div class="md">' + desc + '</div></button>';
+      var pip = m.stab ? '<span class="pip">&#10022;</span>' : '';
+      var l2, glyph = '';
+      if (m.kind==='attack'){
+        var db = BAT.damageBand(you, foe, m);
+        var ew = effWord(db.mult);
+        glyph = ew.g ? '<span class="glyph '+ew.c+'">'+ew.g+'</span>' : '';
+        l2 = '<span class="tbadge" style="background:'+(TYPE_COLOR[m.type]||'#8a9178')+'">'+m.type+'</span> '+db.min+'-'+db.max+' &middot; '+BAT.hitPercent(you,foe,m)+'%';
+      } else l2 = 'status';
+      var first = firstMover(m, fm) ? '<span class="first">&#9656; you first</span>' : '';
+      return '<button class="move" data-i="'+i+'"><div class="mn">'+m.name+pip+glyph+'</div>'
+        + '<div class="l2">'+l2+'</div><div class="l3">'+(m.desc||'')+' '+first+'</div></button>';
     }).join('');
   }
 
-  function pushLog(lines, roundNo) {
-    var log = document.getElementById('log');
-    if (roundNo) { var r = document.createElement('div'); r.className = 'rd'; r.textContent = 'Round ' + roundNo; log.appendChild(r); }
-    lines.forEach(function (l) {
-      var d = document.createElement('div');
-      if (/is down|succumbs|draw/i.test(l)) d.className = 'ko';
-      else if (/Super effective/.test(l)) d.className = 'se';
-      d.textContent = l;
-      log.appendChild(d);
-    });
-    log.scrollTop = log.scrollHeight;
-  }
-
   function render() {
-    document.getElementById('pYou').innerHTML = panelHTML(state.a, false);
     document.getElementById('pFoe').innerHTML = panelHTML(state.b, true);
+    document.getElementById('pYou').innerHTML = panelHTML(state.a, false);
     document.getElementById('moves').innerHTML = movesHTML();
+    document.getElementById('order').textContent = state.over ? '' : 'read the foe: race it, block it, or exploit its type';
     bindMoves();
-    var banner = document.getElementById('banner');
-    if (state.over) {
-      banner.className = 'banner show ' + (state.draw ? 'draw' : state.winner === 'a' ? 'win' : 'lose');
-      banner.textContent = state.draw ? 'Draw. Both bugs fall.'
-        : (state.winner === 'a' ? state.a.name + ' wins!' : state.b.name + ' wins.');
-    } else banner.className = 'banner';
+    document.getElementById('log').innerHTML = logLines.slice(-2).map(function(l){ return '<div>'+l+'</div>'; }).join('');
+    if (state.over) showBanner();
   }
-
   function bindMoves() {
     var btns = document.querySelectorAll('.move');
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].addEventListener('click', function () {
-        if (state.over) return;
-        var idx = parseInt(this.getAttribute('data-i'), 10);
-        BAT.playerRound(state, idx);
-        pushLog(state.log, state.round);
-        render();
-      });
+    for (var i=0;i<btns.length;i++){
+      btns[i].addEventListener('click', function(){ if(animating||state.over)return; onMove(parseInt(this.getAttribute('data-i'),10)); });
     }
   }
 
-  function newBattle(freshYou) {
-    if (freshYou || !youCB) youCB = randomCB();
-    foeCB = randomCB();
-    state = BAT.startBattle(youCB, foeCB);
-    logLines = [];
-    document.getElementById('log').innerHTML = '';
-    pushLog([state.a.name + ' (' + state.a.type + ') challenges ' + state.b.name + ' (' + state.b.type + ').'], 0);
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, skipping?0:ms/speed); }); }
+  function buzz(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+  function setHP(side, hp){
+    var f = side==='a'?state.a:state.b, pct=Math.max(0,Math.round(hp/f.maxhp*100));
+    var hpc = pct>50?'#7ab356':pct>22?'#d99a2f':'#c86a4b';
+    var fr=document.getElementById('hpfront-'+side); if(fr){ fr.style.width=pct+'%'; fr.style.background=hpc; }
+    var ch=document.getElementById('hpchip-'+side); if(ch) ch.style.width=pct+'%';
+    var tx=document.getElementById('hptext-'+side); if(tx) tx.textContent=hp+' / '+f.maxhp;
+  }
+  function popDmg(side, val, big, mult){
+    var art=document.getElementById('art-'+side); if(!art)return;
+    var d=document.createElement('div'); d.className='dmg'+(big||mult>1?' big':'')+(val==='Miss'?' miss':'');
+    d.textContent=val;
+    var r=art.getBoundingClientRect(), a=document.getElementById('dmglayer').getBoundingClientRect();
+    d.style.left=(r.left-a.left + r.width/2 - 10 + (Math.floor((''+val).length)%3)*8 - 12)+'px';
+    d.style.top=(r.top-a.top + 20)+'px';
+    document.getElementById('dmglayer').appendChild(d);
+    setTimeout(function(){ d.remove(); }, 900);
+  }
+  function flash(side, big){ var art=document.getElementById('art-'+side); if(!art)return; art.classList.add('hit','recoil'); setTimeout(function(){art.classList.remove('hit','recoil');},400);
+    var ar=document.getElementById('arena'); ar.classList.add(big?'shakeBig':'shake'); setTimeout(function(){ar.classList.remove('shake','shakeBig');},260); }
+  function callout(txt, cls){ var c=document.getElementById('callout'); c.textContent=txt; c.style.color=cls||'#7ab356'; c.classList.remove('show'); void c.offsetWidth; c.classList.add('show'); }
+  function refreshStatus(){ document.getElementById('status-a').innerHTML=statusChips(state.a); document.getElementById('status-b').innerHTML=statusChips(state.b); }
+
+  async function playEvents(evs){
+    animating = true;
+    document.getElementById('moves').innerHTML = ''; document.getElementById('order').textContent='';
+    for (var i=0;i<evs.length;i++){
+      var e = evs[i];
+      if (e.kind==='hit' || e.kind==='miss'){
+        await sleep(90);
+        if (e.kind==='hit'){
+          var big = e.crit || e.mult>1;
+          flash(e.target, big); buzz(big?30:12);
+          setHP(e.target, e.hpAfter);
+          popDmg(e.target, e.dmg, e.crit, e.mult);
+          if (e.mult>1) callout('Super effective!','#7ab356'); else if (e.mult<1) callout('Not very effective','#c86a4b'); else if (e.crit) callout('Critical!','#f0b048');
+        } else popDmg(e.target, 'Miss', false, 1);
+        await sleep(e.kind==='hit'? (big?560:460) : 320);
+      } else if (e.kind==='status'){ refreshStatus(); callout(cap(e.eff),'#b487ac'); await sleep(360); }
+      else if (e.kind==='dot'){ setHP(e.side, e.hpAfter); popDmg(e.side, e.dmg, false, 1); await sleep(340); }
+      else if (e.kind==='skip'){ callout('seized!','#c86a4b'); await sleep(320); }
+      else if (e.kind==='ko'){ buzz(60); await sleep(480); }
+      refreshStatus();
+    }
+    animating = false;
+    render();
+    if (auto && !state.over) setTimeout(function(){ onMove(bestMove()); }, 250);
+  }
+  function cap(s){ return s? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+  function bestMove(){ var b=0,bs=-1; state.a.moves.forEach(function(m,i){ var s=m.kind==='attack'?m.pow*(m.multi||1)*E.typeMatchupDual(m.type,state.b.type,state.b.type2)*(m.stab?1.4:1):0.4; if(s>bs){bs=s;b=i;} }); return b; }
+
+  function onMove(idx){
+    BAT.playerRound(state, idx);
+    logLines = logLines.concat(state.log);
+    playEvents(state.events || []);
+    document.getElementById('log').innerHTML = logLines.slice(-2).map(function(l){ var c=/is down|succumbs|draw/i.test(l)?' class="ko"':/Super effective/.test(l)?' class="se"':''; return '<div'+c+'>'+l+'</div>'; }).join('');
+  }
+
+  function showBanner(){
+    var won = state.winner==='a' && !state.draw;
+    var b=document.getElementById('banner'), c=document.getElementById('bcard');
+    c.innerHTML = '<h2 class="'+(won?'win':state.draw?'draw':'lose')+'">'+(state.draw?'Draw':won?state.a.name+' wins!':state.b.name+' wins')+'</h2>'
+      + '<button id="rematch">Roll new bugs</button>';
+    b.classList.add('show');
+    document.getElementById('rematch').addEventListener('click', function(){ b.classList.remove('show'); newBattle(true); });
+    buzz(won?[40,40,60]:40);
+  }
+
+  function newBattle(freshYou){
+    if (freshYou || !youCB) youCB = randCB();
+    foeCB = randCB();
+    state = BAT.startBattle(youCB, foeCB, 3, 3);
+    logLines = [state.a.name+' faces '+state.b.name+'.'];
+    document.getElementById('banner').classList.remove('show');
+    animating = false;
     render();
   }
 
-  document.getElementById('newFoe').addEventListener('click', function () { newBattle(false); });
-  document.getElementById('newBoth').addEventListener('click', function () { newBattle(true); });
+  document.getElementById('spd').addEventListener('click', function(){ speed = speed===1?2:1; this.textContent = speed+'x'; this.classList.toggle('on', speed===2); });
+  document.getElementById('auto').addEventListener('click', function(){ auto = !auto; this.classList.toggle('on', auto); if(auto && !animating && !state.over) onMove(bestMove()); });
+  document.getElementById('skip').addEventListener('click', function(){ if(animating){ skipping=true; setTimeout(function(){skipping=false;},50); } });
+  document.getElementById('arena').addEventListener('click', function(){ if(animating) skipping=true; setTimeout(function(){skipping=false;},30); });
+  document.getElementById('newFoe').addEventListener('click', function(){ if(!animating) newBattle(false); });
+  document.getElementById('newBoth').addEventListener('click', function(){ if(!animating) newBattle(true); });
   newBattle(true);
 })();
 </script>

@@ -103,6 +103,20 @@
     if (def.guard) d = Math.floor(d * 500 / 1000);
     return { dmg: Math.max(1, d), typeMul: typeMul, crit: isCrit };
   }
+  // Read-only previews for the move cards (no rng, no state change).
+  function hitPercent(att, def, move) { return Math.round(hitChance(att, def, move) * 100); }
+  function damageBand(att, def, move) {
+    if (move.kind !== "attack") return null;
+    var typeMul = ENG.typeMatchupDual(move.type, def.type, def.type2);
+    var STABv = move.stab ? STAB : 1000;
+    var powI = Math.round(move.pow * 100);
+    var b = Math.floor(powI * eatk(att) * 14 / (100 * (edef(def) + 22)));
+    b = Math.floor(b * STABv / 1000);
+    b = Math.floor(b * Math.round(typeMul * 1000) / 1000);
+    var smol = att.smolder > 0 ? 500 : 1000, hits = move.multi || 1;
+    function v(varN) { var d = Math.floor(b * varN / 1000); d = Math.floor(d * smol / 1000); return Math.max(1, d) * hits; }
+    return { min: v(850), max: v(1000), mult: typeMul };
+  }
   function immune(def, status) {
     if (status === "corrode") return def.type === "Ooze" || def.type2 === "Ooze";
     if (status === "smolder") return def.type === "Ash" || def.type2 === "Ash";
@@ -261,7 +275,8 @@
 
   var _api = { buildFighter: buildFighter, startBattle: startBattle,
     playerRound: playerRound, resolveBattle: resolveBattle,
-    previewFoeMove: previewFoeMove, CLASS_MOVES: CLASS_MOVES };
+    previewFoeMove: previewFoeMove, damageBand: damageBand, hitPercent: hitPercent,
+    CLASS_MOVES: CLASS_MOVES };
   if (typeof module !== "undefined" && module.exports) module.exports = _api;
   if (typeof window !== "undefined") { window.BATTLE_ENGINE = _api; }
 })();
