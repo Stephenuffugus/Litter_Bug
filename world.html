@@ -93,6 +93,13 @@
   .bchip.sel { border-color: #7ab356; background: #141a10; }
   .bchip svg { width: 44px; height: 44px; }
   .bchip .cl { font-size: 9px; color: #8a9178; font-family: ui-monospace, Menlo, monospace; }
+  .bpreview { text-align: center; background: #10140f; border: 1px solid #23281f; border-radius: 12px;
+    padding: 8px; margin: 8px 0; }
+  .bpreview svg { width: 88px; height: 88px; }
+  .bpreview .pvlabel { font-size: 9.5px; color: #8a9178; text-transform: uppercase; letter-spacing: .07em; }
+  .bpreview .pvname { font-size: 14px; color: #c8a84b; font-weight: 600; margin-top: 2px; }
+  .bpreview .pvmeta { font-size: 11px; color: #cdbfa6; margin-top: 3px; }
+  .bpreview .pvexists { font-size: 11px; color: #d99a2f; margin-top: 5px; }
   .bfight { display: flex; align-items: flex-start; justify-content: space-around; gap: 6px; }
   .bside { flex: 1; text-align: center; } .bside.foe svg { transform: scaleX(-1); }
   .bside svg { width: 74px; height: 74px; }
@@ -220,12 +227,28 @@
       return '<div class="bchip' + (sel ? ' sel' : '') + '" data-cb="' + bg.cb + '">'
         + E._generateBugSVG(bg.cb, 44, bg.level) + '<div class="cl">L' + bg.level + ' ' + st.type + '</div></div>';
     }).join('');
+    var preview = '', childExists = false;
+    if (breedSel.length === 2) {
+      var childCb = E.breed(breedSel[0], breedSel[1]);
+      childExists = !!W.findBug(vault, childCb);
+      var cs = E.bugStats(childCb), cn = E.bugName(childCb);
+      var t2 = cs.type2 ? ' <span class="tbadge" style="background:' + (TYPE_COLOR[cs.type2] || '#8a9178') + '">' + cs.type2 + '</span>' : '';
+      preview = '<div class="bpreview"><div class="pvlabel">this pairing makes</div>'
+        + E._generateBugSVG(childCb, 88, 1)
+        + '<div class="pvname">' + cn + '</div>'
+        + '<div class="pvmeta"><span class="tbadge" style="background:' + (TYPE_COLOR[cs.type] || '#8a9178') + '">' + cs.type + '</span>' + t2
+        + ' &middot; ' + cs.cls + ' &middot; ' + cs.rarity + '</div>'
+        + (childExists ? '<div class="pvexists">You already have this one. Try a different pairing.</div>' : '')
+        + '</div>';
+    }
+    var canBreed = breedSel.length === 2 && !childExists;
     var card = document.getElementById('card');
     card.innerHTML = '<h2>Breed</h2>'
       + '<div class="sub">Pick two parents. The child inherits their traits. '
       + 'Costs ' + W.BREED_COST + ' scrap &mdash; you have ' + (vault.scrap || 0) + '.</div>'
       + '<div class="bgrid">' + chips + '</div>'
-      + '<button id="mBreed"' + (breedSel.length === 2 ? '' : ' disabled') + '>Breed</button>'
+      + preview
+      + '<button id="mBreed"' + (canBreed ? '' : ' disabled') + '>' + (breedSel.length === 2 ? 'Breed this bug' : 'Breed') + '</button>'
       + '<button class="ghost" id="mClose">Close</button>';
     Array.prototype.forEach.call(card.querySelectorAll('.bchip'), function (el) {
       el.addEventListener('click', function () {
