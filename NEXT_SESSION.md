@@ -1,200 +1,114 @@
 # NEXT SESSION — Plan of attack
 
-When you come back and say "let's get started," this is the first thing
-I should read. It's the priority list, the prep checklist, and the
-guardrails — in one place.
-
-State of the repo at session close (2026-05-20):
-
-- **Smoke: 55 / 0** across three harnesses (index 15, lab 32, preview 8)
-- **Art banks:** 8 placeholders per layer (48 PNGs + 16 procedural JSON entries)
-- **Pages:** `bug-lab.html` (one-at-a-time), `preview.html` (grid of 60+)
-- **Pipeline:** drop-folder → `npm run art` → catalogs + both pages patched
-- **Docs:** `ROADMAP.md` (everything to make), `STATUS.md` (live snapshot)
+When you come back and say "let's get started," read this first. It's the
+state, the priorities, and the guardrails in one place.
+Last updated: 2026-07-18 (end of a long build + art-structure session).
 
 ---
 
-## Before you come back — what to bring
+## Where things stand
 
-The most useful prep is **one layer of real art**. I recommend **wings**
-for three reasons:
+Litter Bug is a **turn-based bug-battler** now (the cozy trash-collector is
+gone). The single-player game is **built, polished, and verified end to end**:
 
-1. Wings are the biggest visual element on the bug. If they read well,
-   the whole bug reads well.
-2. Wings exercise the most complex part of the pipeline (tinting +
-   rotation + mirroring). Validating wings validates everything.
-3. One wing PNG = one production unit. Cheap to iterate.
-
-**Goal:** 4 to 8 PNGs in `assets/wings/raw/`. Naming becomes display
-name: `dragonfly-iridescent.png` → "Dragonfly Iridescent."
-
-Use the AI prompts in `assets/wings/README.md` if you want a starting
-point. Or hand-draw. Or commission. Convention recap:
-
-- 256×128 PNG, transparent background
-- Wing root (attachment) at the left edge, around x=24 y=64
-- White silhouette if you want palette tinting
-- Full color art if you want it as-authored (set `tintable: false` in
-  `wings.json` after import)
-
-If you have extra time, drop 2 to 4 body silhouettes into
-`assets/bodies/raw/` too (200×100, head end on the right).
-
-**Do NOT try to do all layers at once.** Validate one layer first, then
-the next. Surprises in the pipeline are easier to debug a layer at a
-time.
+- **Smoke: 134 / 0** across all harnesses. Keep it green before every commit.
+- **Four playable pages, all live as private artifacts** (same links, phone-ready):
+  - Mint Lab — https://claude.ai/code/artifact/c3cb94fc-c613-43c8-947e-025e8d1073e5
+  - Bugdex — https://claude.ai/code/artifact/d71e4cb8-b0dc-4ac6-bf06-2d3c34ea9e9a
+  - World — https://claude.ai/code/artifact/d5637cee-0da3-4acc-a0e5-249dc345c670
+  - Arena — https://claude.ai/code/artifact/3aa20362-f21b-4dcb-95a2-75918f0d08a7
+- **The loop:** play a trial -> SHA-256 codeblock -> rolled bug (grows with level)
+  -> collect/breed -> place on the map, fight wild + rival cells for territory,
+  level up, defend raids. Battles have dual-typing + the Poise/Break tempo layer.
+- Verified this session by an adversarial code sweep (clean) and a full visual
+  QA pass on a real browser (clean). Nothing is on fire.
 
 ---
 
-## First 10 minutes when you sign back on
+## THE FOCUS: art structure (this is what you care about most)
 
-You say "let's get started." I do this:
+You asked for **an exact formula to generate each piece + a prompt to author
+each piece of each style.** That exists now:
 
-1. `ls assets/*/raw/` — see what you dropped
-2. `npm run art` — import every layer that has new files
-3. `npm run art:contact` — regenerate the visual review sheets
-4. `npm run status` — refresh STATUS.md and the lab's status strip
-5. `npm run smoke` — green check
-6. You open `preview.html` on your phone
-7. You tell me what's right and what's broken
+- **`PART_CATALOG.md`** (repo) / artifact: https://claude.ai/code/artifact/8d92f435-0972-46cb-af19-99797ee97d1e
+  For every piece (body, wings, jaws, tail, antennae, eyes, legs, carapace,
+  horns, spines, materials) and every style: the exact deterministic formula
+  AND a Midjourney/Recraft authoring prompt, on one shared canvas + one locked
+  style. **This is the working document — we refine it together.**
+- **Art-direction brief** (visual, current-vs-merged): https://claude.ai/code/artifact/b533bc7e-2b91-4582-9c33-f82b7c098009
+- The **structure is decided and good:** spine + part-sockets, made
+  source-agnostic — each piece is procedural today and can become an authored
+  SVG symbol later, per piece, reversibly, without touching determinism.
+- Shipped (commit d9c9cef): an off-by-default `opts.merge` flag on the renderer
+  that fuses the segments into one silhouette. Default output is byte-identical,
+  so the live game is unchanged. It's the first free-fidelity step.
 
-If you dropped nothing, we skip to picking an item from the priority list.
+### Bring back with you
+1. **The tricks + resources from the other AI you're consulting.** Drop them in
+   and I'll fold the good ones into PART_CATALOG.md.
+2. **(Optional) mint the ONE `--sref`** from a hero bug you love — that single
+   style code is what keeps all authored pieces one family. Paste it into
+   ART_STYLE.md (THE GAME STYLE REFERENCE) and PART_CATALOG.md 0.5.
+3. **(Optional) author 1-2 wings** with the wing prompts (PART_CATALOG 2).
+   Wings are the biggest visual element and the first upgrade candidate.
+   256x128, grayscale, root bled to lower-left.
 
----
+### First actions when you're back (pick the entry point)
+- **A. Refine the catalog** — go piece by piece, tighten canvases/pivots + prompt
+  wording, merge in your research. (Lowest risk, highest leverage on the plan.)
+- **B. See the pipeline work** — I wire the source-agnostic `renderPart` dispatch
+  for wings end to end, so the moment you hand me a wing symbol we drop it in and
+  compare live against the procedural wing. (Proves the whole architecture.)
+- **C. Push procedural to its ceiling** — I do the full free pass (merge + one-
+  light shading + rim light + cel bands + size-tier LOD), wire it into the live
+  game, show you before/after. This tells us how good "free" gets before you
+  spend any Midjourney time.
 
-## Priority list (do these in order)
+  My honest rec: **A + C first**, so you can set the fidelity bar with your eye
+  on a real comparison; then decide how much B / authored-art we fund.
 
-### 1. Make the art land cleanly
-The first time real art goes through the pipeline, things will break in
-small ways. The likely failures:
-- Your PNG isn't quite 256×128 → sharp normalizes it but might letterbox weird
-- Attachment point isn't at (24, 64) → wings sit off-center on bugs
-- Your art has fine detail that disappears at small render size
-- Tinting wipes color you wanted to keep
+### Resources worth pulling from (from the research, task wio40nkwz)
+- **Recraft** — true editable vector in a locked style (better than Midjourney
+  raster for recolorable parts).
+- **vtracer + potrace + SVGO** — turn AI raster into tiny inline SVG that rides
+  our tint engine.
+- **DiceBear** (open source) — a working proof of exactly our architecture
+  (seed -> layered SVG -> recolor -> offline); good reference for the slot table.
+- **ControlNet lineart** — pins authored parts to our existing silhouettes so
+  pivots can't drift (needs a GPU/Colab).
+- **game-icons.net + Lucide** — single-path SVG for type badges / rarity / icons
+  that recolor through the same engine.
 
-I fix these as you find them. Smoke gates every fix.
-
-### 2. Validate variety
-Open `preview.html` and bump to 120 bugs. Look at the grid as a whole:
-- Are bugs reading as distinct?
-- Is the palette doing real work (different bugs feel different colors)?
-- Any combinations look identical? Any "dead zone" where the body and
-  wing don't visually agree?
-
-This is where I'd add a hash inspector if we hit "why does THIS bug
-look like THAT" questions repeatedly.
-
-### 3. Tune metadata, not code
-For small fixes (a wing attaches a few pixels off, a body should be
-non-tintable, a head needs a different rarity tier):
-- Edit `assets/<layer>/<layer>.json`
-- Run `npm run <layer>`
-- Reload preview.html
-
-No code change. Sentinels do the work.
-
-### 4. Move to bodies (then heads, then patterns)
-Same workflow. Drop art in `raw/`, run `npm run <layer>`, validate. Each
-layer in isolation. Don't fan out to multiple layers in parallel until
-each one is dialed.
-
-### 5. Tune legs and antennae
-These are JSON-only. Edit `assets/legs/legs.json` and
-`assets/antennae/antennae.json` directly to tune shape parameters
-(count, length, thickness, curl, spread). Run `npm run legs` /
-`npm run antennae` to push to the pages.
-
-### 6. Palette decision
-Once real art is in, we need to decide if 16 flat hex colors is enough
-or if we move to 80 structured palettes (HANDOFF §3.2). Big visual
-impact but bigger change. Decide AFTER you see real art.
-
-### 7. Hash inspector (debug tool)
-Tiny build. Paste a hash, see decoded traits + chosen bank entry per
-layer + the rendered SVG. Useful when you want to understand a specific
-bug's anatomy choices.
-
-### 8. Decide what's next after the art pipeline feels solid
-Three real candidates:
-- Structured palette (item 6)
-- Trash catalog v0 (set up TRASH_ITEMS data structure from HANDOFF §11)
-- First piece of real game shell (incubator UI — combine two trash items)
+Note: `ART_STYLE.md` + `ASSETS.md` describe the OLDER PNG-layer socket
+(body/head/wings/pattern). `PART_CATALOG.md` is the current source of truth;
+update those two docs once the fidelity path is chosen.
 
 ---
 
-## Open decisions (still parked)
+## Parked — decisions that are yours, waiting on you (not blocking art)
 
-These block deeper game-shell work. Pick when you're ready, not before:
-
-| Decision | Status | Recommendation if you ask |
-|---|---|---|
-| D1 Platform priority | Open | PWA / web first; ports later |
-| D2 Ecology infra | Open | Per-player with social peeks (cheap, can grow) |
-| D3 NFT layer | Open | OUT for v1 (cozy audience fit) |
-| D4 Geo-play | Open | Optional with bonus rarity |
-| Palette structure | Open | Decide after real art tests |
-| Save backend | Open | localStorage v0, real backend in phase 2 |
+- **Playtest-tune Poise/Break + types.** I balanced by simulation; your thumbs
+  will find what a sim won't. Tell me what feels off and I tune the numbers.
+- **Multiplayer (Firestore).** The real version of the rival raids. Needs your
+  infra calls (D1/D2). You've said "easy and fast, we'll get there."
+- **Combat design forks** (I'm holding these so I don't stack balance changes
+  before you've felt Poise/Break): coverage-move riders, status synergies, a
+  shared-charge ultimate, switching, arena-uses-your-collection.
 
 ---
 
-## If something breaks
+## Guardrails (unchanged)
 
-- Smoke is the contract. `npm run smoke` must be green before any
-  commit. If it's red, we fix it first.
-- Banks out of sync (lab shows different wings than wings.json):
-  `npm run wings` re-patches. Same for any layer.
-- If you can't see bugs at all in the lab, browser console first. The
-  status pill row will also show `smoke ✗` if catalog and bank drifted.
-- Don't commit half-broken art. Run smoke locally first.
+- Smoke green before every commit. Push and report the hash (you test on phone).
+- Determinism is sacred: same codeblock (+level, +battle seed) -> identical
+  output. Any NEW renderer roll is appended LAST so existing bugs don't shift.
+- No em-dashes in UI copy. Warm but honest. One change at a time. Ask when it's
+  a real design/economy call (those are yours).
 
----
-
-## What I will NOT do without you
-
-- Make any of the D1-D4 architecture decisions
-- Touch payment / Stripe code (parked under `deferred/`, stays parked)
-- Add features outside the priority list above
-- Rewrite the renderer or do a "shared engine" refactor (we extract
-  `bug-engine.js` only when a third page consumes it)
-- Push uncommitted work as a force-push
-- Skip smoke
-
----
-
-## What I WILL do without you, autonomously
-
-If you say "go" without specifics, I'll:
-
-1. Read this file
-2. Look at `assets/*/raw/` for new art
-3. Run the import pipeline if there's anything new
-4. Otherwise pick the top unblocked item from the priority list and ask
-   before I start
-
----
-
-## Commit log this session (2026-05-20)
-
-For reference when you come back:
-
-```
-e2b8a76  add preview.html: 60-bug stable-seed grid for eyeballing variety
-caf6448  add ROADMAP.md, status script, and live status strip in bug-lab
-2396f42  add patterns layer: PNG overlay between body and head
-ec37c01  add legs + antennae as procedural (JSON-only) banks
-9d865c8  add heads layer: PNG silhouettes, dark-tinted, HEAD_BANK in lab
-8177007  add bodies layer: PNG silhouettes, primary-tinted, BODY_BANK in lab
-3650720  refactor: generalize art pipeline so every layer uses the same workflow
-c63a5d2  wing pipeline: drop folder, catalog, contact sheet, AI prompts
-53a59c5  bug-lab: render wings as PNG sprites tinted per palette
-03ebea5  add bug-lab.html: first procedural bug renderer (placeholder)
-0f93112  park Stripe tip-jar PHP under deferred/v1.1-web-tipjar/
-3d4d354  CLAUDE.md: rewrite for Litter Bug as its own game
-5e04dc4  kickoff: rename Lucid Winds artifacts, scaffold scripts/, smoke 15/15
-7be6dcb  Initial commit
-```
-
-13 commits this session. Foundation is solid. Pipeline is real. Now
-we put real art through it and see what holds.
+## Handy tooling (in scratchpad, for me)
+- `qa-bugs.js` — render a bug variety + growth PNG (eyeball art via sharp).
+- `shoot*.js` — screenshot the live pages/modals at phone width (real browser QA;
+  chromium apt-deps are installed).
+- `build-art-brief.js` — regenerate the art-direction brief artifact.
 
 See you when you're back.
