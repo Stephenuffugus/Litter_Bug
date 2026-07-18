@@ -26,7 +26,9 @@ module.exports = {
     catalogFile: 'wings.json',
     displayName: 'wing',
     tintColorRGB: [0.784, 0.659, 0.294], // gold, for contact sheet preview
-    targetSize: 40,                  // HANDOFF §3.2 launch target
+    targetSize: 40,
+    source: 'procedural',            // provenance: procedural | midjourney-controlnet | meshy-bake | blender-bake | hand
+    passes: ['procedural'],           // a baked layer ships: grayscale, ao, id-mask (see ASSETS.md)                  // HANDOFF §3.2 launch target
   },
   bodies: {
     dirName: 'bodies',
@@ -40,6 +42,8 @@ module.exports = {
     displayName: 'body',
     tintColorRGB: [0.298, 0.486, 0.337], // sage green
     targetSize: 30,
+    source: 'procedural',            // provenance: procedural | midjourney-controlnet | meshy-bake | blender-bake | hand
+    passes: ['procedural'],           // a baked layer ships: grayscale, ao, id-mask (see ASSETS.md)
   },
   heads: {
     dirName: 'heads',
@@ -53,6 +57,8 @@ module.exports = {
     displayName: 'head',
     tintColorRGB: [0.290, 0.227, 0.180], // dark brown
     targetSize: 25,
+    source: 'procedural',            // provenance: procedural | midjourney-controlnet | meshy-bake | blender-bake | hand
+    passes: ['procedural'],           // a baked layer ships: grayscale, ao, id-mask (see ASSETS.md)
   },
   patterns: {
     dirName: 'patterns',
@@ -66,6 +72,8 @@ module.exports = {
     displayName: 'pattern',
     tintColorRGB: [0.290, 0.227, 0.180], // dark brown, for pattern preview
     targetSize: 50,
+    source: 'procedural',            // provenance: procedural | midjourney-controlnet | meshy-bake | blender-bake | hand
+    passes: ['procedural'],           // a baked layer ships: grayscale, ao, id-mask (see ASSETS.md)
   },
 
   // Procedural layers: JSON-only banks (no PNG art).
@@ -80,6 +88,8 @@ module.exports = {
     catalogFile: 'legs.json',
     displayName: 'leg-set',
     targetSize: 20,
+    source: 'procedural',            // provenance: procedural | midjourney-controlnet | meshy-bake | blender-bake | hand
+    passes: ['procedural'],           // a baked layer ships: grayscale, ao, id-mask (see ASSETS.md)
   },
   antennae: {
     kind: 'procedural',
@@ -90,5 +100,7 @@ module.exports = {
     catalogFile: 'antennae.json',
     displayName: 'antenna-set',
     targetSize: 15,
+    source: 'procedural',            // provenance: procedural | midjourney-controlnet | meshy-bake | blender-bake | hand
+    passes: ['procedural'],           // a baked layer ships: grayscale, ao, id-mask (see ASSETS.md)
   },
 };
