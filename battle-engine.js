@@ -281,9 +281,13 @@
     if (a.hp <= 0 || b.hp <= 0 || state.round >= 60) {
       state.over = true;
       state.draw = (a.hp <= 0 && b.hp <= 0);
+      // timeout / both-alive: higher HP fraction wins; on an exact tie fall back
+      // to codeblock order (like every other tiebreak) so the winner is the same
+      // regardless of which bug was passed first (arg-order symmetry).
       state.winner = (a.hp > 0 && b.hp <= 0) ? "a"
         : (b.hp > 0 && a.hp <= 0) ? "b"
-        : (a.hp / a.maxhp >= b.hp / b.maxhp ? "a" : "b");
+        : (a.hp / a.maxhp !== b.hp / b.maxhp ? (a.hp / a.maxhp > b.hp / b.maxhp ? "a" : "b")
+          : (a.cb < b.cb ? "a" : "b"));
       if (state.draw) log.push("Both bugs fall. It is a draw.");
     }
     state.log = log;
