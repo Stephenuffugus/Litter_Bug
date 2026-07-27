@@ -112,3 +112,22 @@ update those two docs once the fidelity path is chosen.
 - `build-art-brief.js` — regenerate the art-direction brief artifact.
 
 See you when you're back.
+
+---
+
+## 2026-07-27 (from the lucid-winds codespace session)
+
+GitHub Pages is now ENABLED on this repo (main branch, root). Everything is
+live without artifacts:
+
+- Hub: https://stephenuffugus.github.io/Litter_Bug/
+- Mint Lab: https://stephenuffugus.github.io/Litter_Bug/mint-lab.html
+- Bugdex: https://stephenuffugus.github.io/Litter_Bug/bugdex.html
+- World: https://stephenuffugus.github.io/Litter_Bug/world.html
+- Arena: https://stephenuffugus.github.io/Litter_Bug/battle-lab.html
+
+The inherited Lucid Winds engine was squatting on `index.html` (6.8MB, broke
+the bare URL with 100+ asset 404s). Renamed to `inherited-engine.html`, and
+`index.html` is now a small hub page linking the labs, styled to match them.
+CLAUDE.md file layout updated. All five pages verified live headless: zero JS
+errors, zero blanks.

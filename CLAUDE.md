@@ -26,7 +26,7 @@ items in an incubator, and hatch a SHA-256-derived insect. Bugs live on a
 shared Leaflet map, breed, and drift. Full vision lives in HANDOFF.md.
 
 ## WHAT WE TAKE FROM LUCID WINDS
-From a 2026-05-20 audit of the inherited `index.html` (101,525 lines):
+From a 2026-05-20 audit of the inherited engine (101,525 lines; renamed `index.html` -> `inherited-engine.html` on 2026-07-27 when GitHub Pages went live):
 
 Useful kit of parts:
 - `hashToTraits` (around line 11334). Hash bytes 0..22 to trait indices.
@@ -89,7 +89,8 @@ Combinatorial space about 2.16e12. Plenty.
   Lucid Winds, not real engine bugs. Fix when convenient, not blocking.
 
 ## FILE LAYOUT
-- `/index.html` — the inherited engine (will be reshaped, not preserved)
+- `/inherited-engine.html` — the inherited Lucid Winds engine (will be reshaped, not preserved; was `/index.html` until 2026-07-27)
+- `/index.html` — hub landing page for GitHub Pages (links the four playable labs)
 - `/HANDOFF.md` — game vision
 - `/CLAUDE.md` — this file
 - `/README.md` — public one-liner
