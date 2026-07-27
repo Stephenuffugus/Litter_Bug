@@ -304,7 +304,9 @@
   // cross-stitches ("sewn from litter"). Faces right, viewBox 200x200.
   function _generateBugSVG(hash, size, level, opts) {
     level = level || 30;
-    var merge = !!(opts && opts.merge);   // experimental: fuse segments into one silhouette + unified outline
+    var fx = !!(opts && opts.fx);         // free-fidelity pass: merge + one-light cel shade + rim light + LOD
+    var merge = fx || !!(opts && opts.merge);   // experimental: fuse segments into one silhouette + unified outline
+    var lod = fx && size <= 64;           // small renders drop fine detail (stitches, veins, barbs)
     var t = hashToBugTraits(hash), pal = PALETTES[t.palette] || PALETTES[0];
     var primary = pal.primary, accent = pal.accent, secondary = pal.secondary;
     function _rgb(h){ h=h.replace('#',''); return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) }; }
@@ -378,8 +380,25 @@
       + '<feMorphology in="goo" operator="dilate" radius="2.6" result="d"/>'
       + '<feFlood flood-color="' + ol + '" result="oc"/>'
       + '<feComposite in="oc" in2="d" operator="in" result="stroke"/>'
-      + '<feMerge><feMergeNode in="stroke"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' : '';
-    var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + bodyFx + '</defs>';
+      // fx rim light: the merged alpha minus itself offset down-right leaves a
+      // crescent hugging the top-left edge — one implied light for the whole bug
+      + (fx ? '<feOffset in="goo" dx="2.2" dy="2.6" result="go2"/>'
+        + '<feComposite in="goo" in2="go2" operator="out" result="rimA"/>'
+        + '<feFlood flood-color="' + lt(primary, 0.55) + '" flood-opacity="0.75" result="rc"/>'
+        + '<feComposite in="rc" in2="rimA" operator="in" result="rim"/>' : '')
+      + '<feMerge><feMergeNode in="stroke"/><feMergeNode in="SourceGraphic"/>'
+      + (fx ? '<feMergeNode in="rim"/>' : '') + '</feMerge></filter>' : '';
+    // fx one-light cel shade: hard-stop gradient (3 bands, no smooth ramp)
+    // re-shades the WHOLE merged body under a single top-left light.
+    var celGrad = fx ? '<linearGradient id="cel' + uid + '" x1="0.15" y1="0.05" x2="0.85" y2="0.95">'
+      + '<stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>'
+      + '<stop offset="0.38" stop-color="#ffffff" stop-opacity="0.22"/>'
+      + '<stop offset="0.38" stop-color="#ffffff" stop-opacity="0"/>'
+      + '<stop offset="0.66" stop-color="' + pal.dark + '" stop-opacity="0"/>'
+      + '<stop offset="0.66" stop-color="' + pal.dark + '" stop-opacity="0.16"/>'
+      + '<stop offset="1" stop-color="' + pal.dark + '" stop-opacity="0.3"/>'
+      + '</linearGradient>' : '';
+    var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + bodyFx + celGrad + '</defs>';
     var back = '', legs = '', body = '', plates = '', stitches = '', shell = '', front = '';
 
     function membrane(ox, oy, sc, op) {
@@ -426,7 +445,12 @@
     seg.forEach(function (s, i) { if (!has(plan.spines[i])) return; back += '<path d="M ' + q(s.x) + ' ' + q(s.y - s.r) + ' l -3 -9 l 6 0 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1"/>'; });
     seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? ('gh' + uid) : ('gb' + segMat[i] + uid);
       body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + ')"' + (merge ? '' : ' stroke="' + ol + '" stroke-width="2.4"') + '/>';
-      if (i < N - 1) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
+      if (i < N - 1 && !lod) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
+    // fx cel-shade overlay: the same segment circles once more, filled with the
+    // hard-stop one-light gradient. Same alpha, so the merge outline/rim are
+    // unaffected; it simply re-lights the patchwork under a single sun.
+    var celOverlay = '';
+    if (fx) { seg.forEach(function (s) { celOverlay += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#cel' + uid + ')"/>'; }); }
     if (plated) {   // dorsal armor cap over each body segment (not the head)
       seg.forEach(function (s, i) {
         if (i === N - 1) return;
@@ -482,7 +506,7 @@
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
-      + defs + shadow + back + legs + (merge ? '<g filter="url(#bfx' + uid + ')">' + body + '</g>' : body) + plates + stitches + shell + front + '</svg>';
+      + defs + shadow + back + legs + (merge ? '<g filter="url(#bfx' + uid + ')">' + body + celOverlay + '</g>' : body) + plates + stitches + shell + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
