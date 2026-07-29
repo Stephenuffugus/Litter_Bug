@@ -183,6 +183,27 @@
   ];
   // WING_BANK_AUTOGEN_END
 
+  // ── Part-source dispatch (NEXT_SESSION plan B, wired 2026-07-29) ────
+  // Default is procedural everywhere and byte-identical to before this
+  // block existed. Registering an authored symbol flips ONE part kind to
+  // authored art, reversibly, without touching any roll: the same hash
+  // still picks the same wing slot; only the drawing changes.
+  // Contract for an authored wing symbol (matches PART_CATALOG 2):
+  //   - inner SVG markup for a 256x128 canvas, root at the LOWER LEFT
+  //     corner (0,128), wing sweeping up-right
+  //   - fills/strokes in currentColor (the renderer sets color to the
+  //     bug's accent); inner detail via opacity, never hard-coded hue
+  var PART_SOURCES = { wing: { symbols: {}, count: 0 } };
+  function registerPart(part, idx, svgInner) {
+    if (!PART_SOURCES[part]) return false;
+    PART_SOURCES[part].symbols[idx] = String(svgInner);
+    PART_SOURCES[part].count = Object.keys(PART_SOURCES[part].symbols).length;
+    return true;
+  }
+  function clearParts(part) {
+    if (PART_SOURCES[part]) PART_SOURCES[part] = { symbols: {}, count: 0 };
+  }
+
   // ── Body bank. ─────────────────────────────────────────────────────
   // PNG silhouettes of bug bodies (top-down, head end on the right).
   // 200x100 normalized; attachment at right edge (200, 50) is where
@@ -421,6 +442,17 @@
           + ' L ' + q(rx) + ' ' + q(eb.y + 3) + ' L ' + q(lx) + ' ' + q(ea.y + 3) + ' Z" fill="url(#gh' + uid + ')" stroke="' + ol + '" stroke-width="2.2" stroke-linejoin="round"/>';
         shell += '<path d="M ' + q(lx + 3) + ' ' + q(ea.y - 1) + ' Q ' + q((lx + rx) / 2) + ' ' + q(topY + 5) + ' ' + q(rx - 3) + ' ' + q(eb.y - 3) + '" fill="none" stroke="' + dk(pal.dark, 0.1) + '" stroke-width="1.4" opacity="0.55"/>';
         shell += '<ellipse cx="' + q(lx + (rx - lx) * 0.3) + '" cy="' + q(topY + 11) + '" rx="7" ry="4" fill="' + lt(secondary, 0.4) + '" opacity="0.5"/>';
+      } else if (PART_SOURCES.wing.count > 0) {
+        // authored wing symbol, placed on the exact same anchor the
+        // procedural membrane uses; hindwing echo preserved for kind 1
+        var wkeys = Object.keys(PART_SOURCES.wing.symbols).sort();
+        var wsym = PART_SOURCES.wing.symbols[wkeys[t.wing % wkeys.length]];
+        var wsc = (wingKind === 1 ? 1.18 : 1) * (t.wingScale || 1);
+        var placedWing = function (px, py, s3, op) {
+          return '<g color="' + accent + '" opacity="' + op + '" transform="translate(' + q(px) + ' ' + q(py) + ') scale(' + q(0.25 * s3) + ') translate(0 -128)">' + wsym + '</g>';
+        };
+        if (wingKind === 1) back += placedWing(wx - 3, wy + 4, wsc * 0.72, 0.8);
+        back += placedWing(wx, wy, wsc, 0.95);
       } else {
         var sc = wingKind === 1 ? 1.18 : 1;
         if (wingKind === 1) back += membrane(wx - 3, wy + 4, 0.72, 0.8);   // hindwing, behind the forewing
@@ -872,7 +904,8 @@
     WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,
     LEG_BANK: LEG_BANK, ANTENNA_BANK: ANTENNA_BANK, PATTERN_BANK: PATTERN_BANK,
     serializeTrace: serializeTrace, mintCodeblock: mintCodeblock,
-    bugFromCodeblock: bugFromCodeblock, breed: breed
+    bugFromCodeblock: bugFromCodeblock, breed: breed,
+    registerPart: registerPart, clearParts: clearParts
   };
   if (typeof module !== "undefined" && module.exports) { module.exports = _api; }
   if (typeof window !== "undefined") {

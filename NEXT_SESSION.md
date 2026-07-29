@@ -152,3 +152,15 @@ determinism gate now exercises the fx path and stays green.
 
 Plan A (refining PART_CATALOG.md together) still wants your session. Plan B
 (authored wing drop-in) still waits on your sref + first wings.
+
+**Same day, later:** plan B is ALSO done. `registerPart('wing', idx, svgInner)`
+/ `clearParts('wing')` on the engine: register an authored wing symbol
+(256x128, root at 0,128, currentColor - the contract is written at the
+PART_SOURCES block) and every membrane-winged bug wears it on the same
+thorax anchor, hindwing echo included; elytra and wingless bugs untouched;
+clear it and output is byte-identical procedural again. Proven by
+`WING_DROPIN_PROOF.png` (four bugs, procedural vs a stand-in test wing -
+NOT art direction, just the pipeline) and a new smoke guard
+(switch/untouched/deterministic/revert all asserted). Suite 137/0.
+The moment your real sref wings land: paste path data into a register call,
+done.

@@ -81,6 +81,25 @@ check('flat opt-out {fx:false} still renders (and differs from default)', functi
   return { ok: bad === 0, detail: bad ? bad + ' opt-out failures' : 'flat path intact' };
 });
 
+check('plan B: authored wing drop-in is live, reversible, deterministic', function () {
+  var TEST_WING = require('./test-wing.js');
+  var changed = 0, unchanged = 0, det = true, restored = true;
+  for (var i = 0; i < 40; i++) {
+    var c = cb('wingB' + i);
+    E.clearParts('wing');
+    var proc = E._generateBugSVG(c, 160);
+    E.registerPart('wing', 0, TEST_WING);
+    var a1 = E._generateBugSVG(c, 160), a2 = E._generateBugSVG(c, 160);
+    if (a1 !== a2) det = false;
+    if (a1 !== proc) changed++; else unchanged++;
+    E.clearParts('wing');
+    if (E._generateBugSVG(c, 160) !== proc) restored = false;
+  }
+  // membrane-winged bugs must switch to the symbol; elytra/wingless must not
+  var ok = det && restored && changed > 0 && unchanged > 0;
+  return { ok: ok, detail: changed + ' switched, ' + unchanged + ' untouched (elytra/wingless), det=' + det + ', revert=' + restored };
+});
+
 check('every bug draws from its palette scheme', function () {
   var bad = 0;
   for (var i = 0; i < 80; i++) {
