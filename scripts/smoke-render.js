@@ -62,6 +62,25 @@ check('deterministic across a 200-roll batch', function () {
   return { ok: bad === 0, detail: bad ? bad + ' non-deterministic' : '200 stable' };
 });
 
+check('FX pass is the live default (rim light + cel shade emitted)', function () {
+  var bad = 0;
+  for (var i = 0; i < 40; i++) {
+    var svg = E._generateBugSVG(cb('fxd' + i), 160);
+    if (svg.indexOf('rim') < 0 || svg.indexOf('cel') < 0) bad++;
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' rendered flat' : 'fx on all 40' };
+});
+
+check('flat opt-out {fx:false} still renders (and differs from default)', function () {
+  var bad = 0;
+  for (var i = 0; i < 40; i++) {
+    var c = cb('fxo' + i);
+    var flat = E._generateBugSVG(c, 160, 30, { fx: false });
+    if (flat.indexOf('rim') >= 0 || flat === E._generateBugSVG(c, 160)) bad++;
+  }
+  return { ok: bad === 0, detail: bad ? bad + ' opt-out failures' : 'flat path intact' };
+});
+
 check('every bug draws from its palette scheme', function () {
   var bad = 0;
   for (var i = 0; i < 80; i++) {

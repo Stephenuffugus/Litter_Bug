@@ -131,3 +131,24 @@ the bare URL with 100+ asset 404s). Renamed to `inherited-engine.html`, and
 `index.html` is now a small hub page linking the labs, styled to match them.
 CLAUDE.md file layout updated. All five pages verified live headless: zero JS
 errors, zero blanks.
+
+---
+
+## 2026-07-29 (from the lucid-winds codespace session)
+
+Stephen unparked the project ("litter bugs needs worked on"), so plan C from
+this file is now DONE: **the fx pass is the live default everywhere.** One
+line flips it back (`FX_LIVE = false` in bug-engine.js). No new rolls, pure
+seeded shading, so every existing bug keeps its identity - the 200-roll
+determinism gate now exercises the fx path and stays green.
+
+- Before/after for your eye: `FX_BEFORE_AFTER.png` in the repo root
+  (8 bugs, flat above, fx below - same codeblocks, upgraded look).
+- Two new smoke guards: fx is the default (rim+cel emitted), and the
+  `{fx:false}` flat opt-out still works and differs.
+- Also fixed: `scripts/smoke.js` still loaded `index.html` after the 07-27
+  rename to `inherited-engine.html`, so the first suite was failing 0/15 at
+  HEAD. Pointer updated; full suite is now 136/0.
+
+Plan A (refining PART_CATALOG.md together) still wants your session. Plan B
+(authored wing drop-in) still waits on your sref + first wings.

@@ -304,7 +304,11 @@
   // cross-stitches ("sewn from litter"). Faces right, viewBox 200x200.
   function _generateBugSVG(hash, size, level, opts) {
     level = level || 30;
-    var fx = !!(opts && opts.fx);         // free-fidelity pass: merge + one-light cel shade + rim light + LOD
+    // FX LIVE (2026-07-29, NEXT_SESSION plan C): the free-fidelity pass is now
+    // the default look everywhere. Pure seeded shading, no new rolls, so
+    // determinism holds. One-line revert: FX_LIVE = false.
+    var FX_LIVE = true;
+    var fx = (opts && ('fx' in opts)) ? !!opts.fx : FX_LIVE;  // free-fidelity pass: merge + one-light cel shade + rim light + LOD
     var merge = fx || !!(opts && opts.merge);   // experimental: fuse segments into one silhouette + unified outline
     var lod = fx && size <= 64;           // small renders drop fine detail (stitches, veins, barbs)
     var t = hashToBugTraits(hash), pal = PALETTES[t.palette] || PALETTES[0];

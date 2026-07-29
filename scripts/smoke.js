@@ -23,7 +23,7 @@ var crypto = require('crypto');
 var { JSDOM, VirtualConsole } = require('jsdom');
 
 var ROOT = path.join(__dirname, '..');
-var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+var html = fs.readFileSync(path.join(ROOT, 'inherited-engine.html'), 'utf8')  /* renamed 2026-07-27; smoke pointer fixed 2026-07-29 */;
 
 // Strip external <script src="..."> tags. jsdom won't fetch them anyway,
 // but cleaner this way + makes the failure modes explicit.
