@@ -160,6 +160,13 @@
 </style>
 </head>
 <body>
+<script>
+/* Sky Wolf portal embed: announce alive on every page, so the arcade's
+   black-screen recovery never mistakes an in-game navigation for a dead
+   frame (it yanked players back to the arcade mid-trial, Stephen 7/30). */
+if (window.parent !== window) { try { parent.postMessage({ sws: 'ready' }, '*'); } catch (e) {} }
+</script>
+
 <header>
   <h1>Litter Bug / world</h1>
   <div class="hud">

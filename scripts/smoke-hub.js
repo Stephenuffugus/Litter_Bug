@@ -99,6 +99,17 @@ check('identity: baked assets exist on disk', function () {
   return fs.existsSync(path.join(ROOT, 'og', 'card.png')) && fs.existsSync(path.join(ROOT, 'og', 'icon-512.png'));
 });
 
+// Every page reachable inside the arcade's iframe must announce
+// {sws:'ready'} on load — the portal's black-screen recovery closes any
+// framed page that navigates and then stays silent (~1.6s), which read as
+// "the trial crashed me back to the arcade" on a real phone (Stephen 7/30).
+['index.html', 'mint-lab.html', 'bugdex.html', 'world.html',
+ 'battle-lab.html', 'bug-lab.html', 'preview.html'].forEach(function (f) {
+  check('embed: ' + f + ' announces sws ready', function () {
+    return /sws:\s*'ready'/.test(fs.readFileSync(path.join(ROOT, f), 'utf8'));
+  });
+});
+
 var fails = 0;
 results.forEach(function (r) {
   if (!r[0]) fails++;
