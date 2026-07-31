@@ -1,5 +1,5 @@
 /*
- * Litter Bug hub smoke harness (index.html front door).
+ * Litter Bug lab-hub smoke harness (labs.html; the GAME is index.html).
  *
  * The hub adapts to the vault: a fresh player gets the PLAY THE TRIAL hero,
  * a player with a minted bug (anything past the 3 seeded starters) gets
@@ -17,7 +17,9 @@ var { JSDOM, VirtualConsole } = require('jsdom');
 var ROOT = path.join(__dirname, '..');
 var W = require(path.join(ROOT, 'world-engine.js'));
 
-var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+/* ⛔ The GAME is index.html since v1. The old lab hub, which these
+   structural checks describe, moved to labs.html. */
+var html = fs.readFileSync(path.join(ROOT, 'labs.html'), 'utf8');
 ['bug-engine.js', 'battle-engine.js', 'world-engine.js'].forEach(function (f) {
   var src = fs.readFileSync(path.join(ROOT, f), 'utf8');
   html = html.replace('<script src="' + f + '"></script>',

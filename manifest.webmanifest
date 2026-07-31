@@ -1,14 +1,22 @@
 {
-  "name": "Litter Bug",
-  "short_name": "Litter Bug",
-  "id": "litter-bug",
+  "name": "Litterbugs",
+  "short_name": "Litterbugs",
+  "id": "sws-litterbugs",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#0d100c",
-  "theme_color": "#0d100c",
-  "description": "Bugs made of trash. Play a trial, mint a one of one bug, battle for the dumpster.",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "description": "Scavenge the alley, mint one of one bugs, and fill the Bugdex.",
   "icons": [
-    { "src": "og/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "og/icon-512.png", "sizes": "192x192", "type": "image/png" }
+    {
+      "src": "og/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "og/icon-512.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
   ]
 }

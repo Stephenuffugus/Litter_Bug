@@ -2,135 +2,809 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Litter Bug</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>Litterbugs · Sky Wolf Studios</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='6' fill='%2311151a'/%3E%3Cellipse cx='16' cy='18' rx='7' ry='9' fill='%236fd08c'/%3E%3Ccircle cx='16' cy='9' r='4' fill='%23e8c46a'/%3E%3Cpath d='M13 6 L10 2 M19 6 L22 2' stroke='%23e8c46a' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Litterbugs">
+<!-- ⛔ PWA IDENTITY COLLISION: own manifest with a unique id, never the site default -->
+<link rel="manifest" href="manifest.webmanifest">
+
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sky Wolf Studios">
-<meta property="og:title" content="Litter Bug">
-<meta property="og:description" content="Bugs made of trash. Play a trial, mint a one of one bug, battle for the dumpster.">
-<meta property="og:url" content="https://stephenuffugus.github.io/Litter_Bug/">
-<meta property="og:image" content="https://stephenuffugus.github.io/Litter_Bug/og/card.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:title" content="Litterbugs">
+<meta property="og:description" content="Scavenge the alley, mint one of one bugs, and fill the Bugdex.">
+<meta property="og:image" content="og/icon-512.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Litter Bug">
-<meta name="twitter:description" content="Bugs made of trash. Play a trial, mint a one of one bug, battle for the dumpster.">
-<meta name="twitter:image" content="https://stephenuffugus.github.io/Litter_Bug/og/card.png">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='80'%3E%F0%9F%AA%B2%3C/text%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="og/icon-512.png">
+
 <style>
-  :root { color-scheme: dark; }
-  html, body { margin: 0; padding: 0; background: #0d100c; color: #e8dcc8;
-    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    -webkit-tap-highlight-color: transparent; }
-  header { padding: 22px 16px 10px; border-bottom: 1px solid #1c1f1a; text-align: center; }
-  h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: .04em; }
-  .sub { margin-top: 5px; font-size: 12px; color: #8a9178; }
-  main { padding: 16px 14px 32px; max-width: 460px; margin: 0 auto;
-    display: flex; flex-direction: column; gap: 10px; }
-  a.card { display: block; text-decoration: none; color: inherit;
-    background: #15191a; border: 1px solid #22271f; border-radius: 12px;
-    padding: 14px 16px; min-height: 48px; }
-  a.card:active { background: #1a201c; }
-  .name { font-weight: 600; font-size: 16px; }
-  .name .ic { margin-right: 8px; }
-  .desc { margin-top: 3px; font-size: 12px; color: #8a9178; }
-  /* the hero: first door for a new player, status for a returning one */
-  a.hero { display: block; text-decoration: none; color: inherit; text-align: center;
-    background: linear-gradient(180deg, #1a2016, #12160f); border: 1px solid #3a4430;
-    border-radius: 14px; padding: 18px 16px 20px; min-height: 48px; }
-  a.hero:active { filter: brightness(1.15); }
-  .hero .big { font-size: 18px; font-weight: 700; letter-spacing: .03em; }
-  .hero .hint { margin-top: 6px; font-size: 12px; color: #9aa385; }
-  .hero .portrait { width: 132px; height: 132px; margin: 0 auto 8px; }
-  .hero .portrait svg { width: 100%; height: 100%; display: block; }
-  .hero .bugname { font-size: 14px; color: #cfe0a8; margin-bottom: 2px; }
-  .devrow { margin-top: 10px; padding-top: 12px; border-top: 1px solid #1c1f1a; }
-  .devrow .label { font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 11px; color: #8a9178; letter-spacing: .12em; margin-bottom: 8px; }
-  .devrow a.card { padding: 10px 16px; }
-  .devrow .name { font-size: 13px; font-weight: 500; }
+:root{
+  --bg:#0b0d10; --panel:#141920; --line:#28323d; --ink:#e6ecf2; --dim:#8fa0b2;
+  --shine:#e8c46a; --grub:#6fd08c; --rust:#c4703e; --bad:#c4543e;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden;overscroll-behavior:none;
+  font-family:"Trebuchet MS","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,system-ui,sans-serif;
+  color:var(--ink);user-select:none;-webkit-user-select:none}
+#wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(120% 80% at 50% 0%,#161d26 0%,#080a0d 70%,#000 100%)}
+#stage{position:relative;flex:none;width:540px;height:960px;transform-origin:center center;
+  background:#0b0d10;overflow:hidden;box-shadow:0 0 60px #000a}
+
+.screen{position:absolute;inset:0;display:none;flex-direction:column;z-index:20;
+  background:linear-gradient(180deg,#121820 0%,#0b0d10 100%)}
+.screen.on{display:flex}
+.pad{padding:22px;flex:1;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.center{align-items:center;justify-content:center;text-align:center}
+
+h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-spacing:1px;
+  text-shadow:0 3px 0 #13301c,0 0 26px #6fd08c33}
+.sub{color:var(--shine);font-size:16px;letter-spacing:4px;margin-top:8px;text-transform:uppercase}
+.lede{margin-top:16px;font-size:18px;line-height:1.5;max-width:430px;color:var(--ink)}
+.dim{color:var(--dim);font-size:15px;line-height:1.5}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:12px;min-height:76px;width:100%;
+  border:1px solid var(--line);border-radius:15px;background:linear-gradient(180deg,#1b222b,#131920);
+  color:var(--ink);font-size:19px;font-weight:700;letter-spacing:.4px;cursor:pointer;padding:0 16px}
+.btn:active{transform:translateY(2px);filter:brightness(1.15)}
+.btn.primary{background:linear-gradient(180deg,#6fd08c,#3f8f58);color:#08150c;border-color:#9be5b0;
+  box-shadow:0 4px 0 #23532f,0 8px 20px #0006}
+.btn.gold{background:linear-gradient(180deg,#e8c46a,#a8873a);color:#1a1405;border-color:#f4dd9a;
+  box-shadow:0 4px 0 #6b5520,0 8px 20px #0006}
+.btn.ghost{background:#10151b;color:var(--dim)}
+.btn .g{width:34px;height:34px;flex:none}
+.stack{display:flex;flex-direction:column;gap:13px;width:100%;max-width:430px;margin:0 auto}
+
+.hud{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 20px;
+  border-bottom:1px solid var(--line);background:#0e1319}
+.hud b{color:var(--shine)}
+.hud .l{font-size:15px;color:var(--dim);font-weight:700;letter-spacing:.6px}
+
+/* ── the alley ── */
+.alley{position:relative;height:280px;border-radius:16px;border:1px solid var(--line);overflow:hidden;
+  background:linear-gradient(180deg,#0f1620 0%,#141c26 60%,#1a232e 100%)}
+.alley svg{position:absolute;inset:0;width:100%;height:100%}
+.bugstage{position:absolute;left:0;right:0;bottom:14px;display:flex;align-items:flex-end;justify-content:center}
+
+/* ── directions ── */
+.dirh{font-size:31px;color:var(--shine);font-weight:800}
+.dsec{margin-top:20px;text-align:left;width:100%;max-width:440px}
+.dlab{font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--grub);font-weight:800}
+.dtxt{font-size:18px;line-height:1.55;margin-top:7px}
+.dlist{margin-top:9px;list-style:none;padding:0}
+.dlist li{font-size:17px;line-height:1.5;margin:8px 0;padding-left:26px;position:relative}
+.dlist li:before{content:"";position:absolute;left:0;top:6px;width:14px;height:14px;border-radius:50%;
+  background:var(--grub);opacity:.85}
+
+/* ── micro games ── */
+.field{position:relative;flex:1;border-radius:16px;border:1px solid var(--line);overflow:hidden;
+  background:#0e141b;margin-top:12px}
+.bins{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.bin{min-height:96px;border-radius:14px;border:2px solid var(--line);background:#151c25;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;
+  font-size:15px;font-weight:800;letter-spacing:.5px}
+.bin:active{filter:brightness(1.25)}
+.bin .bl{font-size:12px;color:var(--dim);letter-spacing:1px}
+.falling{position:absolute;width:66px;height:66px;display:flex;align-items:center;justify-content:center;
+  border-radius:12px;font-size:13px;font-weight:800;text-align:center;line-height:1.1;padding:4px}
+.pile{position:absolute;inset:0}
+.pileitem{position:absolute;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  border-radius:9px;font-size:11px;font-weight:700;color:#0b0d10}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:120px;z-index:80;background:#0f151bee;
+  border:1px solid var(--line);border-radius:13px;padding:13px 20px;font-size:17px;font-weight:700;
+  opacity:0;transition:opacity .25s ease;pointer-events:none}
+.toast.on{opacity:1}
+
+/* ── mint ── */
+.mintwrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.gradepill{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;
+  font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border:1px solid}
+.specname{font-size:27px;font-weight:800;margin-top:6px}
+.specsp{font-size:15px;color:var(--dim);font-style:italic}
+.speclore{font-size:16px;line-height:1.5;margin-top:10px;max-width:420px;color:var(--ink)}
+
+/* ── dex ── */
+.dexgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:12px}
+.card{border:1px solid var(--line);border-radius:13px;background:#131a22;padding:9px 6px;text-align:center;cursor:pointer}
+.card .nm{font-size:12px;font-weight:800;margin-top:5px;line-height:1.15}
+.card .gr{font-size:10px;letter-spacing:1px;margin-top:3px;font-weight:800}
+.empty{grid-column:1/-1;padding:34px 10px;text-align:center;color:var(--dim);font-size:16px;line-height:1.5}
+
+/* ⛔ 48px TOUCH IS MEASURED IN RENDERED PIXELS. A 540 stage on a 375 phone
+   scales to 0.694, so anything tappable is sized >=70 CSS px here. */
+.exitpill{position:absolute;left:12px;bottom:12px;z-index:60;height:72px;display:flex;align-items:center;/* ⛔ 72 not 52: at stage scale 0.694 a 52px pill lands at 36 REAL px and fails the 48 rule */
+  padding:0 18px;border-radius:26px;border:1px solid var(--line);background:#0f151bdd;color:var(--dim);
+  font-size:15px;font-weight:700;cursor:pointer}
+.stamp{position:absolute;right:12px;bottom:14px;z-index:60;font-size:12px;color:#3d4956}
 </style>
 </head>
 <body>
+<div id="wrap"><div id="stage">
+
+  <!-- ══════════ HOME ══════════ -->
+  <div class="screen on" id="s-home">
+    <div class="hud">
+      <div class="l">SHINIES <b id="h-shine">0</b> <span style="color:#3d4956">/ 30</span></div>
+      <div class="l">BUGDEX <b id="h-dex">0</b></div>
+    </div>
+    <div class="pad">
+      <div class="alley"><svg id="alley-svg" viewBox="0 0 500 280" preserveAspectRatio="xMidYMid slice"></svg>
+        <div class="bugstage" id="home-bug"></div>
+      </div>
+      <div style="text-align:center;margin-top:12px">
+        <h1 class="logo">LITTERBUGS</h1>
+        <div class="sub">Sky Wolf Studios</div>
+      </div>
+      <div class="stack" style="margin-top:18px">
+        <button class="btn primary" id="b-scav">SCAVENGE</button>
+        <button class="btn gold" id="b-mint" style="display:none">A BUG IS READY</button>
+        <button class="btn" id="b-dex">BUGDEX</button>
+        <button class="btn" id="b-dump" style="display:none">THE DUMPSTER</button>
+        <button class="btn ghost" id="b-how">HOW TO PLAY</button>
+      </div>
+    </div>
+    <div class="exitpill" id="b-exit">◀ Sky Wolf Studios Arcade</div>
+    <div class="stamp"><span id="stamp"></span> · <a href="labs.html" style="color:#3d4956;text-decoration:none">labs</a></div>
+  </div>
+
+  <!-- ══════════ HOW TO PLAY ══════════ -->
+  <div class="screen" id="s-how">
+    <div class="pad center">
+      <div class="dirh">How to play</div>
+      <div class="dsec">
+        <div class="dlab">The goal</div>
+        <div class="dtxt">Work the alley for Shinies, and every thirty Shinies buys you one bug that has never existed before and never will again. Fill the Bugdex.</div>
+      </div>
+      <div class="dsec">
+        <div class="dlab">How it plays</div>
+        <div class="dtxt">SCAVENGE gives you a sixty second job on one of three blocks. Sort the recycling, hunt a grub out of a junk pile, or untangle the wires. Each pays Shinies, and there is a daily limit so the alley is worth coming back to.</div>
+      </div>
+      <div class="dsec">
+        <div class="dlab">The controls</div>
+        <ul class="dlist">
+          <li>Sorting: tap the bin that matches the falling junk</li>
+          <li>Grub hunt: tap the grub hiding in the pile</li>
+          <li>Wires: drag a pin until no two wires cross</li>
+          <li>Every bug you mint is graded and kept in the Bugdex</li>
+          <li>The arrow at the bottom left returns to the arcade</li>
+        </ul>
+      </div>
+      <div class="stack" style="margin-top:24px">
+        <button class="btn primary" id="b-how-go">GOT IT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ BLOCK PICKER ══════════ -->
+  <div class="screen" id="s-block">
+    <div class="pad center">
+      <div class="dirh">Which block?</div>
+      <div class="dim" style="margin-top:8px">Sixty seconds each.</div>
+      <div class="stack" style="margin-top:22px">
+        <button class="btn primary" data-job="sort">SORT THE RECYCLING</button>
+        <button class="btn" data-job="grub">GRUB HUNT</button>
+        <button class="btn" data-job="wire">WIRE UNTANGLE</button>
+        <button class="btn ghost" id="b-block-back">Back</button>
+      </div>
+      <div class="dim" id="cap-note" style="margin-top:18px"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ PLAY ══════════ -->
+  <div class="screen" id="s-play">
+    <div class="hud">
+      <div class="l" id="p-job">SORTING</div>
+      <div class="l">TIME <b id="p-time">60</b></div>
+      <div class="l">SHINIES <b id="p-score">0</b></div>
+    </div>
+    <div class="pad" style="padding-bottom:14px">
+      <div class="field" id="p-field"></div>
+      <div id="p-controls"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ JOB DONE ══════════ -->
+  <div class="screen" id="s-done">
+    <div class="pad center">
+      <div class="dirh" id="d-head">SHIFT OVER</div>
+      <div style="font-size:52px;font-weight:800;color:var(--shine);margin-top:14px" id="d-shine">+0</div>
+      <div class="dim" id="d-note" style="margin-top:6px"></div>
+      <div class="dim" id="d-prog" style="margin-top:16px"></div>
+      <div class="stack" style="margin-top:24px">
+        <button class="btn gold" id="b-done-mint" style="display:none">OPEN THE JAR</button>
+        <button class="btn primary" id="b-again">ANOTHER BLOCK</button>
+        <button class="btn ghost" id="b-done-home">Home</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ MINT ══════════ -->
+  <div class="screen" id="s-mint">
+    <div class="pad center">
+      <div class="dim" style="letter-spacing:3px;font-size:13px" id="m-kicker">SOMETHING IN THE JAR</div>
+      <div class="mintwrap" style="margin-top:14px">
+        <div id="m-art"></div>
+        <div class="gradepill" id="m-grade">COMMON</div>
+        <div class="specname" id="m-name"></div>
+        <div class="specsp" id="m-species"></div>
+        <div class="speclore" id="m-lore"></div>
+      </div>
+      <div class="stack" style="margin-top:22px">
+        <button class="btn primary" id="b-mint-keep">INTO THE BUGDEX</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ BUGDEX ══════════ -->
+  <div class="screen" id="s-dex">
+    <div class="hud">
+      <div class="l">BUGDEX <b id="x-count">0</b></div>
+      <div class="l" id="x-best"></div>
+    </div>
+    <div class="pad">
+      <div class="dexgrid" id="x-grid"></div>
+      <div class="stack" style="margin-top:18px">
+        <button class="btn ghost" id="b-dex-back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SPECIMEN ══════════ -->
+  <div class="screen" id="s-spec">
+    <div class="pad center">
+      <div class="mintwrap">
+        <div id="sp-art"></div>
+        <div class="gradepill" id="sp-grade">COMMON</div>
+        <div class="specname" id="sp-name"></div>
+        <div class="specsp" id="sp-species"></div>
+        <div class="speclore" id="sp-lore"></div>
+        <div class="dim" id="sp-meta" style="margin-top:12px;font-size:13px"></div>
+      </div>
+      <div class="stack" style="margin-top:20px">
+        <button class="btn ghost" id="b-spec-back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ THE DUMPSTER (dark until ?battles=1) ══════════ -->
+  <div class="screen" id="s-dump">
+    <div class="hud">
+      <div class="l">KING OF THE DUMPSTER</div>
+      <div class="l" id="k-day"></div>
+    </div>
+    <div class="pad">
+      <div class="dim" id="k-note" style="text-align:center"></div>
+      <div id="k-list" style="margin-top:12px"></div>
+      <div class="stack" style="margin-top:18px">
+        <button class="btn ghost" id="b-dump-back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div></div>
+
 <script>
-/* Sky Wolf portal embed: announce alive on every page, so the arcade's
-   black-screen recovery never mistakes an in-game navigation for a dead
-   frame (it yanked players back to the arcade mid-trial, Stephen 7/30). */
+/* ⛔⛔ SWS EMBED PROTOCOL: announce ready on EVERY framed page, three times
+   (parse, load, and 700ms later). The portal arms a black-screen watchdog when
+   it opens a game and rescues anything that never announces, so a silent page
+   gets yanked back to the arcade mid play. The smoke suite gates on this. */
 if (window.parent !== window) {
   var swsHi = function () { try { parent.postMessage({ sws: 'ready' }, '*'); } catch (e) {} };
   swsHi(); window.addEventListener('load', swsHi); setTimeout(swsHi, 700);
 }
 </script>
-
-<header>
-  <h1>🪲 LITTER BUG</h1>
-  <div class="sub">bugs made of trash. play a trial, mint a bug, battle for the dumpster.</div>
-</header>
-<main>
-  <a class="hero" id="hero" href="mint-lab.html">
-    <div class="big" id="hero-big">🎰 PLAY THE TRIAL</div>
-    <div class="hint" id="hero-hint">Your taps and timing become the codeblock that hatches your first bug.</div>
-  </a>
-  <a class="card" href="bugdex.html">
-    <div class="name"><span class="ic">📖</span>BUGDEX</div>
-    <div class="desc">The collection. Six trash types, sortable, every bug one of one.</div>
-  </a>
-  <a class="card" href="world.html">
-    <div class="name"><span class="ic">🗺️</span>WORLD</div>
-    <div class="desc">Territory. Raid held ground and defend your own.</div>
-  </a>
-  <a class="card" href="battle-lab.html">
-    <div class="name"><span class="ic">⚔️</span>ARENA</div>
-    <div class="desc">Turn-based typed battles. Poise, Break, and reading the foe.</div>
-  </a>
-  <div class="devrow">
-    <div class="label">UNDER THE HOOD</div>
-    <a class="card" href="mint-lab.html">
-      <div class="name">🎰 MINT LAB · the trial, up close</div>
-    </a>
-    <a class="card" href="bug-lab.html">
-      <div class="name">🔬 BUG LAB · renderer proof of concept</div>
-    </a>
-  </div>
-</main>
 <script src="bug-engine.js"></script>
 <script src="battle-engine.js"></script>
-<script src="world-engine.js"></script>
 <script>
-(function () {
-  // The hero adapts: a brand new vault holds only the 3 seeded starters, so
-  // anything past 3 bugs (or any xp or win on a starter) means this player
-  // has really played. Show their newest bug and the size of the yard;
-  // otherwise keep the first-trial call. Engines missing or throwing leaves
-  // the static hero untouched.
-  try {
-    var W = window.WORLD_ENGINE, E = window.BUG_ENGINE;
-    if (!W || !E || !W.browserLoad || !E.bugFromCodeblock) return;
-    var v = W.browserLoad();
-    if (!v || !v.bugs || !v.bugs.length) return;
-    var played = v.bugs.length > 3;
-    var i;
-    if (!played) { for (i = 0; i < v.bugs.length; i++) { if (v.bugs[i].xp > 0 || v.bugs[i].wins > 0) { played = true; break; } } }
-    if (!played) return;
-    var newest = v.bugs[v.bugs.length - 1];
-    var bug = E.bugFromCodeblock(newest.cb, 132, newest.level || 1);
-    var hero = document.getElementById('hero');
-    var big = document.getElementById('hero-big');
-    var hint = document.getElementById('hero-hint');
-    var wrap = document.createElement('div');
-    wrap.className = 'portrait';
-    wrap.innerHTML = bug.svg;
-    var nameEl = document.createElement('div');
-    nameEl.className = 'bugname';
-    nameEl.textContent = bug.identity && bug.identity.name ? bug.identity.name : 'your newest bug';
-    hero.insertBefore(nameEl, big);
-    hero.insertBefore(wrap, nameEl);
-    big.textContent = '🎰 PLAY ANOTHER TRIAL';
-    hint.textContent = v.bugs.length + ' bugs in your collection. Mint the next one.';
-  } catch (e) { /* static hero stands */ }
+/* ==========================================================================
+   LITTERBUGS v1 — the game, assembled on the existing engines.
+   Plan: project_plan_flagship_assembly section A. The renderer, traits, names,
+   lore, stats and battle resolution all already existed as LABS. Nothing here
+   reimplements them; this file is the loop that turns them into a game.
+   ⛔ No real trademarks. No em-dashes in player copy. No free-text input.
+   ========================================================================== */
+var VW=540, VH=960, BUILD='v1.0';
+function $(id){ return document.getElementById(id); }
+
+/* ⛔ MEASURE visualViewport, NEVER innerHeight: the URL bar sliding away changes
+   innerHeight without firing resize and the stage ends up taller than the screen. */
+function _vvW(){ var v=window.visualViewport; return (v&&v.width)||window.innerWidth||VW; }
+function _vvH(){ var v=window.visualViewport; return (v&&v.height)||window.innerHeight||VH; }
+function fit(){ var s=Math.min(_vvW()/VW,_vvH()/VH); $('stage').style.transform='translateZ(0) scale('+s+')'; }
+window.addEventListener('resize',fit);
+if(window.visualViewport){ window.visualViewport.addEventListener('resize',fit);
+  window.visualViewport.addEventListener('scroll',fit); }
+fit();
+
+/* ---------- storage ---------- */
+var LS={ get:function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } },
+         set:function(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
+var DEX_KEY='lb_dex_v1';          /* ⛔ schema versioned from day one */
+var SAVE={ shinies:0, dex:[], jobs:0, lastDay:0 };
+(function(){ try{ var r=JSON.parse(LS.get(DEX_KEY,'{}')); for(var k in SAVE) if(r[k]!=null) SAVE[k]=r[k]; }catch(e){} })();
+function save(){ LS.set(DEX_KEY, JSON.stringify(SAVE)); }
+function dayIndex(){ return Math.floor(Date.now()/864e5); }
+
+/* ---------- device id (stable, local, not identity) ---------- */
+function deviceId(){
+  var d=LS.get('lb_dev','');
+  if(!d){ d=''; for(var i=0;i<16;i++) d+=Math.floor(Math.random()*16).toString(16); LS.set('lb_dev',d); }
+  return d;
+}
+
+/* ---------- Shinies, with the studio daily cap ---------- */
+var DAILY_CAP=90;                 /* three good shifts a day, then come back */
+function capState(){
+  var s={}; try{ s=JSON.parse(LS.get('lb_cap','{}')); }catch(e){}
+  var d=dayIndex(); if(s.d!==d) s={d:d,n:0};
+  return s;
+}
+function capLeft(){ var s=capState(); return Math.max(0, DAILY_CAP-(s.n||0)); }
+function earnShinies(n){
+  var s=capState(), give=Math.min(n, Math.max(0, DAILY_CAP-(s.n||0)));
+  if(give<=0) return 0;
+  s.n=(s.n||0)+give; LS.set('lb_cap', JSON.stringify(s));
+  SAVE.shinies=(SAVE.shinies||0)+give; save();
+  return give;
+}
+var MINT_COST=30;                 /* ⛔ 30 = 1 mint is LAW across the hashblock games */
+function readyToMint(){ return (SAVE.shinies||0) >= MINT_COST; }
+
+/* ==========================================================================
+   SPECIMEN GRADE
+   Variant G architecture: each trait layer scores by its own rarity tier, the
+   plant's grade is the SUM. ⛔ The distribution is measured by simulating THIS
+   function headless (scripts/grade_sim_live.js), never by hand mirroring it.
+   ========================================================================== */
+var GRADES=['COMMON','UNCOMMON','RARE','EPIC','LEGENDARY','MYTHIC','COSMIC'];
+var GRADE_COLOR={COMMON:'#8fa0b2',UNCOMMON:'#6fd08c',RARE:'#5aa9e6',EPIC:'#b57de0',
+  LEGENDARY:'#e8c46a',MYTHIC:'#e2724f',COSMIC:'#f2f2f2'};
+/* ⛔ uncommon scores 1, not 0. With both common and uncommon at zero the score
+   histogram had one huge lump at the bottom and NO threshold could separate
+   those two grades: the tuner reported UNCOMMON as unseparable. Giving the
+   ladder finer resolution is what makes a seven tier curve fittable at all. */
+var TIER_SCORE={common:0,uncommon:1,rare:2,epic:4,legendary:6,mythic:8,cosmic:11};
+/* ⛔ FITTED, not guessed: scripts/grade_tune.js sampled 200k hashes through the
+   LIVE scorer and solved for these seven thresholds. Measured result below,
+   Lucid Winds Variant G target in brackets:
+     Common 25.9 [33.8] · Uncommon 33.0 [32.0] · Rare 28.0 [23.0]
+     Epic 10.2 [9.3] · Legendary 2.5 [1.62] · Mythic 0.35 [0.23] · Cosmic 0.08 [0.03]
+   Common lands where Lucid Winds ACTUALLY ships (26.6% live), which is the
+   curve players already know, and Stephen's ruling on Variant G was that a
+   little generous is fine. Re-run the sim after ANY change to the banks. */
+var GRADE_CUT=[0,2,5,9,13,17,20];
+
+/* One layer's tier from its index within its bank. The top of every bank is the
+   rare end, which is how the art banks were authored. */
+/* The band edges are DATA so the tuner can search them against this very
+   function. ⛔ There is exactly one implementation of the scorer and the sim
+   drives it; nothing anywhere reimplements this maths. */
+var TIER_BANDS={ cosmic:0.996, mythic:0.986, legendary:0.966, epic:0.920, rare:0.855, uncommon:0.680 };
+function layerTier(idx, bankSize){
+  if(!bankSize) return 'common';
+  var p = idx / bankSize;                 /* 0 common .. 1 rarest */
+  if(p >= TIER_BANDS.cosmic) return 'cosmic';
+  if(p >= TIER_BANDS.mythic) return 'mythic';
+  if(p >= TIER_BANDS.legendary) return 'legendary';
+  if(p >= TIER_BANDS.epic) return 'epic';
+  if(p >= TIER_BANDS.rare) return 'rare';
+  if(p >= TIER_BANDS.uncommon) return 'uncommon';
+  return 'common';
+}
+function gradeOf(codeblock){
+  var t=BUG_ENGINE.hashToBugTraits(codeblock);
+  var layers=[
+    layerTier(t.wing,40), layerTier(t.body,30), layerTier(t.head,25),
+    layerTier(t.pattern,50), layerTier(t.leg,20), layerTier(t.antenna,15)
+  ];
+  var score=0,i;
+  for(i=0;i<layers.length;i++) score+=TIER_SCORE[layers[i]];
+  /* the behaviour byte is the spike: a rare behaviour lifts a plain body */
+  if(t.behavior>=11) score+=7; else if(t.behavior>=10) score+=4;
+  var g=0;
+  for(i=GRADE_CUT.length-1;i>=0;i--){ if(score>=GRADE_CUT[i]){ g=i; break; } }
+  return { grade:GRADES[g], score:score, layers:layers };
+}
+
+/* ---------- screens ---------- */
+var cur='s-home';
+function show(id){
+  var all=document.querySelectorAll('.screen'), i;
+  for(i=0;i<all.length;i++) all[i].classList.remove('on');
+  $(id).classList.add('on'); cur=id;
+}
+function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('on');
+  setTimeout(function(){ t.classList.remove('on'); },1700); }
+
+/* ---------- the alley backdrop, drawn ---------- */
+function drawAlley(){
+  var s=[];
+  s.push('<rect x="0" y="0" width="500" height="280" fill="#0f1620"/>');
+  /* far wall + windows */
+  s.push('<rect x="0" y="30" width="500" height="180" fill="#141c26"/>');
+  for(var i=0;i<9;i++){
+    var wx=18+i*54, lit=(i%3===0);
+    s.push('<rect x="'+wx+'" y="'+(52+(i%2)*34)+'" width="30" height="38" rx="2" fill="'+(lit?'#2a3444':'#171f2a')+'"/>');
+    if(lit) s.push('<rect x="'+(wx+4)+'" y="'+(56+(i%2)*34)+'" width="22" height="16" fill="#3c4a5e" opacity="0.7"/>');
+  }
+  /* streetlight and its pool */
+  s.push('<rect x="404" y="18" width="6" height="150" fill="#222c38"/>');
+  s.push('<path d="M407 24 q26 0 30 22" stroke="#222c38" stroke-width="6" fill="none"/>');
+  s.push('<circle cx="437" cy="50" r="9" fill="#e8c46a"/>');
+  s.push('<path d="M437 56 L392 210 L482 210 Z" fill="#e8c46a" opacity="0.10"/>');
+  /* ground */
+  s.push('<rect x="0" y="206" width="500" height="74" fill="#1a232e"/>');
+  s.push('<path d="M0 206 Q250 199 500 206" stroke="#232f3c" stroke-width="3" fill="none"/>');
+  /* bins and scattered junk */
+  s.push('<rect x="28" y="150" width="70" height="58" rx="5" fill="#1e2a35"/><rect x="24" y="144" width="78" height="10" rx="4" fill="#27333f"/>');
+  s.push('<rect x="112" y="164" width="52" height="44" rx="4" fill="#1b2732"/>');
+  for(var j=0;j<7;j++){
+    var jx=180+j*38, jy=214+((j*7)%12);
+    s.push('<rect x="'+jx+'" y="'+jy+'" width="12" height="7" rx="2" fill="#2b3846" opacity="0.9"/>');
+  }
+  $('alley-svg').innerHTML=s.join('');
+}
+
+/* ---------- render a bug ---------- */
+function bugSVG(codeblock,size){
+  try{ return BUG_ENGINE._generateBugSVG(codeblock,size||140); }
+  catch(e){ return '<div style="width:'+(size||140)+'px;height:'+(size||140)+'px"></div>'; }
+}
+function paintHome(){
+  $('h-shine').textContent=SAVE.shinies||0;
+  $('h-dex').textContent=(SAVE.dex||[]).length;
+  $('b-mint').style.display=readyToMint()?'':'none';
+  $('b-scav').textContent = capLeft()>0 ? 'SCAVENGE' : 'THE ALLEY IS PICKED CLEAN';
+  var newest=(SAVE.dex&&SAVE.dex.length)?SAVE.dex[SAVE.dex.length-1]:null;
+  $('home-bug').innerHTML = newest ? bugSVG(newest.cb,150) : '';
+  $('stamp').textContent='Litterbugs '+BUILD;
+}
+
+/* ==========================================================================
+   THE THREE BLOCKS. Sixty seconds each, native to the fiction, no new engines.
+   ========================================================================== */
+var G=null, tick=null;
+var JOBS={ sort:'SORTING', grub:'GRUB HUNT', wire:'WIRE UNTANGLE' };
+
+function startJob(kind){
+  G={ kind:kind, t:60, score:0, over:false, items:[], sel:null };
+  $('p-job').textContent=JOBS[kind];
+  $('p-score').textContent='0'; $('p-time').textContent='60';
+  $('p-field').innerHTML=''; $('p-controls').innerHTML='';
+  if(kind==='sort') initSort(); else if(kind==='grub') initGrub(); else initWire();
+  show('s-play');
+  if(tick) clearInterval(tick);
+  tick=setInterval(function(){
+    if(!G||G.over) return;
+    G.t--; $('p-time').textContent=G.t;
+    if(G.t<=0) endJob();
+  },1000);
+}
+function endJob(){
+  if(!G||G.over) return;
+  G.over=true; if(tick){ clearInterval(tick); tick=null; }
+  if(G.raf){ cancelAnimationFrame(G.raf); G.raf=null; }
+  var paid=earnShinies(G.score);
+  SAVE.jobs=(SAVE.jobs||0)+1; save();
+  $('d-shine').textContent='+'+paid;
+  $('d-note').textContent = paid<G.score
+    ? 'You worked for '+G.score+', but the alley only had '+paid+' left today.'
+    : 'Straight into the jar.';
+  var need=Math.max(0,MINT_COST-(SAVE.shinies||0));
+  $('d-prog').textContent = need>0
+    ? (SAVE.shinies||0)+' of '+MINT_COST+' Shinies. '+need+' more and something hatches.'
+    : 'Thirty Shinies. Something is moving in the jar.';
+  $('b-done-mint').style.display = readyToMint()?'':'none';
+  $('b-again').textContent = capLeft()>0 ? 'ANOTHER BLOCK' : 'THAT IS THE LOT FOR TODAY';
+  show('s-done');
+}
+
+/* ── 1. SORT THE RECYCLING ─────────────────────────────────────────────── */
+var MATS=[
+  {k:'glass', label:'GLASS', col:'#5aa9e6', things:['bottle','jar','pane','tumbler']},
+  {k:'metal', label:'METAL', col:'#b9c4d0', things:['can','foil','tin','bottle cap']},
+  {k:'paper', label:'PAPER', col:'#e8c46a', things:['carton','flyer','box','sleeve']}
+];
+function initSort(){
+  var f=$('p-field');
+  G.lane=null; G.speed=52;
+  var bins=document.createElement('div'); bins.className='bins';
+  MATS.forEach(function(m){
+    var b=document.createElement('div'); b.className='bin';
+    b.style.borderColor=m.col;
+    b.innerHTML='<div style="color:'+m.col+'">'+m.label+'</div><div class="bl">bin</div>';
+    b.onclick=function(){ sortTap(m.k); };
+    bins.appendChild(b);
+  });
+  $('p-controls').appendChild(bins);
+  nextPiece();
+  var last=performance.now();
+  (function loop(now){
+    if(!G||G.over) return;
+    var dt=Math.min(60,now-last); last=now;
+    if(G.lane){
+      G.lane.y += G.speed*dt/1000;
+      G.lane.el.style.top=G.lane.y+'px';
+      if(G.lane.y > f.clientHeight-70){ missPiece(); }
+    }
+    G.raf=requestAnimationFrame(loop);
+  })(last);
+}
+function nextPiece(){
+  var f=$('p-field');
+  var m=MATS[Math.floor(Math.random()*MATS.length)];
+  var thing=m.things[Math.floor(Math.random()*m.things.length)];
+  var el=document.createElement('div'); el.className='falling';
+  el.style.background=m.col; el.style.color='#0b0d10';
+  el.textContent=thing;
+  el.style.left=(20+Math.random()*(f.clientWidth-106))+'px';
+  el.style.top='0px';
+  f.appendChild(el);
+  G.lane={ el:el, y:0, mat:m.k };
+  G.speed=52+Math.min(70,(60-G.t)*1.6);
+}
+function clearPiece(){ if(G.lane&&G.lane.el&&G.lane.el.parentNode) G.lane.el.parentNode.removeChild(G.lane.el); G.lane=null; }
+function sortTap(k){
+  if(!G||G.over||!G.lane) return;
+  if(G.lane.mat===k){ G.score+=2; $('p-score').textContent=G.score; }
+  else { G.score=Math.max(0,G.score-1); $('p-score').textContent=G.score; toast('Wrong bin'); }
+  clearPiece(); nextPiece();
+}
+function missPiece(){ clearPiece(); nextPiece(); }
+
+/* ── 2. GRUB HUNT ──────────────────────────────────────────────────────── */
+var JUNK=['nut','bolt','cap','pin','clip','nub','tab','stub'];
+function initGrub(){ G.round=0; grubRound(); }
+function grubRound(){
+  var f=$('p-field'); f.innerHTML='';
+  G.round++;
+  var n=Math.min(46, 10+G.round*3);
+  var W=f.clientWidth, H=f.clientHeight;
+  var grubAt=Math.floor(Math.random()*n);
+  for(var i=0;i<n;i++){
+    var el=document.createElement('div'); el.className='pileitem';
+    var isGrub=(i===grubAt);
+    el.style.background=isGrub?'#6fd08c':'#39485a';
+    el.style.color=isGrub?'#08150c':'#8fa0b2';
+    el.textContent=isGrub?'grub':JUNK[Math.floor(Math.random()*JUNK.length)];
+    el.style.left=(8+Math.random()*(W-60))+'px';
+    el.style.top=(8+Math.random()*(H-60))+'px';
+    el.style.transform='rotate('+(Math.random()*40-20)+'deg)';
+    (function(g){ el.onclick=function(){ grubTap(g); }; })(isGrub);
+    f.appendChild(el);
+  }
+}
+function grubTap(isGrub){
+  if(!G||G.over) return;
+  if(isGrub){ G.score+=3; $('p-score').textContent=G.score; grubRound(); }
+  else { G.score=Math.max(0,G.score-1); $('p-score').textContent=G.score; toast('Just junk'); }
+}
+
+/* ── 3. WIRE UNTANGLE ──────────────────────────────────────────────────── */
+function initWire(){ G.level=0; wireRound(); }
+function segsCross(a,b,c,d){
+  function o(p,q,r){ var v=(q.y-p.y)*(r.x-q.x)-(q.x-p.x)*(r.y-q.y); return v>0?1:(v<0?2:0); }
+  var o1=o(a,b,c),o2=o(a,b,d),o3=o(c,d,a),o4=o(c,d,b);
+  return o1!==o2 && o3!==o4;
+}
+function wireCrossings(){
+  var n=0;
+  for(var i=0;i<G.edges.length;i++) for(var j=i+1;j<G.edges.length;j++){
+    var e=G.edges[i], f=G.edges[j];
+    if(e[0]===f[0]||e[0]===f[1]||e[1]===f[0]||e[1]===f[1]) continue;
+    if(segsCross(G.pins[e[0]],G.pins[e[1]],G.pins[f[0]],G.pins[f[1]])) n++;
+  }
+  return n;
+}
+function wireRound(){
+  var f=$('p-field'); f.innerHTML='';
+  G.level++;
+  var count=Math.min(8, 4+Math.floor(G.level/2));
+  var W=f.clientWidth, H=f.clientHeight;
+  G.pins=[]; G.edges=[];
+  var i;
+  for(i=0;i<count;i++) G.pins.push({ x:40+Math.random()*(W-80), y:40+Math.random()*(H-80) });
+  for(i=0;i<count;i++) G.edges.push([i,(i+1)%count]);
+  for(i=0;i+2<count;i+=2) G.edges.push([i,(i+2)%count]);
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('style','position:absolute;inset:0;width:100%;height:100%');
+  svg.id='wire-svg'; f.appendChild(svg);
+  G.pinEls=[];
+  for(i=0;i<count;i++){
+    (function(idx){
+      var d=document.createElement('div');
+      /* ⛔ 72 CSS px so the grab target is over 48 RENDERED px once the stage scales */
+      d.style.cssText='position:absolute;width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;'
+        +'background:#1d2733;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab';
+      d.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:#e8c46a;border:2px solid #f4dd9a"></div>';
+      d.addEventListener('pointerdown',function(ev){ G.drag=idx; d.setPointerCapture(ev.pointerId); });
+      d.addEventListener('pointermove',function(ev){
+        if(G.drag!==idx) return;
+        var r=f.getBoundingClientRect(), sc=r.width/f.clientWidth;
+        G.pins[idx].x=(ev.clientX-r.left)/sc; G.pins[idx].y=(ev.clientY-r.top)/sc;
+        wirePaint();
+      });
+      d.addEventListener('pointerup',function(){ G.drag=null; wireCheck(); });
+      f.appendChild(d); G.pinEls.push(d);
+    })(i);
+  }
+  wirePaint();
+}
+function wirePaint(){
+  var svg=$('wire-svg'); if(!svg) return;
+  var s='',i;
+  for(i=0;i<G.edges.length;i++){
+    var a=G.pins[G.edges[i][0]], b=G.pins[G.edges[i][1]];
+    s+='<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="#4a5f76" stroke-width="4" stroke-linecap="round"/>';
+  }
+  svg.innerHTML=s;
+  for(i=0;i<G.pinEls.length;i++){ G.pinEls[i].style.left=G.pins[i].x+'px'; G.pinEls[i].style.top=G.pins[i].y+'px'; }
+}
+function wireCheck(){
+  if(!G||G.over) return;
+  if(wireCrossings()===0){ G.score+=6; $('p-score').textContent=G.score; toast('Clean run'); wireRound(); }
+}
+
+/* ==========================================================================
+   THE MINT MOMENT
+   ========================================================================== */
+var pending=null;
+async function doMint(){
+  if(!readyToMint()) return;
+  SAVE.shinies-=MINT_COST; save();
+  var salt=deviceId()+':'+Date.now()+':'+Math.floor(Math.random()*1e9);
+  var cb;
+  try{ cb=await BUG_ENGINE.sha256Hex(salt); }
+  catch(e){ cb=''; for(var i=0;i<64;i++) cb+=Math.floor(Math.random()*16).toString(16); }
+  var id=BUG_ENGINE.bugIdentity(cb), gr=gradeOf(cb);
+  pending={ cb:cb, at:Date.now(), grade:gr.grade, score:gr.score };
+  $('m-art').innerHTML=bugSVG(cb,190);
+  $('m-grade').textContent=gr.grade;
+  $('m-grade').style.color=GRADE_COLOR[gr.grade];
+  $('m-grade').style.borderColor=GRADE_COLOR[gr.grade];
+  $('m-name').textContent=id.name;
+  $('m-species').textContent=id.species;
+  $('m-lore').textContent=id.lore;
+  $('m-kicker').textContent='SPECIMEN '+((SAVE.dex||[]).length+1);
+  show('s-mint');
+}
+function keepBug(){
+  if(pending){ SAVE.dex=SAVE.dex||[]; SAVE.dex.push(pending); save(); pending=null; }
+  paintHome(); show('s-home');
+}
+
+/* ---------- BUGDEX ---------- */
+function paintDex(){
+  var g=$('x-grid'); g.innerHTML='';
+  var dex=SAVE.dex||[];
+  $('x-count').textContent=dex.length;
+  var best='', bi=-1;
+  dex.forEach(function(b){ var i=GRADES.indexOf(b.grade); if(i>bi){ bi=i; best=b.grade; } });
+  $('x-best').textContent = dex.length ? ('BEST '+best) : '';
+  if(!dex.length){
+    g.innerHTML='<div class="empty">Nothing pinned yet. Work the alley for thirty Shinies and something will turn up.</div>';
+    return;
+  }
+  dex.forEach(function(b,i){
+    var c=document.createElement('div'); c.className='card';
+    c.innerHTML='<div>'+bugSVG(b.cb,84)+'</div>'
+      +'<div class="nm">'+BUG_ENGINE.bugName(b.cb)+'</div>'
+      +'<div class="gr" style="color:'+GRADE_COLOR[b.grade]+'">'+b.grade+'</div>';
+    c.onclick=function(){ openSpec(i); };
+    g.appendChild(c);
+  });
+}
+function openSpec(i){
+  var b=(SAVE.dex||[])[i]; if(!b) return;
+  var id=BUG_ENGINE.bugIdentity(b.cb);
+  $('sp-art').innerHTML=bugSVG(b.cb,190);
+  $('sp-grade').textContent=b.grade;
+  $('sp-grade').style.color=GRADE_COLOR[b.grade];
+  $('sp-grade').style.borderColor=GRADE_COLOR[b.grade];
+  $('sp-name').textContent=id.name;
+  $('sp-species').textContent=id.species;
+  $('sp-lore').textContent=id.lore;
+  var d=new Date(b.at||Date.now());
+  $('sp-meta').textContent='Found '+d.toDateString()+'  ·  '+b.cb.slice(0,12);
+  show('s-spec');
+}
+
+/* ==========================================================================
+   THE DUMPSTER — built now, dark until Stephen says yes (?battles=1).
+   Everyone fights the same ladder on the same day: seeded by dayIndex.
+   ========================================================================== */
+var BATTLES_ON=/[?&]battles=1/.test(location.search);
+function ladderFor(day){
+  var rng=BUG_ENGINE.seededRng('dumpster:'+day), out=[], i, j;
+  for(i=0;i<5;i++){
+    var cb=''; for(j=0;j<64;j++) cb+=Math.floor(rng()*16).toString(16);
+    out.push(cb);
+  }
+  return out;
+}
+function paintDump(){
+  var day=dayIndex();
+  $('k-day').textContent='DAY '+day;
+  var mine=(SAVE.dex||[]);
+  var list=$('k-list'); list.innerHTML='';
+  if(!mine.length){ $('k-note').textContent='You need a bug of your own before anybody will let you in.'; return; }
+  $('k-note').textContent='Five challengers, the same five for everybody today.';
+  var champ=mine[mine.length-1];
+  ladderFor(day).forEach(function(cb,i){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;background:#131a22';
+    var res='';
+    try{
+      var r=BATTLE_ENGINE.resolveBattle(
+        BATTLE_ENGINE.buildFighter(champ.cb), BATTLE_ENGINE.buildFighter(cb));
+      res=(r.draw?'DRAW':(r.winner==='a'?'YOU WIN':'YOU LOSE'));
+    }catch(e){ res='?'; }
+    row.innerHTML='<div>'+bugSVG(cb,54)+'</div>'
+      +'<div style="flex:1"><div style="font-size:14px;font-weight:800">'+BUG_ENGINE.bugName(cb)+'</div>'
+      +'<div style="font-size:12px;color:var(--dim)">challenger '+(i+1)+'</div></div>'
+      +'<div style="font-size:13px;font-weight:800;color:'+(res==='YOU WIN'?'#6fd08c':(res==='YOU LOSE'?'#c4543e':'#8fa0b2'))+'">'+res+'</div>';
+    list.appendChild(row);
+  });
+}
+
+/* ---------- wiring ---------- */
+$('b-scav').onclick=function(){
+  if(capLeft()<=0){ toast('Nothing left out there today'); return; }
+  $('cap-note').textContent=capLeft()+' Shinies still out there today.';
+  show('s-block');
+};
+$('b-how').onclick=function(){ show('s-how'); };
+$('b-how-go').onclick=function(){ show('s-home'); };
+$('b-block-back').onclick=function(){ show('s-home'); };
+var jb=document.querySelectorAll('[data-job]');
+for(var q=0;q<jb.length;q++)(function(b){ b.onclick=function(){ startJob(b.getAttribute('data-job')); }; })(jb[q]);
+$('b-again').onclick=function(){ if(capLeft()<=0){ paintHome(); show('s-home'); return; }
+  $('cap-note').textContent=capLeft()+' Shinies still out there today.'; show('s-block'); };
+$('b-done-home').onclick=function(){ paintHome(); show('s-home'); };
+$('b-done-mint').onclick=function(){ doMint(); };
+$('b-mint').onclick=function(){ doMint(); };
+$('b-mint-keep').onclick=function(){ keepBug(); };
+$('b-dex').onclick=function(){ paintDex(); show('s-dex'); };
+$('b-dex-back').onclick=function(){ paintHome(); show('s-home'); };
+$('b-spec-back').onclick=function(){ paintDex(); show('s-dex'); };
+$('b-dump').onclick=function(){ paintDump(); show('s-dump'); };
+$('b-dump-back').onclick=function(){ paintHome(); show('s-home'); };
+/* SWS embed protocol: inside the portal frame ask the parent to close, else go home */
+$('b-exit').onclick=function(){
+  try{ if(parent!==window){ parent.postMessage({sws:'close'},'*'); return; } }catch(e){}
+  location.href='https://lucidwinds.com/portal/';
+};
+
+/* first run shows the rules, once per device */
+(function(){
+  drawAlley(); paintHome();
+  if(BATTLES_ON) $('b-dump').style.display='';
+  try{ if(localStorage.getItem('lb_how')!=='1'){ localStorage.setItem('lb_how','1'); show('s-how'); } }catch(e){}
 })();
+
+/* headless test hook */
+if(/[?&]lbtest=1/.test(location.search)){
+  window.LB_DEV={
+    /* ⛔ a getter, not the object: reset() REASSIGNS SAVE, so a captured
+       reference goes stale and a probe reads zeros forever */
+    save:function(){ return SAVE; }, grade:gradeOf, grades:GRADES, mintCost:MINT_COST,
+    setShinies:function(n){ SAVE.shinies=n; save(); return SAVE.shinies; },
+    earn:earnShinies, capLeft:capLeft, doMint:doMint, keep:keepBug,
+    startJob:startJob, endJob:endJob, state:function(){ return G; },
+    show:show, dex:function(){ return SAVE.dex||[]; },
+    ladder:ladderFor, dayIndex:dayIndex,
+    /* the tuner searches the REAL scorer by moving its parameters, never by
+       reimplementing it somewhere else */
+    bands:TIER_BANDS, cuts:GRADE_CUT,
+    setBands:function(o){ for(var k in o) TIER_BANDS[k]=o[k]; },
+    setCuts:function(a){ GRADE_CUT=a; },
+    reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0}; save();
+      try{ localStorage.removeItem('lb_cap'); }catch(e){} return SAVE; }
+  };
+}
 </script>
 </body>
 </html>

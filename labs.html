@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Litter Bug</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sky Wolf Studios">
+<meta property="og:title" content="Litter Bug">
+<meta property="og:description" content="Bugs made of trash. Play a trial, mint a one of one bug, battle for the dumpster.">
+<meta property="og:url" content="https://stephenuffugus.github.io/Litter_Bug/">
+<meta property="og:image" content="https://stephenuffugus.github.io/Litter_Bug/og/card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Litter Bug">
+<meta name="twitter:description" content="Bugs made of trash. Play a trial, mint a one of one bug, battle for the dumpster.">
+<meta name="twitter:image" content="https://stephenuffugus.github.io/Litter_Bug/og/card.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='80' font-size='80'%3E%F0%9F%AA%B2%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="og/icon-512.png">
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; background: #0d100c; color: #e8dcc8;
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; }
+  header { padding: 22px 16px 10px; border-bottom: 1px solid #1c1f1a; text-align: center; }
+  h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: .04em; }
+  .sub { margin-top: 5px; font-size: 12px; color: #8a9178; }
+  main { padding: 16px 14px 32px; max-width: 460px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 10px; }
+  a.card { display: block; text-decoration: none; color: inherit;
+    background: #15191a; border: 1px solid #22271f; border-radius: 12px;
+    padding: 14px 16px; min-height: 48px; }
+  a.card:active { background: #1a201c; }
+  .name { font-weight: 600; font-size: 16px; }
+  .name .ic { margin-right: 8px; }
+  .desc { margin-top: 3px; font-size: 12px; color: #8a9178; }
+  /* the hero: first door for a new player, status for a returning one */
+  a.hero { display: block; text-decoration: none; color: inherit; text-align: center;
+    background: linear-gradient(180deg, #1a2016, #12160f); border: 1px solid #3a4430;
+    border-radius: 14px; padding: 18px 16px 20px; min-height: 48px; }
+  a.hero:active { filter: brightness(1.15); }
+  .hero .big { font-size: 18px; font-weight: 700; letter-spacing: .03em; }
+  .hero .hint { margin-top: 6px; font-size: 12px; color: #9aa385; }
+  .hero .portrait { width: 132px; height: 132px; margin: 0 auto 8px; }
+  .hero .portrait svg { width: 100%; height: 100%; display: block; }
+  .hero .bugname { font-size: 14px; color: #cfe0a8; margin-bottom: 2px; }
+  .devrow { margin-top: 10px; padding-top: 12px; border-top: 1px solid #1c1f1a; }
+  .devrow .label { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px; color: #8a9178; letter-spacing: .12em; margin-bottom: 8px; }
+  .devrow a.card { padding: 10px 16px; }
+  .devrow .name { font-size: 13px; font-weight: 500; }
+</style>
+</head>
+<body>
+<script>
+/* Sky Wolf portal embed: announce alive on every page, so the arcade's
+   black-screen recovery never mistakes an in-game navigation for a dead
+   frame (it yanked players back to the arcade mid-trial, Stephen 7/30). */
+if (window.parent !== window) {
+  var swsHi = function () { try { parent.postMessage({ sws: 'ready' }, '*'); } catch (e) {} };
+  swsHi(); window.addEventListener('load', swsHi); setTimeout(swsHi, 700);
+}
+</script>
+
+<header>
+  <h1>🪲 LITTER BUG</h1>
+  <div class="sub">bugs made of trash. play a trial, mint a bug, battle for the dumpster.</div>
+</header>
+<main>
+  <a class="hero" id="hero" href="mint-lab.html">
+    <div class="big" id="hero-big">🎰 PLAY THE TRIAL</div>
+    <div class="hint" id="hero-hint">Your taps and timing become the codeblock that hatches your first bug.</div>
+  </a>
+  <a class="card" href="bugdex.html">
+    <div class="name"><span class="ic">📖</span>BUGDEX</div>
+    <div class="desc">The collection. Six trash types, sortable, every bug one of one.</div>
+  </a>
+  <a class="card" href="world.html">
+    <div class="name"><span class="ic">🗺️</span>WORLD</div>
+    <div class="desc">Territory. Raid held ground and defend your own.</div>
+  </a>
+  <a class="card" href="battle-lab.html">
+    <div class="name"><span class="ic">⚔️</span>ARENA</div>
+    <div class="desc">Turn-based typed battles. Poise, Break, and reading the foe.</div>
+  </a>
+  <div class="devrow">
+    <div class="label">UNDER THE HOOD</div>
+    <a class="card" href="mint-lab.html">
+      <div class="name">🎰 MINT LAB · the trial, up close</div>
+    </a>
+    <a class="card" href="bug-lab.html">
+      <div class="name">🔬 BUG LAB · renderer proof of concept</div>
+    </a>
+  </div>
+</main>
+<script src="bug-engine.js"></script>
+<script src="battle-engine.js"></script>
+<script src="world-engine.js"></script>
+<script>
+(function () {
+  // The hero adapts: a brand new vault holds only the 3 seeded starters, so
+  // anything past 3 bugs (or any xp or win on a starter) means this player
+  // has really played. Show their newest bug and the size of the yard;
+  // otherwise keep the first-trial call. Engines missing or throwing leaves
+  // the static hero untouched.
+  try {
+    var W = window.WORLD_ENGINE, E = window.BUG_ENGINE;
+    if (!W || !E || !W.browserLoad || !E.bugFromCodeblock) return;
+    var v = W.browserLoad();
+    if (!v || !v.bugs || !v.bugs.length) return;
+    var played = v.bugs.length > 3;
+    var i;
+    if (!played) { for (i = 0; i < v.bugs.length; i++) { if (v.bugs[i].xp > 0 || v.bugs[i].wins > 0) { played = true; break; } } }
+    if (!played) return;
+    var newest = v.bugs[v.bugs.length - 1];
+    var bug = E.bugFromCodeblock(newest.cb, 132, newest.level || 1);
+    var hero = document.getElementById('hero');
+    var big = document.getElementById('hero-big');
+    var hint = document.getElementById('hero-hint');
+    var wrap = document.createElement('div');
+    wrap.className = 'portrait';
+    wrap.innerHTML = bug.svg;
+    var nameEl = document.createElement('div');
+    nameEl.className = 'bugname';
+    nameEl.textContent = bug.identity && bug.identity.name ? bug.identity.name : 'your newest bug';
+    hero.insertBefore(nameEl, big);
+    hero.insertBefore(wrap, nameEl);
+    big.textContent = '🎰 PLAY ANOTHER TRIAL';
+    hint.textContent = v.bugs.length + ' bugs in your collection. Mint the next one.';
+  } catch (e) { /* static hero stands */ }
+})();
+</script>
+</body>
+</html>
