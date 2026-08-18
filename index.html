@@ -772,11 +772,18 @@ $('b-dex-back').onclick=function(){ paintHome(); show('s-home'); };
 $('b-spec-back').onclick=function(){ paintDex(); show('s-dex'); };
 $('b-dump').onclick=function(){ paintDump(); show('s-dump'); };
 $('b-dump-back').onclick=function(){ paintHome(); show('s-home'); };
-/* SWS embed protocol: inside the portal frame ask the parent to close, else go home */
-$('b-exit').onclick=function(){
+/* SWS embed protocol: inside the portal frame ask the parent to close, else go home.
+   Exposed as window.SWS_EXIT because that is the name the arcade's audit and its
+   runtime exit injector both look for; a handler bound only to one button is
+   invisible to them. */
+window.SWS_EXIT=function(){
   try{ if(parent!==window){ parent.postMessage({sws:'close'},'*'); return; } }catch(e){}
+  /* Came from the arcade: step back so the portal is restored instantly instead
+     of reloading a large page and losing its scroll. */
+  if(document.referrer.indexOf('/portal')>=0&&history.length>1){ history.back(); return; }
   location.href='https://lucidwinds.com/portal/';
 };
+$('b-exit').onclick=function(){ window.SWS_EXIT(); };
 
 /* first run shows the rules, once per device */
 (function(){
