@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b0d10">
-<title>Litterbugs · Sky Wolf Studios</title>
+<title>Litterbugs · Sky Wolf Studio</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='6' fill='%2311151a'/%3E%3Cellipse cx='16' cy='18' rx='7' ry='9' fill='%236fd08c'/%3E%3Ccircle cx='16' cy='9' r='4' fill='%23e8c46a'/%3E%3Cpath d='M13 6 L10 2 M19 6 L22 2' stroke='%23e8c46a' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Sky Wolf Studios">
+<meta property="og:site_name" content="Sky Wolf Studio">
 <meta property="og:title" content="Litterbugs">
 <meta property="og:description" content="Scavenge the alley, mint one of one bugs, and fill the Bugdex.">
 <meta property="og:image" content="og/icon-512.png">
@@ -65,8 +65,14 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 /* ── the alley ── */
 .alley{position:relative;height:280px;border-radius:16px;border:1px solid var(--line);overflow:hidden;
   background:linear-gradient(180deg,#0f1620 0%,#141c26 60%,#1a232e 100%)}
-.alley svg{position:absolute;inset:0;width:100%;height:100%}
-.bugstage{position:absolute;left:0;right:0;bottom:14px;display:flex;align-items:flex-end;justify-content:center}
+/* ⛔ #alley-svg, NEVER `.alley svg`. The broad selector also caught the minted
+   bug's own SVG inside #home-bug and computed it to 494x0, so the champion was
+   invisible on HOME from v1 until 2026-08-24. */
+#alley-svg{position:absolute;inset:0;width:100%;height:100%}
+.bugstage{position:absolute;left:0;right:0;bottom:8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-end;pointer-events:none}
+.bugstage .lvl{margin-top:-6px;font-size:12px;letter-spacing:2px;color:var(--shine);font-weight:800;
+  text-shadow:0 1px 3px #000}
 
 /* ── directions ── */
 .dirh{font-size:31px;color:var(--shine);font-weight:800}
@@ -88,7 +94,27 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .bin:active{filter:brightness(1.25)}
 .bin .bl{font-size:12px;color:var(--dim);letter-spacing:1px}
 .falling{position:absolute;width:66px;height:66px;display:flex;align-items:center;justify-content:center;
-  border-radius:12px;font-size:13px;font-weight:800;text-align:center;line-height:1.1;padding:4px}
+  border-radius:12px;font-size:13px;font-weight:800;text-align:center;line-height:1.1;padding:4px;
+  box-shadow:0 6px 14px #0007}
+/* the piece a bin tap will resolve. Three can ride the belt, so which one is
+   live must never be a guess. */
+.falling.active{outline:3px solid #fff;outline-offset:3px;filter:brightness(1.12)}
+.puff{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;pointer-events:none;
+  animation:puffout .4s ease-out forwards}
+@keyframes puffout{from{transform:scale(.5);opacity:.95}to{transform:scale(4.2);opacity:0}}
+/* ── pry the lids ── */
+.prywrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:20px}
+.pryhint{font-size:17px;color:var(--dim);text-align:center;min-height:48px;line-height:1.4}
+.prybar{position:relative;width:100%;max-width:400px;height:64px;border-radius:14px;background:#101820;
+  border:1px solid var(--line);overflow:hidden}
+.prybar.good{border-color:var(--grub);box-shadow:0 0 22px #6fd08c66}
+.prybar.bad{border-color:var(--bad);box-shadow:0 0 22px #c4543e55}
+.pryzone{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,#e8c46a55,#e8c46a22);
+  border-left:2px solid var(--shine);border-right:2px solid var(--shine)}
+.prymark{position:absolute;top:-4px;bottom:-4px;width:6px;margin-left:-3px;border-radius:3px;background:#fff;
+  box-shadow:0 0 12px #fff9}
+.pryjars{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:400px}
+.pryjars .jar{color:var(--shine);font-size:22px}
 .pile{position:absolute;inset:0}
 .pileitem{position:absolute;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
   border-radius:9px;font-size:11px;font-weight:700;color:#0b0d10}
@@ -111,6 +137,90 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .card .nm{font-size:12px;font-weight:800;margin-top:5px;line-height:1.15}
 .card .gr{font-size:10px;letter-spacing:1px;margin-top:3px;font-weight:800}
 .empty{grid-column:1/-1;padding:34px 10px;text-align:center;color:var(--dim);font-size:16px;line-height:1.5}
+.gladder{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.gcell{border:1px solid var(--line);border-radius:10px;padding:7px 2px;text-align:center;background:#101720}
+.gcell.none{background:#0c1218}
+.gcell .gn{font-size:18px;font-weight:800;line-height:1}
+.gcell .gl{font-size:9px;letter-spacing:.5px;color:var(--dim);margin-top:3px;font-weight:800}
+
+/* ── the arena ── */
+.fighter{position:relative;display:flex;align-items:center;gap:12px;border:1px solid var(--line);
+  border-radius:15px;padding:11px 13px;background:#121922;overflow:hidden}
+.fighter.mine{border-color:#2f4a38;background:#111b16}
+/* ⛔ a plate behind the portrait. Glass and Ash bugs are pale outlines and they
+   vanished on the dark card; Rust and Ooze bugs are dark and vanished too. The
+   plate gives both a mid ground to sit on. Art behind art needs a floor. */
+.fighter .por{flex:none;width:132px;height:132px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:radial-gradient(circle at 50% 58%,#26323f 0%,#1a232c 52%,transparent 74%)}
+.fighter .who{flex:1;min-width:0}
+.fighter .nm{font-size:17px;font-weight:800;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fighter .tags{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.chip{font-size:11px;font-weight:800;letter-spacing:1px;padding:3px 8px;border-radius:999px;
+  border:1px solid var(--line);color:var(--dim);text-transform:uppercase}
+.chip.t{color:#0b0d10;border:0}
+.hpwrap{margin-top:8px;height:14px;border-radius:8px;background:#0a0f14;border:1px solid var(--line);overflow:hidden}
+.hpbar{height:100%;width:100%;background:linear-gradient(90deg,#6fd08c,#3f8f58);transition:width .35s ease}
+.hpbar.mid{background:linear-gradient(90deg,#e8c46a,#a8873a)}
+.hpbar.low{background:linear-gradient(90deg,#c4543e,#7e3223)}
+.hpnum{font-size:12px;color:var(--dim);margin-top:4px;font-weight:700;letter-spacing:.5px}
+.poise{display:flex;gap:3px;margin-top:5px}
+.poise i{width:9px;height:9px;border-radius:2px;background:#25313d;display:block}
+.poise i.on{background:#5aa9e6}
+.fighter.brk{animation:reel .5s ease}
+@keyframes reel{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.on{animation:flashout .34s ease-out}
+@keyframes flashout{0%{opacity:.62}100%{opacity:0}}
+.spark{position:absolute;width:9px;height:9px;border-radius:50%;pointer-events:none;background:var(--shine)}
+/* ⛔ top 38, not 8: the card is overflow:hidden for the flash, so a pop that
+   starts at the top edge and rises has its digits sliced off. */
+.dmgpop{position:absolute;right:16px;top:38px;font-size:26px;font-weight:800;color:#fff;pointer-events:none;
+  text-shadow:0 2px 6px #000;animation:pop .8s ease-out forwards}
+@keyframes pop{0%{transform:translateY(6px) scale(.7);opacity:0}25%{transform:translateY(-2px) scale(1.12);opacity:1}
+  100%{transform:translateY(-26px) scale(1);opacity:0}}
+.telegraph{margin:9px 0;padding:10px 13px;border-radius:12px;background:#0f151b;border:1px dashed #2c3a48;
+  font-size:15px;line-height:1.4;color:var(--ink);min-height:62px;display:flex;align-items:center}
+.telegraph b{color:var(--shine)}
+.blog{margin-top:9px;flex:1;min-height:70px;font-size:14px;line-height:1.5;color:var(--dim);
+  display:flex;flex-direction:column;justify-content:flex-start;gap:3px;overflow:hidden}
+.blog .hot{color:var(--ink)}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+/* ⛔ 92 CSS px, not 60: at the 0.694 stage scale that is 64 REAL px. */
+.mv{min-height:92px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,#1b222b,#131920);
+  padding:9px 10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:3px}
+.mv:active{transform:translateY(2px);filter:brightness(1.2)}
+.mv .mn{font-size:15px;font-weight:800;line-height:1.1}
+.mv .md{font-size:12px;color:var(--dim);font-weight:700}
+.mv .me{font-size:11px;font-weight:800;letter-spacing:1px}
+.mv[disabled]{opacity:.45}
+.overpanel{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+  background:#05070ae8;padding:24px}
+.overpanel.on{display:flex}
+.overcard{width:100%;max-width:430px;text-align:center;border:1px solid var(--line);border-radius:18px;
+  background:#121922;padding:22px}
+.overhead{font-size:34px;font-weight:800;color:var(--shine);letter-spacing:1px}
+/* ── the dumpster ── */
+.champbar{display:flex;align-items:center;gap:12px;border:1px solid #2f4a38;border-radius:15px;
+  background:#111b16;padding:10px 12px;margin-top:10px}
+/* ⛔ overflow-x:auto forces overflow-y to auto too, so a strip without an
+   explicit height CLIPS the bottom of its cards. It ate the LV labels. */
+.champstrip{display:flex;gap:9px;overflow-x:auto;overflow-y:hidden;height:124px;align-items:flex-start;
+  padding:9px 2px;-webkit-overflow-scrolling:touch}
+.champstrip .cs{flex:none;width:82px;height:104px;border:1px solid var(--line);border-radius:12px;
+  background:#131a22;padding:5px;text-align:center;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+.champstrip .cs.sel{border-color:var(--grub);box-shadow:0 0 0 2px #6fd08c44}
+.champstrip .cs .l{font-size:11px;color:var(--shine);font-weight:800}
+.krow{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:13px;
+  padding:10px;margin-bottom:9px;background:#131a22;min-height:88px;cursor:pointer}
+.krow.done{opacity:.6;border-color:#2f4a38}
+.krow .go{font-size:13px;font-weight:800;letter-spacing:1px;color:var(--shine);
+  border:1px solid var(--line);border-radius:10px;padding:14px 12px;min-width:78px;text-align:center}
+.krow.done .go{color:var(--grub)}
+.streakbar{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.streakbar span{font-size:13px;font-weight:800;letter-spacing:1px;color:var(--dim);
+  border:1px solid var(--line);border-radius:999px;padding:6px 13px}
+.streakbar span b{color:var(--shine)}
 
 /* ⛔ 48px TOUCH IS MEASURED IN RENDERED PIXELS. A 540 stage on a 375 phone
    scales to 0.694, so anything tappable is sized >=70 CSS px here. */
@@ -127,6 +237,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
   <div class="screen on" id="s-home">
     <div class="hud">
       <div class="l">SHINIES <b id="h-shine">0</b> <span style="color:#3d4956">/ 30</span></div>
+      <div class="l" id="h-streak"></div>
       <div class="l">BUGDEX <b id="h-dex">0</b></div>
     </div>
     <div class="pad">
@@ -135,7 +246,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       </div>
       <div style="text-align:center;margin-top:12px">
         <h1 class="logo">LITTERBUGS</h1>
-        <div class="sub">Sky Wolf Studios</div>
+        <div class="sub">Sky Wolf Studio</div>
       </div>
       <div class="stack" style="margin-top:18px">
         <button class="btn primary" id="b-scav">SCAVENGE</button>
@@ -145,7 +256,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
         <button class="btn ghost" id="b-how">HOW TO PLAY</button>
       </div>
     </div>
-    <div class="exitpill" id="b-exit">◀ Sky Wolf Studios Arcade</div>
+    <div class="exitpill" id="b-exit">◀ Sky Wolf Studio Arcade</div>
     <div class="stamp"><span id="stamp"></span> · <a href="labs.html" style="color:#3d4956;text-decoration:none">labs</a></div>
   </div>
 
@@ -159,14 +270,19 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       </div>
       <div class="dsec">
         <div class="dlab">How it plays</div>
-        <div class="dtxt">SCAVENGE gives you a sixty second job on one of three blocks. Sort the recycling, hunt a grub out of a junk pile, or untangle the wires. Each pays Shinies, and there is a daily limit so the alley is worth coming back to.</div>
+        <div class="dtxt">SCAVENGE gives you a sixty second job on one of four blocks. Sort the recycling, hunt a grub out of a junk pile, untangle the wires, or pry the lids. Four shifts a day, and a clean shift is about one bug.</div>
+      </div>
+      <div class="dsec">
+        <div class="dlab">The dumpster</div>
+        <div class="dtxt">Five challengers turn up every day, the same five for everybody. Pick a move, read what the other bug is winding up, and win. Every win feeds your champion and it grows. Beat all five and you are King of the Dumpster.</div>
       </div>
       <div class="dsec">
         <div class="dlab">The controls</div>
         <ul class="dlist">
-          <li>Sorting: tap the bin that matches the falling junk</li>
+          <li>Sorting: tap the bin that matches the ringed piece</li>
           <li>Grub hunt: tap the grub hiding in the pile</li>
           <li>Wires: drag a pin until no two wires cross</li>
+          <li>Lids: tap PRY while the marker sits on the seam</li>
           <li>Every bug you mint is graded and kept in the Bugdex</li>
           <li>The arrow at the bottom left returns to the arcade</li>
         </ul>
@@ -186,6 +302,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
         <button class="btn primary" data-job="sort">SORT THE RECYCLING</button>
         <button class="btn" data-job="grub">GRUB HUNT</button>
         <button class="btn" data-job="wire">WIRE UNTANGLE</button>
+        <button class="btn" data-job="pry">PRY THE LIDS</button>
         <button class="btn ghost" id="b-block-back">Back</button>
       </div>
       <div class="dim" id="cap-note" style="margin-top:18px"></div>
@@ -230,6 +347,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
         <div class="specname" id="m-name"></div>
         <div class="specsp" id="m-species"></div>
         <div class="speclore" id="m-lore"></div>
+        <div class="dim" id="m-grow" style="margin-top:10px;font-size:14px"></div>
       </div>
       <div class="stack" style="margin-top:22px">
         <button class="btn primary" id="b-mint-keep">INTO THE BUGDEX</button>
@@ -244,6 +362,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       <div class="l" id="x-best"></div>
     </div>
     <div class="pad">
+      <div class="gladder" id="x-ladder"></div>
       <div class="dexgrid" id="x-grid"></div>
       <div class="stack" style="margin-top:18px">
         <button class="btn ghost" id="b-dex-back">Back</button>
@@ -268,17 +387,50 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
     </div>
   </div>
 
-  <!-- ══════════ THE DUMPSTER (dark until ?battles=1) ══════════ -->
+  <!-- ══════════ THE DUMPSTER ══════════ -->
   <div class="screen" id="s-dump">
     <div class="hud">
-      <div class="l">KING OF THE DUMPSTER</div>
+      <div class="l">THE DUMPSTER</div>
       <div class="l" id="k-day"></div>
     </div>
     <div class="pad">
       <div class="dim" id="k-note" style="text-align:center"></div>
+      <div class="champbar" id="k-champ"></div>
+      <div class="champstrip" id="k-strip"></div>
       <div id="k-list" style="margin-top:12px"></div>
       <div class="stack" style="margin-top:18px">
         <button class="btn ghost" id="b-dump-back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ THE ARENA ══════════
+       The lab arena, brought into the game: the interactive battle-engine path
+       (startBattle + playerRound), real move cards with a damage band and a hit
+       percent, the foe's next move telegraphed, poise and break, and a purse
+       that pays once a day. Before 2026-08-24 the game only auto resolved five
+       bots into WIN / LOSE labels, and it crashed doing it. -->
+  <div class="screen" id="s-arena">
+    <div class="hud">
+      <div class="l" id="a-title">THE DUMPSTER</div>
+      <div class="l" id="a-round">ROUND 1</div>
+    </div>
+    <div class="pad" style="padding:14px 16px">
+      <div class="fighter foe" id="a-foe"></div>
+      <div class="telegraph" id="a-tele"></div>
+      <div class="fighter mine" id="a-me"></div>
+      <div class="blog" id="a-log"></div>
+      <div class="moves" id="a-moves"></div>
+      <button class="btn ghost" id="b-arena-back" style="min-height:72px;margin-top:12px">Leave the dumpster</button>
+    </div>
+    <div class="overpanel" id="a-over">
+      <div class="overcard">
+        <div class="overhead" id="a-over-head">YOU WIN</div>
+        <div id="a-over-art"></div>
+        <div class="dim" id="a-over-note" style="margin-top:10px;font-size:17px;line-height:1.5"></div>
+        <div class="stack" style="margin-top:18px">
+          <button class="btn primary" id="b-over-next">BACK TO THE LADDER</button>
+        </div>
       </div>
     </div>
   </div>
@@ -323,8 +475,43 @@ fit();
 var LS={ get:function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } },
          set:function(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
 var DEX_KEY='lb_dex_v1';          /* ⛔ schema versioned from day one */
-var SAVE={ shinies:0, dex:[], jobs:0, lastDay:0 };
-(function(){ try{ var r=JSON.parse(LS.get(DEX_KEY,'{}')); for(var k in SAVE) if(r[k]!=null) SAVE[k]=r[k]; }catch(e){} })();
+/* ⛔ every persisted key must exist HERE or the loader below silently drops it:
+   it copies `for(var k in SAVE)`, so a key absent from the default is a key
+   that never survives a reload. champ and king are load bearing. */
+var SAVE={ shinies:0, dex:[], jobs:0, lastDay:0, champ:null, king:null };
+/* ⛔ A SAVE IS UNTRUSTED INPUT. try/catch around JSON.parse is not enough: a
+   well formed blob with the wrong SHAPE gets through and then kills the whole
+   script block on first use, which takes every function in this file with it,
+   LB_DEV included. Proved 2026-08-24 by a probe that wrote
+   {"dex":[{"cb":"zz"},null,{"cb":123}],"shinies":"abc"} and got a dead page:
+   the level migration walked a null. Everything is validated on the way in. */
+function _num(v,d){ v=Number(v); return (isFinite(v)&&v>=0)?v:d; }
+function _isCB(s){ return typeof s==='string' && /^[0-9a-f]{64}$/.test(s); }
+function _cleanEntry(b){
+  if(!b || typeof b!=='object' || !_isCB(b.cb)) return null;
+  var g = (GRADES.indexOf(b.grade)>=0) ? b.grade : gradeOf(b.cb).grade;
+  return { cb:b.cb, at:_num(b.at,Date.now()), grade:g, score:_num(b.score,0),
+    lvl:Math.max(1,Math.min(30,Math.round(_num(b.lvl,1))||1)), wins:Math.round(_num(b.wins,0)) };
+}
+function loadSave(){
+  var r={}; try{ r=JSON.parse(LS.get(DEX_KEY,'{}')); }catch(e){ r={}; }
+  if(!r || typeof r!=='object' || r instanceof Array) r={};
+  SAVE.shinies=Math.round(_num(r.shinies,0));
+  SAVE.jobs=Math.round(_num(r.jobs,0));
+  SAVE.lastDay=Math.round(_num(r.lastDay,0));
+  var dex=[], i;
+  if(r.dex instanceof Array) for(i=0;i<r.dex.length;i++){ var e=_cleanEntry(r.dex[i]); if(e) dex.push(e); }
+  SAVE.dex=dex;
+  var c=Math.round(_num(r.champ,-1));
+  SAVE.champ=(c>=0&&c<dex.length)?c:null;
+  var k=r.king;
+  SAVE.king=(k&&typeof k==='object'&&!(k instanceof Array)) ? {
+    d:Math.round(_num(k.d,0)),
+    beaten:(k.beaten instanceof Array)?k.beaten.filter(function(n){ return n===0||n===1||n===2||n===3||n===4; }):[],
+    run:Math.round(_num(k.run,0)), best:Math.round(_num(k.best,0)),
+    crowns:Math.round(_num(k.crowns,0)), crownRun:Math.round(_num(k.crownRun,0)),
+    crownDay:Math.round(_num(k.crownDay,0)) } : null;
+}
 function save(){ LS.set(DEX_KEY, JSON.stringify(SAVE)); }
 function dayIndex(){ return Math.floor(Date.now()/864e5); }
 
@@ -335,14 +522,31 @@ function deviceId(){
   return d;
 }
 
-/* ---------- Shinies, with the studio daily cap ---------- */
-var DAILY_CAP=90;                 /* three good shifts a day, then come back */
+/* ---------- Shinies, with the studio daily cap ----------
+   ⛔ RETUNED 2026-08-24 after playing it. The old numbers said "three good
+   shifts a day" and delivered ONE: no job had a spawn rate, so score was bound
+   only by thumb speed and a brisk 22 seconds of the first shift drained the
+   whole 90 Shiny day with 38 seconds still on the clock. Every job now pays on
+   a CLOCK it controls, a shift is capped, and the day is capped in SHIFTS as
+   well as Shinies so the cap is something you finish, not something that
+   ambushes you mid job. MINT_COST stays 30: that is law. */
+var DAILY_CAP=120;                /* four clean shifts, four bugs, come back tomorrow */
+var SHIFT_CAP=40;                 /* one shift can never pay more than this */
+var DAILY_SHIFTS=4;
 function capState(){
   var s={}; try{ s=JSON.parse(LS.get('lb_cap','{}')); }catch(e){}
-  var d=dayIndex(); if(s.d!==d) s={d:d,n:0};
+  if(!s||typeof s!=='object'||s instanceof Array) s={};
+  var d=dayIndex();
+  /* ⛔ _num, not a raw read: {"d":today,"n":"abc"} made capLeft NaN and NaN>0 is
+     false, which locks the alley shut forever with no way back. */
+  if(Math.round(_num(s.d,-1))!==d) s={d:d,n:0,shifts:0};
+  s.d=d; s.n=Math.round(_num(s.n,0)); s.shifts=Math.round(_num(s.shifts,0));
   return s;
 }
 function capLeft(){ var s=capState(); return Math.max(0, DAILY_CAP-(s.n||0)); }
+function shiftsLeft(){ var s=capState(); return Math.max(0, DAILY_SHIFTS-(s.shifts||0)); }
+function canWork(){ return capLeft()>0 && shiftsLeft()>0; }
+function noteShift(){ var s=capState(); s.shifts=(s.shifts||0)+1; LS.set('lb_cap', JSON.stringify(s)); }
 function earnShinies(n){
   var s=capState(), give=Math.min(n, Math.max(0, DAILY_CAP-(s.n||0)));
   if(give<=0) return 0;
@@ -350,6 +554,9 @@ function earnShinies(n){
   SAVE.shinies=(SAVE.shinies||0)+give; save();
   return give;
 }
+/* Arena purses are not scavenging: they pay outside the alley's daily cap, and
+   each challenger pays ONCE a day, which is what stops a retry from farming. */
+function payPurse(n){ SAVE.shinies=(SAVE.shinies||0)+n; save(); return n; }
 var MINT_COST=30;                 /* ⛔ 30 = 1 mint is LAW across the hashblock games */
 function readyToMint(){ return (SAVE.shinies||0) >= MINT_COST; }
 
@@ -449,17 +656,32 @@ function drawAlley(){
 }
 
 /* ---------- render a bug ---------- */
-function bugSVG(codeblock,size){
-  try{ return BUG_ENGINE._generateBugSVG(codeblock,size||140); }
+/* ⛔ the third argument is the bug's LEVEL and it drives growth in the renderer.
+   Leave it off and every bug renders at level 30, fully grown, which is exactly
+   what the game did until 2026-08-24: a brand new bug looked identical to one
+   you had fought twenty battles with. */
+/* ⛔ the renderer's growth curve is level/22, so a raw level 1 draws at 12% and
+   reads as four grey specks in a 58px card. The GAME level and the RENDER level
+   are not the same number: growLvl maps 1..30 onto 8..31 so a fresh bug is a
+   small but legible grub and a veteran is fully grown by level 19. */
+function growLvl(l){ return Math.max(1, Math.round(7 + (l||1)*0.8)); }
+function bugSVG(codeblock,size,level){
+  try{ return BUG_ENGINE._generateBugSVG(codeblock,size||140,growLvl(level||1)); }
   catch(e){ return '<div style="width:'+(size||140)+'px;height:'+(size||140)+'px"></div>'; }
 }
 function paintHome(){
   $('h-shine').textContent=SAVE.shinies||0;
   $('h-dex').textContent=(SAVE.dex||[]).length;
   $('b-mint').style.display=readyToMint()?'':'none';
-  $('b-scav').textContent = capLeft()>0 ? 'SCAVENGE' : 'THE ALLEY IS PICKED CLEAN';
-  var newest=(SAVE.dex&&SAVE.dex.length)?SAVE.dex[SAVE.dex.length-1]:null;
-  $('home-bug').innerHTML = newest ? bugSVG(newest.cb,150) : '';
+  $('b-scav').textContent = canWork() ? 'SCAVENGE' : 'THE ALLEY IS PICKED CLEAN';
+  var c=champ();
+  $('home-bug').innerHTML = c
+    ? bugSVG(c.cb,150,lvlOf(c))+'<div class="lvl">'+BUG_ENGINE.bugName(c.cb).toUpperCase()+'  ·  LV '+lvlOf(c)+'</div>'
+    : '';
+  var k=kingState(), left=5-k.beaten.length;
+  $('b-dump').textContent = !(SAVE.dex||[]).length ? 'THE DUMPSTER'
+    : (left>0 ? 'THE DUMPSTER  ·  '+left+' LEFT TODAY' : 'THE DUMPSTER  ·  CROWNED');
+  $('h-streak').innerHTML = k.run>0 ? ('STREAK <b>'+k.run+'</b>') : '';
   $('stamp').textContent='Litterbugs '+BUILD;
 }
 
@@ -467,15 +689,28 @@ function paintHome(){
    THE THREE BLOCKS. Sixty seconds each, native to the fiction, no new engines.
    ========================================================================== */
 var G=null, tick=null;
-var JOBS={ sort:'SORTING', grub:'GRUB HUNT', wire:'WIRE UNTANGLE' };
+var JOBS={ sort:'SORTING', grub:'GRUB HUNT', wire:'WIRE UNTANGLE', pry:'PRY THE LIDS' };
+
+function bump(n){ if(!G||G.over) return; G.score=Math.max(0,Math.min(SHIFT_CAP,G.score+n));
+  $('p-score').textContent=G.score; }
 
 function startJob(kind){
   G={ kind:kind, t:60, score:0, over:false, items:[], sel:null };
-  $('p-job').textContent=JOBS[kind];
+  $('p-job').textContent=JOBS[kind]||'SHIFT';
   $('p-score').textContent='0'; $('p-time').textContent='60';
   $('p-field').innerHTML=''; $('p-controls').innerHTML='';
-  if(kind==='sort') initSort(); else if(kind==='grub') initGrub(); else initWire();
+  /* ⛔ SHOW THE SCREEN BEFORE LAYING OUT THE FIELD. Every job measures p-field
+     to place its pieces, and a .screen still on display:none measures 0x0.
+     From v1 until 2026-08-24 that meant sorting spawned junk at a NEGATIVE
+     left, grub hunt stacked all thirteen pile items in one 44px corner with the
+     grub buried underneath (24 real taps on its own centre scored zero), and
+     wire dropped every pin on the same spot. No gate loaded this file, so only
+     playing it found this. G.fw/G.fh are the one place the size is read. */
   show('s-play');
+  var f=$('p-field');
+  G.fw=f.clientWidth||494; G.fh=f.clientHeight||700;
+  if(kind==='sort') initSort(); else if(kind==='grub') initGrub();
+  else if(kind==='pry') initPry(); else initWire();
   if(tick) clearInterval(tick);
   tick=setInterval(function(){
     if(!G||G.over) return;
@@ -487,7 +722,9 @@ function endJob(){
   if(!G||G.over) return;
   G.over=true; if(tick){ clearInterval(tick); tick=null; }
   if(G.raf){ cancelAnimationFrame(G.raf); G.raf=null; }
+  if(G.spawn){ clearInterval(G.spawn); G.spawn=null; }
   var paid=earnShinies(G.score);
+  noteShift();
   SAVE.jobs=(SAVE.jobs||0)+1; save();
   $('d-shine').textContent='+'+paid;
   $('d-note').textContent = paid<G.score
@@ -497,8 +734,9 @@ function endJob(){
   $('d-prog').textContent = need>0
     ? (SAVE.shinies||0)+' of '+MINT_COST+' Shinies. '+need+' more and something hatches.'
     : 'Thirty Shinies. Something is moving in the jar.';
+  if(shiftsLeft()>0 && capLeft()>0) $('d-prog').textContent += '  '+shiftsLeft()+' shift'+(shiftsLeft()===1?'':'s')+' left today.';
   $('b-done-mint').style.display = readyToMint()?'':'none';
-  $('b-again').textContent = capLeft()>0 ? 'ANOTHER BLOCK' : 'THAT IS THE LOT FOR TODAY';
+  $('b-again').textContent = canWork() ? 'ANOTHER BLOCK' : 'THAT IS THE LOT FOR TODAY';
   show('s-done');
 }
 
@@ -508,9 +746,14 @@ var MATS=[
   {k:'metal', label:'METAL', col:'#b9c4d0', things:['can','foil','tin','bottle cap']},
   {k:'paper', label:'PAPER', col:'#e8c46a', things:['carton','flyer','box','sleeve']}
 ];
+/* The belt runs on ITS clock, not on your thumb. Pieces arrive on a spawn timer
+   that tightens through the shift, up to three ride the field at once, and the
+   bin you tap always resolves the LOWEST piece (ringed, so it is never a guess).
+   That is what bounds a shift near thirty and makes a clean run feel like work
+   rather than a mash. */
 function initSort(){
   var f=$('p-field');
-  G.lane=null; G.speed=52;
+  G.pieces=[];
   var bins=document.createElement('div'); bins.className='bins';
   MATS.forEach(function(m){
     var b=document.createElement('div'); b.className='bin';
@@ -520,67 +763,167 @@ function initSort(){
     bins.appendChild(b);
   });
   $('p-controls').appendChild(bins);
-  nextPiece();
-  var last=performance.now();
+  spawnPiece();
+  var last=performance.now(), acc=0;
   (function loop(now){
     if(!G||G.over) return;
-    var dt=Math.min(60,now-last); last=now;
-    if(G.lane){
-      G.lane.y += G.speed*dt/1000;
-      G.lane.el.style.top=G.lane.y+'px';
-      if(G.lane.y > f.clientHeight-70){ missPiece(); }
+    var dt=Math.min(60,now-last); last=now; acc+=dt;
+    var gone=60-G.t;
+    var speed=150+Math.min(90,gone*1.6);           /* px per second */
+    var gap=2100-Math.min(800,gone*13);            /* ms between arrivals */
+    if(acc>=gap && G.pieces.length<3){ acc=0; spawnPiece(); }
+    var floor=G.fh-72, i;
+    for(i=G.pieces.length-1;i>=0;i--){
+      var p=G.pieces[i];
+      p.y+=speed*dt/1000; p.el.style.top=p.y+'px';
+      if(p.y>floor){ dropPiece(i); }
     }
+    markActive();
     G.raf=requestAnimationFrame(loop);
   })(last);
 }
-function nextPiece(){
+function spawnPiece(){
   var f=$('p-field');
   var m=MATS[Math.floor(Math.random()*MATS.length)];
   var thing=m.things[Math.floor(Math.random()*m.things.length)];
   var el=document.createElement('div'); el.className='falling';
   el.style.background=m.col; el.style.color='#0b0d10';
   el.textContent=thing;
-  el.style.left=(20+Math.random()*(f.clientWidth-106))+'px';
+  /* ⛔ clamp with Math.max: a zero width field used to make this negative */
+  el.style.left=Math.round(12+Math.random()*Math.max(1,G.fw-90))+'px';
   el.style.top='0px';
   f.appendChild(el);
-  G.lane={ el:el, y:0, mat:m.k };
-  G.speed=52+Math.min(70,(60-G.t)*1.6);
+  G.pieces.push({ el:el, y:0, mat:m.k });
 }
-function clearPiece(){ if(G.lane&&G.lane.el&&G.lane.el.parentNode) G.lane.el.parentNode.removeChild(G.lane.el); G.lane=null; }
+function markActive(){
+  var low=-1, ly=-1, i;
+  for(i=0;i<G.pieces.length;i++) if(G.pieces[i].y>ly){ ly=G.pieces[i].y; low=i; }
+  for(i=0;i<G.pieces.length;i++) G.pieces[i].el.classList.toggle('active', i===low);
+  G.active=low;
+}
+function dropPiece(i){
+  var p=G.pieces[i]; if(!p) return;
+  if(p.el&&p.el.parentNode) p.el.parentNode.removeChild(p.el);
+  G.pieces.splice(i,1);
+}
 function sortTap(k){
-  if(!G||G.over||!G.lane) return;
-  if(G.lane.mat===k){ G.score+=2; $('p-score').textContent=G.score; }
-  else { G.score=Math.max(0,G.score-1); $('p-score').textContent=G.score; toast('Wrong bin'); }
-  clearPiece(); nextPiece();
+  if(!G||G.over) return;
+  var i=G.active; if(i==null||i<0||!G.pieces[i]) return;
+  var p=G.pieces[i];
+  if(p.mat===k){ bump(1); puff(p.el, '#6fd08c'); }
+  else { bump(-1); puff(p.el, '#c4543e'); toast('Wrong bin'); }
+  dropPiece(i); markActive();
 }
-function missPiece(){ clearPiece(); nextPiece(); }
+
+/* a two frame flash where a piece was resolved, so a tap has a consequence */
+function puff(fromEl, col){
+  try{
+    var f=$('p-field'), r=fromEl.getBoundingClientRect(), fr=f.getBoundingClientRect();
+    var sc=fr.width/Math.max(1,f.clientWidth);
+    var d=document.createElement('div'); d.className='puff';
+    d.style.left=((r.left-fr.left)/sc+r.width/sc/2)+'px';
+    d.style.top=((r.top-fr.top)/sc+r.height/sc/2)+'px';
+    d.style.background=col; f.appendChild(d);
+    setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },420);
+  }catch(e){}
+}
 
 /* ── 2. GRUB HUNT ──────────────────────────────────────────────────────── */
 var JUNK=['nut','bolt','cap','pin','clip','nub','tab','stub'];
+/* ⛔ The pile is laid out on a GRID with jitter, never on free random. Free
+   random let junk sit exactly on top of the grub, and since the last child wins
+   the hit test the grub became untappable: a real 24 tap run on its own centre
+   scored zero. One item per cell means the grub is always reachable. The hiding
+   comes from the grub reading LIKE junk at a glance, not from burying it. */
 function initGrub(){ G.round=0; grubRound(); }
 function grubRound(){
   var f=$('p-field'); f.innerHTML='';
   G.round++;
-  var n=Math.min(46, 10+G.round*3);
-  var W=f.clientWidth, H=f.clientHeight;
+  var W=G.fw, H=G.fh, CELL=54;
+  var cols=Math.max(2,Math.floor((W-10)/CELL)), rows=Math.max(2,Math.floor((H-10)/CELL));
+  var slots=cols*rows;
+  var n=Math.min(slots, 12+G.round*4);
+  var order=[], i;
+  for(i=0;i<slots;i++) order.push(i);
+  for(i=slots-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=order[i]; order[i]=order[j]; order[j]=t; }
   var grubAt=Math.floor(Math.random()*n);
-  for(var i=0;i<n;i++){
+  var padX=(W-cols*CELL)/2, padY=(H-rows*CELL)/2;
+  for(i=0;i<n;i++){
+    var cell=order[i], cx=cell%cols, cy=Math.floor(cell/cols);
     var el=document.createElement('div'); el.className='pileitem';
     var isGrub=(i===grubAt);
-    el.style.background=isGrub?'#6fd08c':'#39485a';
+    /* the grub is only a shade greener than the junk, and gets closer to the
+       junk colour as the rounds climb. Round one is a gift, round eight is work. */
+    var tint=Math.min(0.62, 0.10+G.round*0.06);
+    el.style.background=isGrub?mixHex('#6fd08c','#39485a',tint):'#39485a';
     el.style.color=isGrub?'#08150c':'#8fa0b2';
     el.textContent=isGrub?'grub':JUNK[Math.floor(Math.random()*JUNK.length)];
-    el.style.left=(8+Math.random()*(W-60))+'px';
-    el.style.top=(8+Math.random()*(H-60))+'px';
+    el.style.left=Math.round(padX+cx*CELL+4+Math.random()*6)+'px';
+    el.style.top=Math.round(padY+cy*CELL+4+Math.random()*6)+'px';
     el.style.transform='rotate('+(Math.random()*40-20)+'deg)';
-    (function(g){ el.onclick=function(){ grubTap(g); }; })(isGrub);
+    (function(g,e){ e.onclick=function(){ grubTap(g,e); }; })(isGrub,el);
     f.appendChild(el);
   }
 }
-function grubTap(isGrub){
+function mixHex(a,b,t){
+  function p(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+  var x=p(a),y=p(b),o='#',i;
+  for(i=0;i<3;i++){ o+=('0'+Math.round(x[i]+(y[i]-x[i])*t).toString(16)).slice(-2); }
+  return o;
+}
+function grubTap(isGrub,el){
   if(!G||G.over) return;
-  if(isGrub){ G.score+=3; $('p-score').textContent=G.score; grubRound(); }
-  else { G.score=Math.max(0,G.score-1); $('p-score').textContent=G.score; toast('Just junk'); }
+  if(isGrub){ bump(2); puff(el,'#6fd08c'); grubRound(); }
+  else { bump(-1); puff(el,'#c4543e'); toast('Just junk'); }
+}
+
+/* ── 4. PRY THE LIDS ───────────────────────────────────────────────────
+   The fourth block, and the only one whose verb is TIMING rather than aim.
+   A bar sweeps, you tap while it is over the seam. The seam narrows every time
+   you land it, so the job scales with your nerve instead of your tap rate. */
+function initPry(){
+  var f=$('p-field');
+  f.innerHTML='<div class="prywrap">'
+    +'<div class="pryhint" id="pry-hint">Tap when the marker is on the seam</div>'
+    +'<div class="prybar" id="pry-bar"><div class="pryzone" id="pry-zone"></div>'
+    +'<div class="prymark" id="pry-mark"></div></div>'
+    +'<div class="pryjars" id="pry-jars"></div></div>';
+  var btn=document.createElement('button'); btn.className='btn gold'; btn.textContent='PRY';
+  btn.onclick=pryTap; $('p-controls').appendChild(btn);
+  G.lids=0; G.zone=0.34; G.pos=0; G.dir=1;
+  pryPlace();
+  var last=performance.now();
+  (function loop(now){
+    if(!G||G.over) return;
+    var dt=Math.min(60,now-last); last=now;
+    G.pos+=G.dir*(0.55+G.lids*0.05)*dt/1000;
+    if(G.pos>1){ G.pos=1; G.dir=-1; } if(G.pos<0){ G.pos=0; G.dir=1; }
+    var m=$('pry-mark'); if(m) m.style.left=(G.pos*100)+'%';
+    G.raf=requestAnimationFrame(loop);
+  })(last);
+}
+function pryPlace(){
+  G.zoneAt=0.08+Math.random()*(0.84-G.zone);
+  var z=$('pry-zone');
+  if(z){ z.style.left=(G.zoneAt*100)+'%'; z.style.width=(G.zone*100)+'%'; }
+}
+function pryTap(){
+  if(!G||G.over) return;
+  var hit=(G.pos>=G.zoneAt && G.pos<=G.zoneAt+G.zone);
+  var bar=$('pry-bar');
+  if(hit){
+    G.lids++; bump(3);
+    G.zone=Math.max(0.09, G.zone*0.86);
+    if(bar){ bar.classList.add('good'); setTimeout(function(){ bar.classList.remove('good'); },220); }
+    var jars=$('pry-jars'); if(jars) jars.innerHTML+='<span class="jar">◍</span>';
+    $('pry-hint').textContent='Lid '+G.lids+'. The seam is tighter now.';
+  } else {
+    bump(-1);
+    G.zone=Math.min(0.34, G.zone*1.10);
+    if(bar){ bar.classList.add('bad'); setTimeout(function(){ bar.classList.remove('bad'); },220); }
+    $('pry-hint').textContent='The lid held. Try again.';
+  }
+  pryPlace();
 }
 
 /* ── 3. WIRE UNTANGLE ──────────────────────────────────────────────────── */
@@ -603,12 +946,26 @@ function wireRound(){
   var f=$('p-field'); f.innerHTML='';
   G.level++;
   var count=Math.min(8, 4+Math.floor(G.level/2));
-  var W=f.clientWidth, H=f.clientHeight;
+  var W=G.fw, H=G.fh;
   G.pins=[]; G.edges=[];
   var i;
-  for(i=0;i<count;i++) G.pins.push({ x:40+Math.random()*(W-80), y:40+Math.random()*(H-80) });
+  /* ⛔ pins are seated on a ring inside the REAL field, then shuffled, so the
+     board always starts tangled and always fits. Free random on a zero width
+     field used to pile every pin on the same corner. */
+  var cxp=W/2, cyp=H/2, rad=Math.min(W,H)/2-56;
+  var seats=[];
+  for(i=0;i<count;i++){
+    var a=(i/count)*Math.PI*2 - Math.PI/2;
+    seats.push({ x:cxp+Math.cos(a)*rad, y:cyp+Math.sin(a)*(rad*(H>W?1.35:1)) });
+  }
+  for(i=seats.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=seats[i]; seats[i]=seats[j]; seats[j]=t; }
+  for(i=0;i<count;i++) G.pins.push({ x:Math.max(44,Math.min(W-44,seats[i].x)), y:Math.max(44,Math.min(H-44,seats[i].y)) });
   for(i=0;i<count;i++) G.edges.push([i,(i+1)%count]);
   for(i=0;i+2<count;i+=2) G.edges.push([i,(i+2)%count]);
+  /* a layout that is already solved would pay for nothing. Reseat until it is knotted. */
+  if(wireCrossings()===0 && count>3){
+    var s0=G.pins[0]; G.pins[0]=G.pins[Math.floor(count/2)]; G.pins[Math.floor(count/2)]=s0;
+  }
   var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('style','position:absolute;inset:0;width:100%;height:100%');
   svg.id='wire-svg'; f.appendChild(svg);
@@ -645,7 +1002,7 @@ function wirePaint(){
 }
 function wireCheck(){
   if(!G||G.over) return;
-  if(wireCrossings()===0){ G.score+=6; $('p-score').textContent=G.score; toast('Clean run'); wireRound(); }
+  if(wireCrossings()===0){ bump(6); toast('Clean run'); wireRound(); }
 }
 
 /* ==========================================================================
@@ -660,8 +1017,8 @@ async function doMint(){
   try{ cb=await BUG_ENGINE.sha256Hex(salt); }
   catch(e){ cb=''; for(var i=0;i<64;i++) cb+=Math.floor(Math.random()*16).toString(16); }
   var id=BUG_ENGINE.bugIdentity(cb), gr=gradeOf(cb);
-  pending={ cb:cb, at:Date.now(), grade:gr.grade, score:gr.score };
-  $('m-art').innerHTML=bugSVG(cb,190);
+  pending={ cb:cb, at:Date.now(), grade:gr.grade, score:gr.score, lvl:1, wins:0 };
+  $('m-art').innerHTML=bugSVG(cb,230,1);
   $('m-grade').textContent=gr.grade;
   $('m-grade').style.color=GRADE_COLOR[gr.grade];
   $('m-grade').style.borderColor=GRADE_COLOR[gr.grade];
@@ -669,6 +1026,7 @@ async function doMint(){
   $('m-species').textContent=id.species;
   $('m-lore').textContent=id.lore;
   $('m-kicker').textContent='SPECIMEN '+((SAVE.dex||[]).length+1);
+  $('m-grow').textContent='Level 1. It fights small. Every win in the dumpster grows it.';
   show('s-mint');
 }
 function keepBug(){
@@ -684,15 +1042,29 @@ function paintDex(){
   var best='', bi=-1;
   dex.forEach(function(b){ var i=GRADES.indexOf(b.grade); if(i>bi){ bi=i; best=b.grade; } });
   $('x-best').textContent = dex.length ? ('BEST '+best) : '';
+  /* The grade spread, so a 30 Shiny mint reads as a PULL against odds you can
+     see rather than a label that turns up. Every tier is listed, even the ones
+     you have never hit, because the empty slots are the point. */
+  var lad=$('x-ladder'); lad.innerHTML='';
+  if(dex.length){
+    var counts={}; dex.forEach(function(b){ counts[b.grade]=(counts[b.grade]||0)+1; });
+    GRADES.forEach(function(gr){
+      var n=counts[gr]||0;
+      lad.innerHTML+='<div class="gcell'+(n?'':' none')+'" style="border-color:'+(n?GRADE_COLOR[gr]:'#28323d')+'">'
+        +'<div class="gn" style="color:'+(n?GRADE_COLOR[gr]:'#3d4956')+'">'+n+'</div>'
+        +'<div class="gl">'+gr.slice(0,4)+'</div></div>';
+    });
+  }
   if(!dex.length){
     g.innerHTML='<div class="empty">Nothing pinned yet. Work the alley for thirty Shinies and something will turn up.</div>';
     return;
   }
   dex.forEach(function(b,i){
     var c=document.createElement('div'); c.className='card';
-    c.innerHTML='<div>'+bugSVG(b.cb,84)+'</div>'
+    c.innerHTML='<div>'+bugSVG(b.cb,84,lvlOf(b))+'</div>'
       +'<div class="nm">'+BUG_ENGINE.bugName(b.cb)+'</div>'
-      +'<div class="gr" style="color:'+GRADE_COLOR[b.grade]+'">'+b.grade+'</div>';
+      +'<div class="gr" style="color:'+GRADE_COLOR[b.grade]+'">'+b.grade+'</div>'
+      +'<div class="gr" style="color:#8fa0b2">LV '+lvlOf(b)+'</div>';
     c.onclick=function(){ openSpec(i); };
     g.appendChild(c);
   });
@@ -700,7 +1072,7 @@ function paintDex(){
 function openSpec(i){
   var b=(SAVE.dex||[])[i]; if(!b) return;
   var id=BUG_ENGINE.bugIdentity(b.cb);
-  $('sp-art').innerHTML=bugSVG(b.cb,190);
+  $('sp-art').innerHTML=bugSVG(b.cb,220,lvlOf(b));
   $('sp-grade').textContent=b.grade;
   $('sp-grade').style.color=GRADE_COLOR[b.grade];
   $('sp-grade').style.borderColor=GRADE_COLOR[b.grade];
@@ -708,15 +1080,29 @@ function openSpec(i){
   $('sp-species').textContent=id.species;
   $('sp-lore').textContent=id.lore;
   var d=new Date(b.at||Date.now());
-  $('sp-meta').textContent='Found '+d.toDateString()+'  ·  '+b.cb.slice(0,12);
+  var f=null; try{ f=BATTLE_ENGINE.buildFighter(b.cb, lvlOf(b)); }catch(e){}
+  $('sp-meta').innerHTML='Level '+lvlOf(b)+'  ·  '+(b.wins||0)+' win'+((b.wins||0)===1?'':'s')
+    +(f?('<br>'+f.type+(f.type2?' and '+f.type2:'')+'  ·  '+f.cls+'  ·  '+f.maxhp+' HP  ·  ATK '+f.atk+'  ·  DEF '+f.def+'  ·  SPD '+f.spd):'')
+    +'<br>Found '+d.toDateString()+'  ·  '+b.cb.slice(0,12);
   show('s-spec');
 }
 
 /* ==========================================================================
-   THE DUMPSTER — built now, dark until Stephen says yes (?battles=1).
-   Everyone fights the same ladder on the same day: seeded by dayIndex.
+   THE DUMPSTER + THE ARENA
+   The lab arena lives in the game now. One save (lb_dex_v1) carries the dex,
+   every bug's LEVEL, today's ladder progress and the streak. The old screen
+   called resolveBattle(buildFighter(a), buildFighter(b)) but resolveBattle
+   takes CODEBLOCKS and builds its own fighters, so bugStats() threw on every
+   row and the whole ladder printed "?". It was never a balance question.
+   ⛔ The interactive path is startBattle + playerRound. resolveBattle is the
+   auto-resolver and is not used here.
    ========================================================================== */
-var BATTLES_ON=/[?&]battles=1/.test(location.search);
+var TYPE_COL={Rust:'#c4703e',Moss:'#6fd08c',Spark:'#e8c46a',Ooze:'#8fd05a',Glass:'#5aa9e6',Ash:'#b9b2a6'};
+/* Challenger levels are RELATIVE to your champion, so the first rung is a fair
+   fight at level 1 and the fifth is still a wall at level 25. The five bugs
+   themselves are the same for everybody on a given day. */
+var LADDER_OFF=[-3,-1,1,3,6], LADDER_PURSE=[8,10,12,15,20], CROWN_PURSE=30;
+
 function ladderFor(day){
   var rng=BUG_ENGINE.seededRng('dumpster:'+day), out=[], i, j;
   for(i=0;i<5;i++){
@@ -725,44 +1111,258 @@ function ladderFor(day){
   }
   return out;
 }
+function kingState(){
+  var k=SAVE.king||{};
+  if(k.d!==dayIndex()){ k={ d:dayIndex(), beaten:[], run:k.run||0, best:k.best||0,
+    crowns:k.crowns||0, crownRun:k.crownRun||0, crownDay:k.crownDay||0 }; SAVE.king=k; save(); }
+  if(!k.beaten) k.beaten=[];
+  return k;
+}
+function champIndex(){
+  var dex=SAVE.dex||[]; if(!dex.length) return -1;
+  var i=SAVE.champ; if(i==null||i<0||i>=dex.length) i=dex.length-1;
+  return i;
+}
+function champ(){ var i=champIndex(); return i<0?null:(SAVE.dex||[])[i]; }
+function lvlOf(b){ return Math.max(1,Math.min(30, (b&&b.lvl)||1)); }
+
+function typeChips(f){
+  var s='<span class="chip t" style="background:'+(TYPE_COL[f.type]||'#8fa0b2')+'">'+f.type+'</span>';
+  if(f.type2) s+='<span class="chip t" style="background:'+(TYPE_COL[f.type2]||'#8fa0b2')+'">'+f.type2+'</span>';
+  s+='<span class="chip">'+f.cls+'</span><span class="chip">LV '+f.level+'</span>';
+  return s;
+}
+function poisePips(f){
+  var s='',i, n=Math.min(14,f.poiseMax||0);
+  for(i=0;i<n;i++) s+='<i class="'+(i<Math.round((f.poise/f.poiseMax)*n)?'on':'')+'"></i>';
+  return s;
+}
+function paintFighter(box, f, size){
+  var pct=Math.max(0,Math.round(f.hp/f.maxhp*100));
+  box.innerHTML='<div class="flash"></div>'
+    +'<div class="por">'+bugSVG(f.cb,size,f.level)+'</div>'
+    +'<div class="who"><div class="nm">'+f.name+'</div>'
+    +'<div class="tags">'+typeChips(f)+'</div>'
+    +'<div class="hpwrap"><div class="hpbar'+(pct<=25?' low':(pct<=55?' mid':''))+'" style="width:'+pct+'%"></div></div>'
+    +'<div class="hpnum">'+f.hp+' / '+f.maxhp+'</div>'
+    +'<div class="poise">'+poisePips(f)+'</div></div>';
+}
+function updateBars(box, f){
+  var pct=Math.max(0,Math.round(f.hp/f.maxhp*100));
+  var bar=box.querySelector('.hpbar');
+  if(bar){ bar.style.width=pct+'%'; bar.className='hpbar'+(pct<=25?' low':(pct<=55?' mid':'')); }
+  var n=box.querySelector('.hpnum'); if(n) n.textContent=f.hp+' / '+f.maxhp;
+  var p=box.querySelector('.poise'); if(p) p.innerHTML=poisePips(f);
+}
+
 function paintDump(){
-  var day=dayIndex();
-  $('k-day').textContent='DAY '+day;
+  var day=dayIndex(), k=kingState();
+  $('k-day').textContent = k.run>0 ? ('WIN STREAK '+k.run) : 'NO STREAK';
   var mine=(SAVE.dex||[]);
   var list=$('k-list'); list.innerHTML='';
+  $('k-champ').innerHTML=''; $('k-strip').innerHTML='';
   if(!mine.length){ $('k-note').textContent='You need a bug of your own before anybody will let you in.'; return; }
-  $('k-note').textContent='Five challengers, the same five for everybody today.';
-  var champ=mine[mine.length-1];
-  ladderFor(day).forEach(function(cb,i){
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px;background:#131a22';
-    var res='';
-    try{
-      var r=BATTLE_ENGINE.resolveBattle(
-        BATTLE_ENGINE.buildFighter(champ.cb), BATTLE_ENGINE.buildFighter(cb));
-      res=(r.draw?'DRAW':(r.winner==='a'?'YOU WIN':'YOU LOSE'));
-    }catch(e){ res='?'; }
-    row.innerHTML='<div>'+bugSVG(cb,54)+'</div>'
-      +'<div style="flex:1"><div style="font-size:14px;font-weight:800">'+BUG_ENGINE.bugName(cb)+'</div>'
-      +'<div style="font-size:12px;color:var(--dim)">challenger '+(i+1)+'</div></div>'
-      +'<div style="font-size:13px;font-weight:800;color:'+(res==='YOU WIN'?'#6fd08c':(res==='YOU LOSE'?'#c4543e':'#8fa0b2'))+'">'+res+'</div>';
+  $('k-note').innerHTML='Five challengers, the same five for everybody today. They size up to your champion.'
+    +'<div class="streakbar"><span>WIN STREAK <b>'+k.run+'</b></span>'
+    +'<span>BEST <b>'+k.best+'</b></span><span>CROWNS <b>'+(k.crowns||0)+'</b></span>'
+    +(k.crownRun>1?'<span>CROWN STREAK <b>'+k.crownRun+'</b></span>':'')+'</div>';
+
+  var ci=champIndex(), cb=mine[ci];
+  var cf=BATTLE_ENGINE.buildFighter(cb.cb, lvlOf(cb));
+  $('k-champ').innerHTML='<div class="por" style="width:88px;height:88px;display:flex;align-items:center;justify-content:center">'
+    +bugSVG(cb.cb,84,lvlOf(cb))+'</div>'
+    +'<div class="who" style="flex:1;min-width:0"><div class="nm" style="font-size:17px;font-weight:800">'+cf.name+'</div>'
+    +'<div class="tags" style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">'+typeChips(cf)+'</div>'
+    +'<div class="hpnum" style="font-size:12px;color:var(--dim);margin-top:6px;font-weight:700">'
+    +cf.maxhp+' HP  ·  ATK '+cf.atk+'  ·  DEF '+cf.def+'  ·  SPD '+cf.spd+'</div></div>';
+
+  mine.forEach(function(b,i){
+    var c=document.createElement('div'); c.className='cs'+(i===ci?' sel':'');
+    c.innerHTML=bugSVG(b.cb,58,lvlOf(b))+'<div class="l">LV '+lvlOf(b)+'</div>';
+    c.onclick=function(){ SAVE.champ=i; save(); paintDump(); };
+    $('k-strip').appendChild(c);
+  });
+
+  var champLvl=lvlOf(cb);
+  ladderFor(day).forEach(function(fcb,i){
+    var lvl=Math.max(1,Math.min(30,champLvl+LADDER_OFF[i]));
+    var ff=BATTLE_ENGINE.buildFighter(fcb, lvl);
+    var done=k.beaten.indexOf(i)>=0;
+    var row=document.createElement('div'); row.className='krow'+(done?' done':'');
+    row.innerHTML='<div style="width:60px;flex:none">'+bugSVG(fcb,58,lvl)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">'+ff.name+'</div>'
+      +'<div class="tags" style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">'+typeChips(ff)+'</div></div>'
+      +'<div class="go">'+(done?'BEATEN':(LADDER_PURSE[i]+' ◆'))+'</div>';
+    row.onclick=function(){ openArena(i); };
     list.appendChild(row);
   });
 }
 
+/* ---------- the arena ---------- */
+var AR=null;
+function openArena(idx){
+  var me=champ(); if(!me){ toast('Mint a bug first'); return; }
+  var day=dayIndex(), fcb=ladderFor(day)[idx];
+  var myLvl=lvlOf(me), foeLvl=Math.max(1,Math.min(30,myLvl+LADDER_OFF[idx]));
+  AR={ idx:idx, st:BATTLE_ENGINE.startBattle(me.cb, fcb, myLvl, foeLvl), busy:false, dexIdx:champIndex() };
+  $('a-title').textContent='CHALLENGER '+(idx+1);
+  $('a-over').classList.remove('on');
+  $('a-log').innerHTML='<div class="hot">The lid comes off. Pick a move.</div>';
+  paintFighter($('a-foe'), AR.st.b, 128);
+  paintFighter($('a-me'), AR.st.a, 138);
+  paintArenaMoves();
+  show('s-arena');
+}
+function paintArenaMoves(){
+  var st=AR.st, box=$('a-moves'); box.innerHTML='';
+  $('a-round').textContent='ROUND '+(st.round+1);
+  var foeMove=BATTLE_ENGINE.previewFoeMove(st);
+  st.a.moves.forEach(function(m,i){
+    var b=document.createElement('button'); b.className='mv';
+    var band=BATTLE_ENGINE.damageBand(st.a, st.b, m);
+    var hit=BATTLE_ENGINE.hitPercent(st.a, st.b, m);
+    var first=BATTLE_ENGINE.previewOrder(st, i);
+    var eff='';
+    if(band){
+      if(band.mult>1.2) eff='<span class="me" style="color:#6fd08c">SUPER EFFECTIVE</span>';
+      else if(band.mult<0.85) eff='<span class="me" style="color:#c4543e">RESISTED</span>';
+      else eff='<span class="me" style="color:#8fa0b2">'+(m.stab?'SAME TYPE':'NEUTRAL')+'</span>';
+    } else eff='<span class="me" style="color:#5aa9e6">'+m.desc.toUpperCase()+'</span>';
+    b.innerHTML='<div class="mn" style="color:'+(TYPE_COL[m.type]||'#e6ecf2')+'">'+m.name+'</div>'
+      +'<div class="md">'+(band?(band.min+' to '+band.max+' damage  ·  '+hit+'%'):'no damage  ·  '+hit+'%')+'</div>'
+      +eff+'<div class="md" style="color:'+(first?'#6fd08c':'#8fa0b2')+'">'+(first?'you go first':'you go second')+'</div>';
+    b.onclick=function(){ playMove(i); };
+    box.appendChild(b);
+  });
+  /* ⛔ the foe's THREAT, not just its move name. Type product runs to 2.56x, so
+     an unread matchup ends a fight in two rounds and the player never learns
+     why. Showing the incoming band is what turns a coin flip into a choice. */
+  var inb=BATTLE_ENGINE.damageBand(st.b, st.a, foeMove);
+  var warn='';
+  if(inb){
+    var frac=inb.max/Math.max(1,st.a.hp);
+    var col = frac>=0.55 ? '#c4543e' : (frac>=0.3 ? '#e8c46a' : '#8fa0b2');
+    warn=' <span style="color:'+col+'">'+inb.min+' to '+inb.max+' into you'
+      +(inb.mult>1.2?', super effective':(inb.mult<0.85?', you resist it':''))+'.</span>';
+    if(frac>=1) warn+=' <span style="color:#c4543e">That can finish you.</span>';
+  } else warn=' <span style="color:#5aa9e6">'+foeMove.desc+'.</span>';
+  $('a-tele').innerHTML='<div><b>'+st.b.name+'</b> is winding up <b>'+foeMove.name+'</b>.'+warn+'</div>';
+}
+function lockMoves(on){
+  var b=$('a-moves').querySelectorAll('.mv'),i;
+  for(i=0;i<b.length;i++){ if(on) b[i].setAttribute('disabled','1'); else b[i].removeAttribute('disabled'); }
+}
+function hitFlash(box, side){
+  var fl=box.querySelector('.flash'); if(!fl) return;
+  fl.classList.remove('on'); void fl.offsetWidth; fl.classList.add('on');
+  box.classList.remove('brk'); void box.offsetWidth; box.classList.add('brk');
+  var i;
+  for(i=0;i<9;i++)(function(n){
+    var s=document.createElement('div'); s.className='spark';
+    s.style.background=(side==='crit'?'#fff':'#e8c46a');
+    s.style.left='50%'; s.style.top='50%';
+    box.appendChild(s);
+    var a=Math.random()*Math.PI*2, d=26+Math.random()*46;
+    s.animate?s.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},
+      {transform:'translate('+(Math.cos(a)*d-50)+'%,'+(Math.sin(a)*d-50)+'%) scale(0)',opacity:0}],
+      {duration:420+n*24,easing:'ease-out'}):0;
+    setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); },520);
+  })(i);
+}
+function dmgPop(box, txt){
+  var d=document.createElement('div'); d.className='dmgpop'; d.textContent=txt;
+  box.appendChild(d); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },820);
+}
+function playMove(i){
+  if(!AR||AR.busy||AR.st.over) return;
+  AR.busy=true; lockMoves(true);
+  var st=AR.st;
+  BATTLE_ENGINE.playerRound(st, i);
+  var ev=(st.events||[]).slice(), lines=(st.log||[]).slice();
+  var boxes={ a:$('a-me'), b:$('a-foe') };
+  var step=0;
+  (function next(){
+    if(step>=ev.length){ endStep(lines); return; }
+    var e=ev[step++];
+    if(e.kind==='hit'){
+      var tb=boxes[e.target];
+      hitFlash(tb, e.crit?'crit':'hit'); dmgPop(tb, '-'+e.dmg);
+      updateBars(tb, e.target==='a'?st.a:st.b);
+    } else if(e.kind==='dot'){
+      var db=boxes[e.side]; dmgPop(db, '-'+e.dmg); updateBars(db, e.side==='a'?st.a:st.b);
+    } else if(e.kind==='break'){
+      var bb=boxes[e.side]; bb.classList.remove('brk'); void bb.offsetWidth; bb.classList.add('brk');
+      updateBars(bb, e.side==='a'?st.a:st.b);
+    } else if(e.kind==='status'){
+      updateBars(boxes[e.target]||boxes.b, e.target==='a'?st.a:st.b);
+    }
+    setTimeout(next, 480);
+  })();
+}
+function endStep(lines){
+  var st=AR.st;
+  $('a-log').innerHTML=lines.map(function(l,i){
+    return '<div class="'+(i===lines.length-1?'hot':'')+'">'+l+'</div>'; }).join('');
+  updateBars($('a-me'), st.a); updateBars($('a-foe'), st.b);
+  if(st.over){ finishArena(); return; }
+  AR.busy=false; paintArenaMoves(); lockMoves(false);
+}
+function finishArena(){
+  var st=AR.st, k=kingState(), won=(!st.draw && st.winner==='a');
+  var head, note='', me=(SAVE.dex||[])[AR.dexIdx];
+  if(won){
+    var already=k.beaten.indexOf(AR.idx)>=0;
+    var purse=0, bonus=0;
+    k.run=(k.run||0)+1; if(k.run>(k.best||0)) k.best=k.run;
+    if(!already){
+      k.beaten.push(AR.idx);
+      purse=LADDER_PURSE[AR.idx];
+      bonus=Math.min(10,k.run);
+      payPurse(purse+bonus);
+      if(me){ me.lvl=Math.min(30, lvlOf(me)+1); me.wins=(me.wins||0)+1; }
+    }
+    head='YOU WIN';
+    note = already
+      ? 'You had already taken this one today, so the purse is spent. The streak still counts: '+k.run+' in a row.'
+      : 'Purse '+purse+' Shinies, streak bonus '+bonus+'. '+(me?(BUG_ENGINE.bugName(me.cb)+' is level '+lvlOf(me)+' now and it shows.'):'');
+    if(!already && k.beaten.length>=5){
+      k.crowns=(k.crowns||0)+1;
+      k.crownRun = (k.crownDay===dayIndex()-1) ? (k.crownRun||0)+1 : 1;
+      k.crownDay=dayIndex();
+      payPurse(CROWN_PURSE);
+      head='KING OF THE DUMPSTER';
+      note+=' All five down. The crown is yours and it pays '+CROWN_PURSE+' more, which is a whole bug.';
+    }
+  } else {
+    k.run=0;
+    head = st.draw ? 'A DRAW' : 'YOU LOSE';
+    note = st.draw ? 'Both bugs go down in the wet. Nothing lost, come again.'
+      : 'It walks away. Nothing is taken from you, and the challenger stays open. Feed your champion a shift and come back.';
+  }
+  SAVE.king=k; save();
+  $('a-over-head').textContent=head;
+  $('a-over-head').style.color = won ? '#6fd08c' : '#c4543e';
+  $('a-over-art').innerHTML = me ? bugSVG(me.cb,150,lvlOf(me)) : '';
+  $('a-over-note').textContent=note;
+  $('a-over').classList.add('on');
+}
+
 /* ---------- wiring ---------- */
+function capNote(){
+  $('cap-note').textContent=shiftsLeft()+' shift'+(shiftsLeft()===1?'':'s')+' and '
+    +capLeft()+' Shinies still out there today.';
+}
 $('b-scav').onclick=function(){
-  if(capLeft()<=0){ toast('Nothing left out there today'); return; }
-  $('cap-note').textContent=capLeft()+' Shinies still out there today.';
-  show('s-block');
+  if(!canWork()){ toast('Nothing left out there today'); return; }
+  capNote(); show('s-block');
 };
 $('b-how').onclick=function(){ show('s-how'); };
 $('b-how-go').onclick=function(){ show('s-home'); };
 $('b-block-back').onclick=function(){ show('s-home'); };
 var jb=document.querySelectorAll('[data-job]');
 for(var q=0;q<jb.length;q++)(function(b){ b.onclick=function(){ startJob(b.getAttribute('data-job')); }; })(jb[q]);
-$('b-again').onclick=function(){ if(capLeft()<=0){ paintHome(); show('s-home'); return; }
-  $('cap-note').textContent=capLeft()+' Shinies still out there today.'; show('s-block'); };
+$('b-again').onclick=function(){ if(!canWork()){ paintHome(); show('s-home'); return; }
+  capNote(); show('s-block'); };
 $('b-done-home').onclick=function(){ paintHome(); show('s-home'); };
 $('b-done-mint').onclick=function(){ doMint(); };
 $('b-mint').onclick=function(){ doMint(); };
@@ -772,6 +1372,8 @@ $('b-dex-back').onclick=function(){ paintHome(); show('s-home'); };
 $('b-spec-back').onclick=function(){ paintDex(); show('s-dex'); };
 $('b-dump').onclick=function(){ paintDump(); show('s-dump'); };
 $('b-dump-back').onclick=function(){ paintHome(); show('s-home'); };
+$('b-arena-back').onclick=function(){ AR=null; paintDump(); show('s-dump'); };
+$('b-over-next').onclick=function(){ AR=null; paintDump(); show('s-dump'); };
 /* SWS embed protocol: inside the portal frame ask the parent to close, else go home.
    Exposed as window.SWS_EXIT because that is the name the arcade's audit and its
    runtime exit injector both look for; a handler bound only to one button is
@@ -787,8 +1389,13 @@ $('b-exit').onclick=function(){ window.SWS_EXIT(); };
 
 /* first run shows the rules, once per device */
 (function(){
+  /* loadSave validates every field, so entries minted before levels existed
+     arrive with lvl 1 and grow from there like everything else. */
+  loadSave();
   drawAlley(); paintHome();
-  if(BATTLES_ON) $('b-dump').style.display='';
+  /* THE DUMPSTER is the game now, not a flag. The ?battles=1 gate was hiding a
+     crash in the old auto resolver, not an unfinished feature. */
+  $('b-dump').style.display='';
   try{ if(localStorage.getItem('lb_how')!=='1'){ localStorage.setItem('lb_how','1'); show('s-how'); } }catch(e){}
 })();
 
@@ -803,12 +1410,17 @@ if(/[?&]lbtest=1/.test(location.search)){
     startJob:startJob, endJob:endJob, state:function(){ return G; },
     show:show, dex:function(){ return SAVE.dex||[]; },
     ladder:ladderFor, dayIndex:dayIndex,
+    /* arena hooks so a gate can drive a real battle, not a mocked one */
+    openArena:openArena, playMove:playMove, arena:function(){ return AR; },
+    king:kingState, champ:champ, lvlOf:lvlOf,
+    shiftsLeft:shiftsLeft, canWork:canWork, cur:function(){ return cur; },
+    setLvl:function(i,n){ var b=(SAVE.dex||[])[i]; if(b){ b.lvl=n; save(); } return b; },
     /* the tuner searches the REAL scorer by moving its parameters, never by
        reimplementing it somewhere else */
     bands:TIER_BANDS, cuts:GRADE_CUT,
     setBands:function(o){ for(var k in o) TIER_BANDS[k]=o[k]; },
     setCuts:function(a){ GRADE_CUT=a; },
-    reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0}; save();
+    reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null}; save();
       try{ localStorage.removeItem('lb_cap'); }catch(e){} return SAVE; }
   };
 }
