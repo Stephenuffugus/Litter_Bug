@@ -109,7 +109,8 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
   font-size:15px;font-weight:800;letter-spacing:.5px}
 .bin:active{filter:brightness(1.25)}
 .bin .bl{font-size:12px;color:var(--dim);letter-spacing:1px}
-.falling{position:absolute;width:66px;height:66px;display:flex;align-items:center;justify-content:center;
+.falling{position:absolute;width:66px;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  background:#141b24;
   border-radius:12px;font-size:13px;font-weight:800;text-align:center;line-height:1.1;padding:4px;
   box-shadow:0 6px 14px #0007}
 /* the piece a bin tap will resolve. Three can ride the belt, so which one is
@@ -133,7 +134,8 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .pryjars .jar{color:var(--shine);font-size:22px}
 .pile{position:absolute;inset:0}
 .pileitem{position:absolute;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
-  border-radius:9px;font-size:11px;font-weight:700;color:#0b0d10}
+  border-radius:9px;background:#39485a}
+.flab{font-size:8.5px;font-weight:700;letter-spacing:.02em;line-height:1}
 .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:120px;z-index:80;background:#0f151bee;
   border:1px solid var(--line);border-radius:13px;padding:13px 20px;font-size:17px;font-weight:700;
   opacity:0;transition:opacity .25s ease;pointer-events:none}
@@ -761,6 +763,55 @@ function endJob(){
 }
 
 /* ── 1. SORT THE RECYCLING ─────────────────────────────────────────────── */
+/* ============ JUNK ART, 2026-08-24 ============
+   The morning review's biggest FOUND: "the junk is typography. Every scavenge
+   item is a grey square with a lowercase word in it, and the grub is the same
+   square in green. There is no hunt: the one coloured tile is the only thing
+   your eye can land on." Every thing the jobs spawn is a drawn silhouette now.
+   The grub is a CREATURE, and its camouflage escalation moved from the tile
+   colour to the body fill, so late rounds are a shape hunt, not a colour hunt.
+   All flat shapes, alley palette, readable at 44px: checked on a contact sheet
+   with a flat black column at real size before shipping. */
+function junkSVG(thing,accent,size){
+  var A=accent||'#8fa0b2', D='#232c38', L='#0b0d10';
+  var b={
+  bottle:'<path d="M27 8h10v9c0 4 7 6 7 14v25a4 4 0 0 1-4 4H24a4 4 0 0 1-4-4V31c0-8 7-10 7-14z" fill="'+A+'"/><rect x="26" y="4" width="12" height="6" rx="2" fill="'+D+'"/><rect x="24" y="34" width="16" height="14" rx="2" fill="'+L+'" opacity=".28"/>',
+  jar:'<rect x="16" y="18" width="32" height="38" rx="7" fill="'+A+'"/><rect x="14" y="10" width="36" height="10" rx="3" fill="'+D+'"/><rect x="21" y="26" width="8" height="24" rx="4" fill="#fff" opacity=".22"/>',
+  pane:'<path d="M14 12l36 6-4 36-36-6z" fill="'+A+'"/><path d="M18 16l10 2-12 24z" fill="#fff" opacity=".25"/><path d="M44 20l-26 28" stroke="'+L+'" stroke-width="2" opacity=".5"/>',
+  tumbler:'<path d="M20 10h24l-4 44H24z" fill="'+A+'"/><path d="M22 14h6l-3 36z" fill="#fff" opacity=".22"/><path d="M20 10h24l-1 8H21z" fill="'+L+'" opacity=".25"/>',
+  can:'<rect x="20" y="12" width="24" height="42" rx="4" fill="'+A+'"/><ellipse cx="32" cy="12" rx="12" ry="4" fill="'+D+'"/><circle cx="32" cy="12" r="2.5" fill="'+L+'"/><path d="M24 22h4v26h-4z" fill="#fff" opacity=".28"/><path d="M20 34c6 3 18 3 24 0v6c-6 3-18 3-24 0z" fill="'+L+'" opacity=".2"/>',
+  foil:'<path d="M14 40l10-22 8 8 6-14 12 10-4 10 6 8-14 10-10-6z" fill="'+A+'"/><path d="M24 18l8 8-6 12" stroke="#fff" stroke-width="2" fill="none" opacity=".4"/>',
+  tin:'<rect x="14" y="22" width="36" height="26" rx="4" fill="'+A+'"/><path d="M14 26c8-8 28-8 36 0" fill="none" stroke="'+D+'" stroke-width="4"/><rect x="40" y="14" width="4" height="14" rx="2" fill="'+D+'" transform="rotate(24 42 21)"/><rect x="19" y="28" width="26" height="12" rx="2" fill="'+L+'" opacity=".25"/>',
+  'bottle cap':'<circle cx="32" cy="32" r="17" fill="'+A+'"/><g fill="'+D+'"><circle cx="32" cy="13" r="3"/><circle cx="45" cy="19" r="3"/><circle cx="51" cy="32" r="3"/><circle cx="45" cy="45" r="3"/><circle cx="32" cy="51" r="3"/><circle cx="19" cy="45" r="3"/><circle cx="13" cy="32" r="3"/><circle cx="19" cy="19" r="3"/></g><circle cx="32" cy="32" r="8" fill="'+L+'" opacity=".3"/>',
+  carton:'<path d="M18 24l14-6 14 6v26l-14 6-14-6z" fill="'+A+'"/><path d="M32 18l14 6-14 6-14-6z" fill="#fff" opacity=".2"/><path d="M32 30v26" stroke="'+L+'" stroke-width="2" opacity=".4"/><path d="M22 12l10 4 10-4-4-4h-12z" fill="'+D+'"/>',
+  flyer:'<path d="M16 12h28l6 8-4 34-28-2z" fill="'+A+'"/><g stroke="'+L+'" stroke-width="3" opacity=".55"><path d="M22 24h20"/><path d="M22 32h16"/><path d="M22 40h18"/></g><path d="M44 12l6 8h-8z" fill="'+D+'"/>',
+  box:'<rect x="14" y="22" width="36" height="30" rx="3" fill="'+A+'"/><path d="M14 22l8-10h20l8 10z" fill="'+D+'"/><path d="M32 12v40" stroke="'+L+'" stroke-width="3" opacity=".35"/><rect x="26" y="22" width="12" height="8" fill="'+L+'" opacity=".3"/>',
+  sleeve:'<rect x="12" y="20" width="40" height="26" rx="6" fill="'+A+'"/><rect x="12" y="20" width="40" height="9" rx="4" fill="'+D+'"/><circle cx="32" cy="38" r="5" fill="'+L+'" opacity=".4"/>',
+  nut:'<path d="M32 10l17 10v20L32 50 15 40V20z" fill="'+A+'"/><circle cx="32" cy="30" r="8" fill="'+L+'"/>',
+  bolt:'<rect x="24" y="8" width="16" height="10" rx="2" fill="'+A+'"/><rect x="27" y="18" width="10" height="34" rx="3" fill="'+A+'"/><g stroke="'+L+'" stroke-width="2" opacity=".6"><path d="M27 24h10"/><path d="M27 31h10"/><path d="M27 38h10"/><path d="M27 45h10"/></g>',
+  cap:'<circle cx="32" cy="34" r="14" fill="'+A+'"/><g fill="'+L+'" opacity=".55"><circle cx="32" cy="22" r="2.5"/><circle cx="42" cy="27" r="2.5"/><circle cx="44" cy="38" r="2.5"/><circle cx="36" cy="46" r="2.5"/><circle cx="24" cy="44" r="2.5"/><circle cx="20" cy="33" r="2.5"/><circle cx="24" cy="24" r="2.5"/></g>',
+  pin:'<circle cx="32" cy="16" r="7" fill="'+A+'"/><path d="M30 22h4l-1 26h-2z" fill="'+A+'"/><path d="M31 48l1 6 1-6z" fill="'+D+'"/>',
+  clip:'<path d="M24 14v26a8 8 0 0 0 16 0V20a5 5 0 0 0-10 0v20" fill="none" stroke="'+A+'" stroke-width="5" stroke-linecap="round"/>',
+  nub:'<path d="M20 40c-2-10 4-22 12-22s14 10 12 20-6 14-12 14-10-4-12-12z" fill="'+A+'"/><circle cx="28" cy="32" r="3" fill="'+L+'" opacity=".4"/>',
+  tab:'<path d="M22 18a10 10 0 0 1 20 0v6h-6v-6a4 4 0 0 0-8 0v6h-6z" fill="'+A+'"/><rect x="18" y="24" width="28" height="22" rx="8" fill="'+A+'"/><rect x="26" y="30" width="12" height="10" rx="5" fill="'+L+'"/>',
+  stub:'<rect x="16" y="22" width="32" height="20" rx="3" fill="'+A+'"/><path d="M24 22v20M40 22v20" stroke="'+L+'" stroke-width="2" stroke-dasharray="3 3" opacity=".6"/><rect x="28" y="28" width="8" height="8" fill="'+L+'" opacity=".35"/>'
+  };
+  var body=b[thing]||b.nub;
+  return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" style="display:block">'+body+'</svg>';
+}
+/* the grub: unmistakably an animal, six legs and a face, so late rounds hide it
+   by TONE against same-toned junk instead of hiding a word among words */
+function grubSVG(fill,size){
+  return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" style="display:block">'
+   +'<g stroke="'+fill+'" stroke-width="3" stroke-linecap="round">'
+   +'<path d="M18 44l-6 8"/><path d="M26 48l-3 9"/><path d="M36 48l2 9"/><path d="M44 44l6 8"/></g>'
+   +'<ellipse cx="22" cy="38" rx="10" ry="9" fill="'+fill+'"/>'
+   +'<ellipse cx="34" cy="36" rx="11" ry="10" fill="'+fill+'"/>'
+   +'<circle cx="46" cy="30" r="9" fill="'+fill+'"/>'
+   +'<g stroke="'+fill+'" stroke-width="2.5" stroke-linecap="round"><path d="M50 22l5-7"/><path d="M53 26l8-3"/></g>'
+   +'<circle cx="49" cy="28" r="2" fill="#0b0d10"/>'
+   +'</svg>';
+}
 var MATS=[
   {k:'glass', label:'GLASS', col:'#5aa9e6', things:['bottle','jar','pane','tumbler']},
   {k:'metal', label:'METAL', col:'#b9c4d0', things:['can','foil','tin','bottle cap']},
@@ -807,8 +858,9 @@ function spawnPiece(){
   var m=MATS[Math.floor(Math.random()*MATS.length)];
   var thing=m.things[Math.floor(Math.random()*m.things.length)];
   var el=document.createElement('div'); el.className='falling';
-  el.style.background=m.col; el.style.color='#0b0d10';
-  el.textContent=thing;
+  /* the tile is dark; the ART carries the material colour, so you sort by the
+     shape of the thing and the tint agrees with the bin */
+  el.innerHTML=junkSVG(thing,m.col,44)+'<div class="flab" style="color:'+m.col+'">'+thing+'</div>';
   /* ⛔ clamp with Math.max: a zero width field used to make this negative */
   el.style.left=Math.round(12+Math.random()*Math.max(1,G.fw-90))+'px';
   el.style.top='0px';
@@ -872,12 +924,17 @@ function grubRound(){
     var cell=order[i], cx=cell%cols, cy=Math.floor(cell/cols);
     var el=document.createElement('div'); el.className='pileitem';
     var isGrub=(i===grubAt);
-    /* the grub is only a shade greener than the junk, and gets closer to the
-       junk colour as the rounds climb. Round one is a gift, round eight is work. */
-    var tint=Math.min(0.62, 0.10+G.round*0.06);
-    el.style.background=isGrub?mixHex('#6fd08c','#39485a',tint):'#39485a';
-    el.style.color=isGrub?'#08150c':'#8fa0b2';
-    el.textContent=isGrub?'grub':JUNK[Math.floor(Math.random()*JUNK.length)];
+    /* every bit of junk is a drawn silhouette now, and the grub is a CREATURE:
+       six legs, antennae, an eye. Early rounds it is green among grey. As the
+       rounds climb its body fill walks toward the junk tone, so the late hunt
+       is finding the SHAPE with legs, not the coloured tile. Round one is a
+       gift, round eight is work. */
+    /* ⛔ the contact sheet showed 0.78 still reads green: the camo has to be
+       able to REACH the junk tone, or round eight is round one. At 0.95 the
+       body matches the junk fill and only the legs and antennae betray it. */
+    var tint=Math.min(0.95, 0.10+G.round*0.09);
+    if(isGrub){ el.innerHTML=grubSVG(mixHex('#6fd08c','#8fa0b2',tint),38); }
+    else { el.innerHTML=junkSVG(JUNK[Math.floor(Math.random()*JUNK.length)],'#8fa0b2',38); }
     el.style.left=Math.round(padX+cx*CELL+4+Math.random()*6)+'px';
     el.style.top=Math.round(padY+cy*CELL+4+Math.random()*6)+'px';
     el.style.transform='rotate('+(Math.random()*40-20)+'deg)';
