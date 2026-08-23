@@ -1,0 +1,393 @@
+#!/usr/bin/env node
+/*
+ * check.js — the gate that LOADS THE GAME.
+ *
+ *   node check.js            run against index.html
+ *   LB_FILE=x.html node check.js   run against a copy (the mutation driver)
+ *
+ * ⛔ WHY THIS EXISTS. Before 2026-08-24 this repo had ten smoke harnesses and
+ * not one of them opened index.html. Playing it for ten minutes in a browser
+ * found five defects that had shipped since v1: all three jobs laid out in a
+ * 0x0 field, the champion's SVG computed to height 0 on HOME, THE DUMPSTER
+ * printed "?" five times because it threw, a brisk thumb drained the whole
+ * day in 22 seconds, and a corrupt save killed the script block. A green test
+ * suite is not a played game, and a suite that never loads the page is not a
+ * suite. Every check below guards one of the things that was actually broken.
+ *
+ * ⛔ Every check in here has been WATCHED GOING RED. scripts/lb_mutation_drive.js
+ * applies one realistic single point defect to a copy of index.html, runs this
+ * file against it, and reports BITES or VACUOUS per mutation. A check nobody
+ * has seen fail is decoration.
+ */
+const path = require('path');
+const { spawn } = require('child_process');
+const puppeteer = require(require.resolve('puppeteer', { paths: ['/workspaces/lucid-winds'] }));
+
+const ROOT = __dirname;
+const FILE = process.env.LB_FILE || 'index.html';
+const PORT = parseInt(process.env.LB_PORT || '8793', 10);
+
+let pass = 0, fail = 0, gname = '';
+function group(n) { gname = n; console.log('\n── ' + n + ' ' + '─'.repeat(Math.max(0, 58 - n.length))); }
+function ok(cond, label, detail) {
+  if (cond) { pass++; console.log('  ok   ' + label); }
+  else { fail++; console.log('  FAIL ' + label + (detail !== undefined ? '   got: ' + JSON.stringify(detail) : '')); }
+}
+
+(async () => {
+  const server = spawn('python3', ['-m', 'http.server', String(PORT)], { cwd: ROOT, stdio: 'ignore' });
+  await new Promise(r => setTimeout(r, 1100));
+  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const base = `http://127.0.0.1:${PORT}/`;
+
+  async function open(url, w, h) {
+    const p = await browser.newPage();
+    const errs = [];
+    p.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 200)); });
+    p.on('pageerror', e => errs.push('pageerror: ' + String(e).slice(0, 200)));
+    await p.setViewport({ width: w || 412, height: h || 915, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await p.goto(base + url, { waitUntil: 'networkidle2', timeout: 45000 });
+    await p.evaluate(() => new Promise(r => setTimeout(r, 450)));
+    p._errs = errs;
+    return p;
+  }
+
+  try {
+    // ══ BOOT ══════════════════════════════════════════════════════════
+    group('the page boots and the script block is alive');
+    const p = await open(FILE + '?lbtest=1');
+    const boot = await p.evaluate(() => ({
+      dev: typeof window.LB_DEV === 'object' && !!window.LB_DEV,
+      engine: typeof window.BUG_ENGINE === 'object',
+      battle: typeof window.BATTLE_ENGINE === 'object',
+      screens: document.querySelectorAll('.screen').length,
+      onScreen: (document.querySelector('.screen.on') || {}).id || null
+    }));
+    ok(boot.dev, 'LB_DEV exists under ?lbtest=1 (a dead script block kills this first)', boot);
+    ok(boot.engine && boot.battle, 'bug-engine and battle-engine both loaded', boot);
+    ok(boot.screens >= 9, 'every screen is in the document', boot.screens);
+    /* a first run opens the rules, not HOME: the guard is `if (window.parent
+       !== window)`-shaped, it is deliberate, and a check that demanded s-home
+       was asserting the wrong thing on a clean browser. */
+    ok(boot.onScreen === 's-how' || boot.onScreen === 's-home', 'a fresh browser opens on the rules or HOME', boot.onScreen);
+    const afterRules = await p.evaluate(async () => {
+      const b = document.getElementById('b-how-go'); if (b) b.click();
+      await new Promise(r => setTimeout(r, 250));
+      return (document.querySelector('.screen.on') || {}).id || null;
+    });
+    ok(afterRules === 's-home', 'START WORKING off the rules screen lands on HOME', afterRules);
+    ok(p._errs.length === 0, 'zero console errors and zero page errors on boot', p._errs.slice(0, 3));
+
+    // ══ THE JOBS LAY OUT IN A REAL FIELD ══════════════════════════════
+    group('the four blocks lay out in a field with a real size');
+    for (const kind of ['sort', 'grub', 'wire', 'pry']) {
+      const r = await p.evaluate(async (k) => {
+        const D = window.LB_DEV; D.reset(); D.show('s-home');
+        D.startJob(k);
+        await new Promise(x => setTimeout(x, 260));
+        const G = D.state();
+        const f = document.getElementById('p-field');
+        const fr = f.getBoundingClientRect();
+        const kids = [...f.children].map(c => {
+          const s = c.style;
+          return { l: parseFloat(s.left), t: parseFloat(s.top), cls: c.className };
+        }).filter(o => isFinite(o.l) && isFinite(o.t));
+        const xs = kids.map(o => o.l), ys = kids.map(o => o.t);
+        D.endJob();
+        return { fw: G && G.fw, fh: G && G.fh, rectW: Math.round(fr.width), rectH: Math.round(fr.height),
+          n: kids.length, minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+      }, kind);
+      ok(r.fw > 200 && r.fh > 200, kind + ': the field measures a real size, not 0x0', { fw: r.fw, fh: r.fh });
+      ok(r.rectW > 200 && r.rectH > 200, kind + ': the field is actually on screen when it is measured', r);
+      if (r.n > 0) {
+        ok(r.minX >= -8 && r.minY >= -8, kind + ': nothing spawns at a negative offset', r);
+        ok(r.maxX <= r.fw && r.maxY <= r.fh, kind + ': nothing spawns past the far edge', r);
+        const spreadX = r.maxX - r.minX, spreadY = r.maxY - r.minY;
+        if (r.n >= 4) ok(spreadX > 60 || spreadY > 60, kind + ': the pieces are spread out, not stacked in one corner', { spreadX, spreadY, n: r.n });
+      }
+    }
+
+    // ══ YOU CAN SEE YOUR BUG ══════════════════════════════════════════
+    group('the champion is visible on HOME');
+    const home = await p.evaluate(async () => {
+      const D = window.LB_DEV; D.reset();
+      D.setShinies(D.mintCost); await D.doMint(); D.keep();
+      D.show('s-home'); paintHome();
+      await new Promise(r => setTimeout(r, 250));
+      const svg = document.querySelector('#home-bug svg');
+      if (!svg) return { none: true };
+      const r = svg.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height), chars: svg.outerHTML.length, vb: svg.getAttribute('viewBox') };
+    });
+    ok(!home.none, 'the champion SVG is in the document', home);
+    ok(home.h > 40 && home.w > 40, 'the champion SVG has a REAL rendered size (it computed to 494x0 before)', home);
+    ok(home.vb && home.vb !== '0 0 200 200', 'the camera frames the bug instead of a fixed 200x200 box', home.vb);
+
+    // ══ THE DUMPSTER ══════════════════════════════════════════════════
+    group('THE DUMPSTER returns real results');
+    const dump = await p.evaluate(async () => {
+      const D = window.LB_DEV; D.reset();
+      for (let i = 0; i < 2; i++) { D.setShinies(D.mintCost); await D.doMint(); D.keep(); }
+      D.show('s-dump'); paintDump();
+      await new Promise(r => setTimeout(r, 320));
+      const rows = [...document.querySelectorAll('#k-list > *')];
+      return { n: rows.length, txt: rows.map(r => r.textContent.replace(/\s+/g, ' ').trim()),
+        anyQ: rows.some(r => /\?/.test(r.textContent)),
+        champ: (document.getElementById('k-champ').textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) };
+    });
+    ok(dump.n === 5, 'five challengers, seeded for the day', dump.n);
+    ok(!dump.anyQ, 'no row prints "?" (resolveBattle threw on all five before)', dump.txt);
+    ok(dump.txt.every(t => t.length > 8), 'every challenger row carries real text', dump.txt);
+    ok(/LV|LEVEL|\d/.test(dump.champ), 'the champion card is painted', dump.champ);
+    ok(!/DAY \d{4,}/.test(dump.txt.join(' ') + dump.champ), 'no raw epoch day index is shown to the player', dump.txt);
+
+    // ══ THE ARENA, ON THE INTERACTIVE PATH ════════════════════════════
+    group('a battle actually plays and finishes');
+    const battle = await p.evaluate(async () => {
+      const D = window.LB_DEV; D.reset();
+      for (let i = 0; i < 2; i++) { D.setShinies(D.mintCost); await D.doMint(); D.keep(); }
+      D.show('s-dump'); paintDump();
+      await new Promise(r => setTimeout(r, 260));
+      const row = document.querySelector('#k-list > *');
+      (row.querySelector('button') || row).click();
+      await new Promise(r => setTimeout(r, 420));
+      const a0 = D.arena();
+      if (!a0 || !a0.st) return { noArena: true };
+      const startHp = { a: a0.st.a.hp, b: a0.st.b.hp };
+      let moves = 0, sawFlash = 0, sawPop = 0, rounds = 0;
+      /* ⛔ WALL CLOCK BOUND. Without it a hung arena spins 60 iterations at
+         ~1s each inside one evaluate and the suite dies with a protocol
+         TargetCloseError instead of reporting a red check. A gate that CRASHES
+         on the defect it is supposed to catch has not caught it. Found by the
+         mutation driver, which is the point of the mutation driver. */
+      const deadline = Date.now() + 22000;
+      for (let i = 0; i < 60 && Date.now() < deadline; i++) {
+        const ar = D.arena();
+        if (!ar || !ar.st || ar.st.over) break;
+        if (ar.busy) { await new Promise(r => setTimeout(r, 120)); continue; }
+        const btns = [...document.querySelectorAll('#a-moves button, #a-moves .move')].filter(b => !b.hasAttribute('disabled'));
+        if (!btns.length) { await new Promise(r => setTimeout(r, 120)); continue; }
+        const hpBefore = ar.st.a.hp + ar.st.b.hp;
+        btns[0].click();
+        await new Promise(r => setTimeout(r, 120));
+        if (document.querySelector('.flash.on')) sawFlash++;
+        if (document.querySelector('.dmgpop')) sawPop++;
+        if (document.querySelector('.spark')) sawFlash++;
+        await new Promise(r => setTimeout(r, 700));
+        const after = D.arena() && D.arena().st;
+        /* ⛔ an EXCHANGE is HP that moved, never a click that landed. */
+        if (after && (after.a.hp + after.b.hp) !== hpBefore) moves++;
+        rounds = after ? (after.round || rounds) : rounds;
+      }
+      const ar = D.arena();
+      return { moves, sawFlash, sawPop, rounds,
+        over: !!(ar && ar.st && ar.st.over),
+        endHp: ar && ar.st ? { a: ar.st.a.hp, b: ar.st.b.hp } : null, startHp,
+        moveCards: document.querySelectorAll('#a-moves button, #a-moves .move').length };
+    });
+    ok(!battle.noArena, 'the arena opens with a live state', battle);
+    ok(battle.moveCards >= 3, 'the player is given move cards to choose from', battle.moveCards);
+    /* ⛔ >= 1, not >= 2: a fast bug can one-shot a challenger, and demanding two
+       resolving exchanges made this check FLIP between runs (1 of 4 red).
+       `moves` counts HP THAT MOVED, never a click that landed, so a no-op
+       playMove scores 0 here even though the buttons stay clickable. */
+    ok(battle.moves >= 1, 'an exchange RESOLVES (hp moves, not just a click)', battle.moves);
+    ok(battle.over, 'the battle reaches an end state', battle);
+    ok(battle.endHp && (battle.endHp.a < battle.startHp.a || battle.endHp.b < battle.startHp.b),
+      'somebody actually took damage', battle);
+    ok(battle.sawPop >= 1, 'a damage number pops on a hit', battle.sawPop);
+    ok(battle.sawFlash >= 1, 'a hit flash or a spark fires on an exchange', battle.sawFlash);
+
+    // ══ THE DAILY CAP ═════════════════════════════════════════════════
+    group('the day cannot be drained by tapping fast');
+    /* ⛔ ON ITS OWN PAGE. This group used to share the page with the arena group
+       and read SAVE.shinies as an absolute. finishArena pays the purse on a
+       setTimeout tail, so 9 purse Shinies landed AFTER reset() and the check
+       flipped between runs. A check that flips is a bug in the check. */
+    const capPage = await open(FILE + '?lbtest=1');
+    const cap = await capPage.evaluate(async () => {
+      const D = window.LB_DEV; D.reset();
+      const SHIFT = D.shiftCap(), DAILY = D.dailyCap(), SHIFTS = D.dailyShifts();
+      D.startJob('sort');
+      await new Promise(r => setTimeout(r, 200));
+      /* ⛔ this drives bump(), the function the JOBS call, not the raw currency
+         function. Driving earnShinies directly would prove nothing: the shift
+         cap lives in bump and the day cap lives in earnShinies, and the defect
+         on 2026-08-24 was that NEITHER existed. 22 seconds of a brisk 380ms
+         thumb is 58 scoring taps. */
+      for (let i = 0; i < 58; i++) D.bump(2);
+      const shiftScore = D.state().score;
+      D.endJob();
+      const afterBurst = D.save().shinies;
+      const left = D.capLeft();
+      return { SHIFT, DAILY, SHIFTS, shiftScore, afterBurst, left, shiftsLeft: D.shiftsLeft() };
+    });
+    await capPage.close();
+    ok(cap.SHIFT < cap.DAILY, 'one shift can never pay the whole day', cap);
+    ok(cap.SHIFT * cap.SHIFTS >= cap.DAILY * 0.9, 'the shifts on offer can actually reach the daily cap', cap);
+    ok(cap.shiftScore <= cap.SHIFT, '58 fast taps in one shift score no more than one shift is worth', cap);
+    ok(cap.afterBurst <= cap.SHIFT, '58 fast taps in one shift cannot PAY more than one shift', cap);
+    ok(cap.afterBurst < cap.DAILY, 'one shift cannot empty the day', cap);
+    ok(cap.left > 0, 'there is still something to earn after a burst of tapping', cap);
+    ok(cap.shiftsLeft >= 1, 'there are shifts left after the first one', cap);
+
+    // ══ A CORRUPT SAVE ════════════════════════════════════════════════
+    group('a junk save boots into a clean game, not a dead page');
+    const JUNK = [
+      'not json{{{',
+      '[]',
+      'null',
+      '{"dex":[{"cb":"zz"},null,{"cb":123}],"shinies":"abc"}',
+      '{"dex":{"0":{"cb":"' + 'a'.repeat(64) + '"}},"champ":99,"king":[]}',
+      '{"shinies":-5,"jobs":"x","lastDay":{},"dex":[{"cb":"' + 'b'.repeat(64) + '","lvl":9999}]}'
+    ];
+    for (const j of JUNK) {
+      const q = await open(FILE + '?lbtest=1');
+      await q.evaluate(v => { try { localStorage.setItem('lb_dex_v1', v); } catch (e) {} }, j);
+      await q.reload({ waitUntil: 'networkidle2' });
+      await q.evaluate(() => new Promise(r => setTimeout(r, 400)));
+      const st = await q.evaluate(() => {
+        if (typeof window.LB_DEV !== 'object' || !window.LB_DEV) return { dead: true };
+        const s = window.LB_DEV.save();
+        return { dead: false, dex: (s.dex || []).length, shin: s.shinies,
+          allValid: (s.dex || []).every(b => /^[0-9a-f]{64}$/.test(b.cb) && b.lvl >= 1 && b.lvl <= 30),
+          onScreen: (document.querySelector('.screen.on') || {}).id || null };
+      });
+      const tag = j.slice(0, 26).replace(/\s+/g, ' ');
+      ok(!st.dead, 'save "' + tag + '": the script block survives', st);
+      if (!st.dead) {
+        ok(typeof st.shin === 'number' && st.shin >= 0 && st.allValid, 'save "' + tag + '": every field is validated on the way in', st);
+        ok(st.onScreen === 's-home', 'save "' + tag + '": the game still opens on HOME', st.onScreen);
+      }
+      await q.close();
+    }
+
+    // ══ THE ART DEFECTS FOUND BY LOOKING ══════════════════════════════
+    group('the art cannot vanish');
+    const art = await p.evaluate(async () => {
+      const D = window.LB_DEV; D.reset();
+      const S = D.save(); const hex = '0123456789abcdef';
+      const mk = n => { let s = ''; for (let i = 0; i < 64; i++) s += hex[(Math.abs(Math.sin(n * 97 + i * 13)) * 16 | 0) % 16]; return s; };
+      S.dex = []; for (let i = 0; i < 9; i++) S.dex.push({ cb: mk(i), at: Date.now(), grade: D.grade(mk(i)).grade, score: 0, lvl: 1 + i * 3, wins: 0 });
+      S.champ = 0;
+      D.show('s-home'); paintHome();
+      D.show('s-dex'); paintDex();
+      await new Promise(r => setTimeout(r, 350));
+      // ids must be unique across the WHOLE document or a fill resolves into a
+      // hidden copy and paints nothing
+      const ids = [...document.querySelectorAll('[id]')].map(e => e.id);
+      const seen = {}, dupes = [];
+      ids.forEach(i => { if (seen[i]) { if (dupes.indexOf(i) < 0) dupes.push(i); } seen[i] = 1; });
+      const cards = [...document.querySelectorAll('#x-grid .card svg')];
+      const sizes = cards.map(s => { const r = s.getBoundingClientRect(); return Math.round(Math.min(r.width, r.height)); });
+      // every card must have painted body geometry, not just strokes
+      const bodies = cards.map(s => s.querySelectorAll('[fill^="url(#"]').length);
+      return { dupes: dupes.slice(0, 6), nCards: cards.length, minSize: Math.min(...sizes),
+        minBodies: Math.min(...bodies), sameBug: cards.length };
+    });
+    ok(art.dupes.length === 0, 'no duplicate element ids anywhere in the document', art.dupes);
+    ok(art.nCards === 9, 'every bug in the dex draws a card', art.nCards);
+    ok(art.minSize > 40, 'every card SVG has a real rendered size', art.minSize);
+    ok(art.minBodies >= 1, 'every card paints filled body geometry, not just a wire skeleton', art.minBodies);
+
+    // ══ THE GRADE READS THE ART ═══════════════════════════════════════
+    group('the grade reads the parts that are drawn');
+    const grade = await p.evaluate(() => {
+      const D = window.LB_DEV, E = window.BUG_ENGINE;
+      const hex = '0123456789abcdef'; let agree = 0, marked = 0, plain = 0, n = 400;
+      let minS = 1e9, maxS = -1e9;
+      for (let i = 0; i < n; i++) {
+        let cb = ''; for (let j = 0; j < 64; j++) cb += hex[(Math.random() * 16) | 0];
+        const g = D.grade(cb), pl = E.bugPlan(cb);
+        if (g.marks.length) marked++; else plain++;
+        // an elytra shell in the marks must mean the plan really rolled one
+        if ((g.marks.indexOf('elytra shell') >= 0) === (pl.plan.wings !== 999 && pl.wingKind === 2)) agree++;
+        minS = Math.min(minS, g.score); maxS = Math.max(maxS, g.score);
+      }
+      // the Flying tag must match the wings the renderer draws
+      let tagAgree = 0;
+      for (let i = 0; i < 200; i++) {
+        let cb = ''; for (let j = 0; j < 64; j++) cb += hex[(Math.random() * 16) | 0];
+        if ((E.bugStats(cb).tags[0] === 'Flying') === (E.bugPlan(cb).plan.wings !== 999)) tagAgree++;
+      }
+      return { agree, n, marked, plain, minS, maxS, tagAgree, cuts: E.GRADE_CUT.slice() };
+    });
+    ok(grade.agree === grade.n, 'every "elytra shell" mark corresponds to a shell the renderer draws', grade);
+    ok(grade.tagAgree === 200, 'the Flying tag matches the wings that are drawn', grade.tagAgree);
+    ok(grade.marked > grade.n * 0.9, 'nearly every bug has at least one named visible part', grade);
+    ok(grade.maxS - grade.minS > 30, 'the score has enough spread to separate seven tiers', grade);
+    ok(grade.cuts.length === 7 && grade.cuts[6] > grade.cuts[0], 'seven grade cuts, strictly increasing', grade.cuts);
+
+    // ══ TOUCH TARGETS, MEASURED IN RENDERED PIXELS ════════════════════
+    group('48px touch targets at 375x667, measured RENDERED not CSS');
+    const small = await open(FILE + '?lbtest=1', 375, 667);
+    const touch = await small.evaluate(async () => {
+      const D = window.LB_DEV; D.reset();
+      for (let i = 0; i < 2; i++) { D.setShinies(D.mintCost); await D.doMint(); D.keep(); }
+      const st = document.getElementById('stage');
+      const scale = st.getBoundingClientRect().width / st.offsetWidth;
+      const out = [];
+      const screens = ['s-home', 's-block', 's-dex', 's-dump', 's-how'];
+      for (const id of screens) {
+        D.show(id);
+        if (id === 's-home') paintHome(); if (id === 's-dex') paintDex(); if (id === 's-dump') paintDump();
+        await new Promise(r => setTimeout(r, 220));
+        const btns = [...document.querySelectorAll('#' + id + ' button, #' + id + ' .btn')];
+        btns.forEach(b => {
+          const r = b.getBoundingClientRect();
+          if (r.width < 1 || r.height < 1) return;
+          out.push({ id, t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 26),
+            w: +r.width.toFixed(1), h: +r.height.toFixed(1) });
+        });
+      }
+      return { scale: +scale.toFixed(3), out };
+    });
+    const tooSmall = touch.out.filter(o => o.h < 48 || o.w < 48);
+    ok(touch.out.length > 8, 'the audit actually found buttons to measure', touch.out.length);
+    ok(touch.scale < 1, 'the stage really is scaled down at 375x667 (CSS px would lie here)', touch.scale);
+    ok(tooSmall.length === 0, 'every button measures 48 RENDERED px or more', tooSmall.slice(0, 6));
+    await small.close();
+
+    // ══ THE EMBED PROTOCOL ════════════════════════════════════════════
+    group('every page posts {sws:ready} when the portal frames it');
+    /* ⛔ the post is guarded by `if (window.parent !== window)`, which is right:
+       it only means anything to an embedder. So this check FRAMES the page the
+       way the portal does and listens in the parent. The first version of this
+       check loaded each page top level and found nothing on all eight, which
+       looked like eight broken pages and was eight broken assertions. */
+    {
+      const h = await browser.newPage();
+      await h.setContent('<body style="margin:0"><script>window.__got={};window.addEventListener("message",function(e){if(e&&e.data&&e.data.sws){window.__got[(e.source&&e.source.frameElement&&e.source.frameElement.dataset.p)||"?"]=e.data.sws;}});<\/script></body>', { waitUntil: 'load' });
+      for (const page of ['index.html', 'labs.html', 'bugdex.html', 'mint-lab.html', 'battle-lab.html', 'world.html', 'bug-lab.html', 'preview.html']) {
+        const got = await h.evaluate(async (src, slug) => {
+          return await new Promise(res => {
+            let done = false;
+            const onMsg = e => { if (e && e.data && e.data.sws === 'ready' && e.source === f.contentWindow) { done = true; cleanup(); res('ready'); } };
+            const cleanup = () => { window.removeEventListener('message', onMsg); if (f.parentNode) f.parentNode.removeChild(f); };
+            window.addEventListener('message', onMsg);
+            const f = document.createElement('iframe');
+            f.dataset.p = slug; f.style.cssText = 'width:412px;height:915px;border:0';
+            f.src = src;
+            document.body.appendChild(f);
+            setTimeout(() => { if (!done) { cleanup(); res('TIMEOUT'); } }, 6000);
+          });
+        }, base + page, page);
+        ok(got === 'ready', page + ' posts {sws:"ready"} to its embedder', got);
+      }
+      await h.close();
+    }
+
+    // ══ ZERO CONSOLE ERRORS AFTER A FULL WALK ═════════════════════════
+    group('a full walk leaves the console clean');
+    ok(p._errs.length === 0, 'no console or page errors across the whole run', p._errs.slice(0, 4));
+    await p.close();
+  } catch (e) {
+    fail++; console.log('\n  FAIL the suite itself threw: ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).join(' | ') : e));
+  }
+
+  await browser.close();
+  server.kill();
+  console.log('\n' + '─'.repeat(62));
+  console.log(pass + ' ok, ' + fail + ' FAIL');
+  process.exit(fail ? 1 : 0);
+})();

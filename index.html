@@ -1429,7 +1429,7 @@ if(/[?&]lbtest=1/.test(location.search)){
     save:function(){ return SAVE; }, grade:gradeOf, grades:GRADES, mintCost:MINT_COST,
     setShinies:function(n){ SAVE.shinies=n; save(); return SAVE.shinies; },
     earn:earnShinies, capLeft:capLeft, doMint:doMint, keep:keepBug,
-    startJob:startJob, endJob:endJob, state:function(){ return G; },
+    startJob:startJob, endJob:endJob, state:function(){ return G; }, bump:bump,
     show:show, dex:function(){ return SAVE.dex||[]; },
     ladder:ladderFor, dayIndex:dayIndex,
     /* arena hooks so a gate can drive a real battle, not a mocked one */
