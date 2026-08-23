@@ -33,8 +33,24 @@ html,body{height:100%;background:#000;overflow:hidden;overscroll-behavior:none;
 #stage{position:relative;flex:none;width:540px;height:960px;transform-origin:center center;
   background:#0b0d10;overflow:hidden;box-shadow:0 0 60px #000a}
 
-.screen{position:absolute;inset:0;display:none;flex-direction:column;z-index:20;
-  background:linear-gradient(180deg,#121820 0%,#0b0d10 100%)}
+/* ── THE BACKDROP ──
+   ⛔ Until 2026-08-24 every screen was a flat two stop gradient and the game had
+   no art behind it anywhere. This is one alley, drawn once, blurred HARD and
+   pushed a long way back. The FTW lesson is that art behind copy has to go
+   FURTHER back than looks right: 34px of blur under a scrim that is nearly
+   opaque. If you can read the backdrop, it is too loud. */
+#bg-far{position:absolute;left:-12%;top:-12%;width:124%;height:124%;z-index:1;
+  filter:blur(34px) saturate(.7) brightness(.85);opacity:.62;transition:filter .5s ease,opacity .5s ease}
+#bg-far svg{width:100%;height:100%;display:block}
+#bg-scrim{position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,rgba(18,24,32,.86) 0%,rgba(11,13,16,.94) 52%,rgba(11,13,16,.985) 100%)}
+/* one alley, tinted per room, so the rooms feel like different places without
+   needing five backdrops */
+#stage[data-scr="s-dump"] #bg-far,#stage[data-scr="s-arena"] #bg-far{filter:blur(34px) saturate(.85) brightness(.72) hue-rotate(-22deg);opacity:.7}
+#stage[data-scr="s-dex"] #bg-far,#stage[data-scr="s-spec"] #bg-far{filter:blur(38px) saturate(.55) brightness(.9) hue-rotate(16deg);opacity:.5}
+#stage[data-scr="s-mint"] #bg-far{filter:blur(30px) saturate(1) brightness(1.05);opacity:.8}
+#stage[data-scr="s-play"] #bg-far{filter:blur(42px) saturate(.4) brightness(.6);opacity:.4}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;z-index:20;background:transparent}
 .screen.on{display:flex}
 .pad{padding:22px;flex:1;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .center{align-items:center;justify-content:center;text-align:center}
@@ -125,10 +141,19 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 
 /* ── mint ── */
 .mintwrap{display:flex;flex-direction:column;align-items:center;gap:10px}
-.gradepill{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;
-  font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border:1px solid}
+/* ⛔ this used to be a 1px outline on the page ground. On a COMMON that is grey
+   text in a grey ring on a dark screen and it reads as a DISABLED BUTTON, which
+   is a terrible thing for the label on the bug you just earned. It is a filled
+   plate now: the grade colour tints the fill, the ring and a soft glow, so the
+   cheapest tier still looks like a result and the top tiers glow. */
+.gradepill{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:999px;
+  font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;border:1px solid;
+  background:#0e141b;box-shadow:0 2px 10px #0008}
 .specname{font-size:27px;font-weight:800;margin-top:6px}
 .specsp{font-size:15px;color:var(--dim);font-style:italic}
+.marks{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;max-width:420px}
+.mark{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;padding:4px 9px;border-radius:999px;
+  border:1px solid #28323d;color:var(--dim);white-space:nowrap}
 .speclore{font-size:16px;line-height:1.5;margin-top:10px;max-width:420px;color:var(--ink)}
 
 /* ── dex ── */
@@ -231,7 +256,9 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 </style>
 </head>
 <body>
-<div id="wrap"><div id="stage">
+<div id="wrap"><div id="stage" data-scr="s-home">
+<div id="bg-far"><svg id="bg-svg" viewBox="0 0 500 280" preserveAspectRatio="xMidYMid slice"></svg></div>
+<div id="bg-scrim"></div>
 
   <!-- ══════════ HOME ══════════ -->
   <div class="screen on" id="s-home">
@@ -344,6 +371,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       <div class="mintwrap" style="margin-top:14px">
         <div id="m-art"></div>
         <div class="gradepill" id="m-grade">COMMON</div>
+        <div class="marks" id="m-marks"></div>
         <div class="specname" id="m-name"></div>
         <div class="specsp" id="m-species"></div>
         <div class="speclore" id="m-lore"></div>
@@ -376,6 +404,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       <div class="mintwrap">
         <div id="sp-art"></div>
         <div class="gradepill" id="sp-grade">COMMON</div>
+        <div class="marks" id="sp-marks"></div>
         <div class="specname" id="sp-name"></div>
         <div class="specsp" id="sp-species"></div>
         <div class="speclore" id="sp-lore"></div>
@@ -489,8 +518,12 @@ function _num(v,d){ v=Number(v); return (isFinite(v)&&v>=0)?v:d; }
 function _isCB(s){ return typeof s==='string' && /^[0-9a-f]{64}$/.test(s); }
 function _cleanEntry(b){
   if(!b || typeof b!=='object' || !_isCB(b.cb)) return null;
-  var g = (GRADES.indexOf(b.grade)>=0) ? b.grade : gradeOf(b.cb).grade;
-  return { cb:b.cb, at:_num(b.at,Date.now()), grade:g, score:_num(b.score,0),
+  /* ⛔ the grade is DERIVED from the codeblock, so it is recomputed on every
+     load rather than trusted from disk. A stored grade is a cache, and after
+     the 2026-08-24 rescore (grade now reads the drawn parts) a cached label
+     would disagree with the art and with the marks printed beside it. */
+  var gr = gradeOf(b.cb);
+  return { cb:b.cb, at:_num(b.at,Date.now()), grade:gr.grade, score:gr.score,
     lvl:Math.max(1,Math.min(30,Math.round(_num(b.lvl,1))||1)), wins:Math.round(_num(b.wins,0)) };
 }
 function loadSave(){
@@ -562,58 +595,40 @@ function readyToMint(){ return (SAVE.shinies||0) >= MINT_COST; }
 
 /* ==========================================================================
    SPECIMEN GRADE
-   Variant G architecture: each trait layer scores by its own rarity tier, the
-   plant's grade is the SUM. ⛔ The distribution is measured by simulating THIS
-   function headless (scripts/grade_sim_live.js), never by hand mirroring it.
+   ⛔ 2026-08-24: the scorer moved into bug-engine.js as BUG_ENGINE.bugGrade and
+   this is now a THIN WRAPPER. There is exactly one implementation, it is a Node
+   module as well as a browser one, and it reads bugPlan() — the same rolls
+   _generateBugSVG draws from. Before today it scored six trait indices
+   (wing/body/head/pattern/leg/antenna) that the renderer never looks at, so a
+   COSMIC and a COMMON could be the same picture.
+   Measured against the LIVE scorer, 1,000,000 samples (Variant G in brackets):
+     Common 33.55 [33.8] · Uncommon 31.95 [32.0] · Rare 23.37 [23.0]
+     Epic 9.11 [9.3] · Legendary 1.77 [1.62] · Mythic 0.226 [0.23]
+     Cosmic 0.0252 [0.028] · epic+ 11.13 [11.2]
+   Re-fit GRADE_CUT with scripts/grade_tune.js after ANY scoring change, then
+   confirm with scripts/grade_sim_live.js. Never hand mirror the maths.
    ========================================================================== */
-var GRADES=['COMMON','UNCOMMON','RARE','EPIC','LEGENDARY','MYTHIC','COSMIC'];
+var GRADES=BUG_ENGINE.GRADES;
 var GRADE_COLOR={COMMON:'#8fa0b2',UNCOMMON:'#6fd08c',RARE:'#5aa9e6',EPIC:'#b57de0',
   LEGENDARY:'#e8c46a',MYTHIC:'#e2724f',COSMIC:'#f2f2f2'};
-/* ⛔ uncommon scores 1, not 0. With both common and uncommon at zero the score
-   histogram had one huge lump at the bottom and NO threshold could separate
-   those two grades: the tuner reported UNCOMMON as unseparable. Giving the
-   ladder finer resolution is what makes a seven tier curve fittable at all. */
-var TIER_SCORE={common:0,uncommon:1,rare:2,epic:4,legendary:6,mythic:8,cosmic:11};
-/* ⛔ FITTED, not guessed: scripts/grade_tune.js sampled 200k hashes through the
-   LIVE scorer and solved for these seven thresholds. Measured result below,
-   Lucid Winds Variant G target in brackets:
-     Common 25.9 [33.8] · Uncommon 33.0 [32.0] · Rare 28.0 [23.0]
-     Epic 10.2 [9.3] · Legendary 2.5 [1.62] · Mythic 0.35 [0.23] · Cosmic 0.08 [0.03]
-   Common lands where Lucid Winds ACTUALLY ships (26.6% live), which is the
-   curve players already know, and Stephen's ruling on Variant G was that a
-   little generous is fine. Re-run the sim after ANY change to the banks. */
-var GRADE_CUT=[0,2,5,9,13,17,20];
-
-/* One layer's tier from its index within its bank. The top of every bank is the
-   rare end, which is how the art banks were authored. */
-/* The band edges are DATA so the tuner can search them against this very
-   function. ⛔ There is exactly one implementation of the scorer and the sim
-   drives it; nothing anywhere reimplements this maths. */
-var TIER_BANDS={ cosmic:0.996, mythic:0.986, legendary:0.966, epic:0.920, rare:0.855, uncommon:0.680 };
-function layerTier(idx, bankSize){
-  if(!bankSize) return 'common';
-  var p = idx / bankSize;                 /* 0 common .. 1 rarest */
-  if(p >= TIER_BANDS.cosmic) return 'cosmic';
-  if(p >= TIER_BANDS.mythic) return 'mythic';
-  if(p >= TIER_BANDS.legendary) return 'legendary';
-  if(p >= TIER_BANDS.epic) return 'epic';
-  if(p >= TIER_BANDS.rare) return 'rare';
-  if(p >= TIER_BANDS.uncommon) return 'uncommon';
-  return 'common';
+function gradeOf(codeblock){ return BUG_ENGINE.bugGrade(codeblock); }
+/* One plate, tinted by grade. Legendary and up get a real glow: at that rarity
+   the label should carry across the room. */
+function paintPill(el,grade){
+  var c=GRADE_COLOR[grade]||GRADE_COLOR.COMMON;
+  var hi=['LEGENDARY','MYTHIC','COSMIC'].indexOf(grade)>=0;
+  el.textContent=grade;
+  el.style.color=c; el.style.borderColor=c;
+  el.style.background=c+'1f';
+  el.style.boxShadow=hi ? ('0 0 20px '+c+'66, inset 0 0 14px '+c+'22') : ('0 2px 10px #0008, inset 0 0 10px '+c+'12');
 }
-function gradeOf(codeblock){
-  var t=BUG_ENGINE.hashToBugTraits(codeblock);
-  var layers=[
-    layerTier(t.wing,40), layerTier(t.body,30), layerTier(t.head,25),
-    layerTier(t.pattern,50), layerTier(t.leg,20), layerTier(t.antenna,15)
-  ];
-  var score=0,i;
-  for(i=0;i<layers.length;i++) score+=TIER_SCORE[layers[i]];
-  /* the behaviour byte is the spike: a rare behaviour lifts a plain body */
-  if(t.behavior>=11) score+=7; else if(t.behavior>=10) score+=4;
-  var g=0;
-  for(i=GRADE_CUT.length-1;i>=0;i--){ if(score>=GRADE_CUT[i]){ g=i; break; } }
-  return { grade:GRADES[g], score:score, layers:layers };
+/* The grade's receipt: the parts that scored, which are parts you can SEE on
+   the art. A tier label nobody can point at is just a number. */
+function paintMarks(el,gr){
+  var m=(gr&&gr.marks)||[];
+  el.innerHTML = m.length
+    ? m.map(function(x){ return '<span class="mark" style="border-color:'+GRADE_COLOR[gr.grade]+'44;color:'+GRADE_COLOR[gr.grade]+'">'+x+'</span>'; }).join('')
+    : '<span class="mark" style="border-color:#28323d">a plain grub, nothing grown in</span>';
 }
 
 /* ---------- screens ---------- */
@@ -622,6 +637,8 @@ function show(id){
   var all=document.querySelectorAll('.screen'), i;
   for(i=0;i<all.length;i++) all[i].classList.remove('on');
   $(id).classList.add('on'); cur=id;
+  /* the backdrop is tinted per room; see #bg-far in the stylesheet */
+  var st=document.getElementById('stage'); if(st) st.setAttribute('data-scr', id);
 }
 function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('on');
   setTimeout(function(){ t.classList.remove('on'); },1700); }
@@ -652,7 +669,10 @@ function drawAlley(){
     var jx=180+j*38, jy=214+((j*7)%12);
     s.push('<rect x="'+jx+'" y="'+jy+'" width="12" height="7" rx="2" fill="#2b3846" opacity="0.9"/>');
   }
-  $('alley-svg').innerHTML=s.join('');
+  var mk=s.join('');
+  $('alley-svg').innerHTML=mk;
+  /* the same alley, far away and out of focus, behind every room */
+  var bg=$('bg-svg'); if(bg) bg.innerHTML=mk;
 }
 
 /* ---------- render a bug ---------- */
@@ -1019,9 +1039,8 @@ async function doMint(){
   var id=BUG_ENGINE.bugIdentity(cb), gr=gradeOf(cb);
   pending={ cb:cb, at:Date.now(), grade:gr.grade, score:gr.score, lvl:1, wins:0 };
   $('m-art').innerHTML=bugSVG(cb,230,1);
-  $('m-grade').textContent=gr.grade;
-  $('m-grade').style.color=GRADE_COLOR[gr.grade];
-  $('m-grade').style.borderColor=GRADE_COLOR[gr.grade];
+  paintPill($('m-grade'), gr.grade);
+  paintMarks($('m-marks'),gr);
   $('m-name').textContent=id.name;
   $('m-species').textContent=id.species;
   $('m-lore').textContent=id.lore;
@@ -1073,9 +1092,8 @@ function openSpec(i){
   var b=(SAVE.dex||[])[i]; if(!b) return;
   var id=BUG_ENGINE.bugIdentity(b.cb);
   $('sp-art').innerHTML=bugSVG(b.cb,220,lvlOf(b));
-  $('sp-grade').textContent=b.grade;
-  $('sp-grade').style.color=GRADE_COLOR[b.grade];
-  $('sp-grade').style.borderColor=GRADE_COLOR[b.grade];
+  paintPill($('sp-grade'), b.grade);
+  paintMarks($('sp-marks'),gradeOf(b.cb));
   $('sp-name').textContent=id.name;
   $('sp-species').textContent=id.species;
   $('sp-lore').textContent=id.lore;
@@ -1262,9 +1280,13 @@ function hitFlash(box, side){
     s.style.background=(side==='crit'?'#fff':'#e8c46a');
     s.style.left='50%'; s.style.top='50%';
     box.appendChild(s);
-    var a=Math.random()*Math.PI*2, d=26+Math.random()*46;
+    /* ⛔ these used to travel in PERCENT, and a percentage transform on a 9px
+       dot is a percentage OF THE DOT: 26% to 72% of 9px is two to six pixels.
+       Nine sparks were being spawned on every hit and none of them ever left
+       the middle of the card. Pixels. */
+    var a=Math.random()*Math.PI*2, d=34+Math.random()*54;
     s.animate?s.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},
-      {transform:'translate('+(Math.cos(a)*d-50)+'%,'+(Math.sin(a)*d-50)+'%) scale(0)',opacity:0}],
+      {transform:'translate(calc(-50% + '+(Math.cos(a)*d).toFixed(1)+'px), calc(-50% + '+(Math.sin(a)*d).toFixed(1)+'px)) scale(0.2)',opacity:0}],
       {duration:420+n*24,easing:'ease-out'}):0;
     setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); },520);
   })(i);
@@ -1412,14 +1434,21 @@ if(/[?&]lbtest=1/.test(location.search)){
     ladder:ladderFor, dayIndex:dayIndex,
     /* arena hooks so a gate can drive a real battle, not a mocked one */
     openArena:openArena, playMove:playMove, arena:function(){ return AR; },
-    king:kingState, champ:champ, lvlOf:lvlOf,
+    king:kingState, champ:champ, lvlOf:lvlOf, growLvl:growLvl,
+    setKing:function(o){ var k=kingState(); for(var q in o) k[q]=o[q]; SAVE.king=k; save(); return k; },
+    setChamp:function(i){ SAVE.champ=i; save(); return SAVE.champ; },
+    loadSave:loadSave, ladderOff:LADDER_OFF, purse:LADDER_PURSE, crownPurse:CROWN_PURSE,
+    shiftCap:function(){ return SHIFT_CAP; }, dailyShifts:function(){ return DAILY_SHIFTS; },
     shiftsLeft:shiftsLeft, canWork:canWork, cur:function(){ return cur; },
     setLvl:function(i,n){ var b=(SAVE.dex||[])[i]; if(b){ b.lvl=n; save(); } return b; },
     /* the tuner searches the REAL scorer by moving its parameters, never by
-       reimplementing it somewhere else */
-    bands:TIER_BANDS, cuts:GRADE_CUT,
-    setBands:function(o){ for(var k in o) TIER_BANDS[k]=o[k]; },
-    setCuts:function(a){ GRADE_CUT=a; },
+       reimplementing it somewhere else. The scorer lives in bug-engine.js now,
+       so the tuner reaches straight through to it. */
+    cuts:BUG_ENGINE.GRADE_CUT,
+    setCuts:function(a){ var C=BUG_ENGINE.GRADE_CUT; C.length=0; for(var i=0;i<a.length;i++) C.push(a[i]); return C; },
+    plan:BUG_ENGINE.bugPlan, svg:bugSVG,
+    dailyCap:function(){ return DAILY_CAP; },
+    capState:capState, jobState:function(){ return G; },
     reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null}; save();
       try{ localStorage.removeItem('lb_cap'); }catch(e){} return SAVE; }
   };

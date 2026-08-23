@@ -63,6 +63,55 @@
     };
   }
 
+  // ══ SPECIMEN GRADE ═══════════════════════════════════════════════════
+  // ⛔ 2026-08-24: the grade now reads the parts the renderer ACTUALLY DRAWS.
+  // It used to score six trait indices (wing/body/head/pattern/leg/antenna)
+  // that _generateBugSVG never looks at, so a LEGENDARY and a COMMON could be
+  // the same picture and the label was a number with nothing behind it. The
+  // scorer asks bugPlan() — the same rolls the renderer draws from — so a rare
+  // bug is a bug that is VISIBLY more built: an elytra shell, a plated
+  // carapace, a barbed stinger, a full spine ridge, raptorial forelegs.
+  // `marks` is the human readable list of what scored, so the mint screen can
+  // point at the art instead of asserting a tier.
+  // ⛔ ONE implementation. index.html's gradeOf() is a thin wrapper on this,
+  // scripts/grade_sim_live.js drives it through the live page, and
+  // scripts/grade_tune.js fits GRADE_CUT to the histogram it produces.
+  var GRADES = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC', 'COSMIC'];
+  // ⛔ FITTED by scripts/grade_tune.js against 200k samples of THIS scorer,
+  // never guessed. Re-run the tuner after any change to the scoring above.
+  var GRADE_CUT = [0, 28, 36, 44, 52, 59, 65];
+  function bugGrade(codeblock) {
+    var P = bugPlan(codeblock), pl = P.plan, marks = [], score = 0, i;
+    function add(n, label) { score += n; if (label) marks.push(label); }
+
+    /* wings: the loudest thing in the silhouette. 25% of bugs are wingless. */
+    if (pl.wings !== 999) {
+      if (P.wingKind === 2) add(9, 'elytra shell');
+      else if (P.wingKind === 1) add(7, 'four wings');
+      else add(4, 'membrane wings');
+    }
+    /* carapace plates. The renderer suppresses them under an elytra shell, so
+       the score must too or it would credit armour you cannot see. */
+    if (P.plateKind && P.wingKind !== 2) add(6, 'plated carapace');
+    if (pl.horns !== 999) add(5, 'horns');
+    if (pl.pincers !== 999) add(P.jawKind === 3 ? 8 : 5, P.jawKind === 3 ? 'hooked pincers' : 'pincers');
+    if (pl.tail !== 999) add(P.tailKind === 2 ? 8 : 5, P.tailKind === 2 ? 'barbed stinger' : 'stinger tail');
+    if (pl.extraEyes !== 999) add(7, 'extra eyes');
+    var sp = 0;
+    for (i = 0; i < pl.spines.length; i++) if (pl.spines[i] !== 999) sp++;
+    if (sp >= P.N) add(sp * 3 + 4, 'full spine ridge');
+    else if (sp) add(sp * 3, sp + ' dorsal spine' + (sp > 1 ? 's' : ''));
+    if (P.legKind === 2) add(6, 'raptorial forelegs');
+    if (P.N >= 6) add(5, 'six segment body');
+    else if (P.N === 5) add(3, 'long body');
+    if (P.mats.length >= 4) add(4, 'four scrap patchwork');
+    else if (P.mats.length === 3) add(2, 'three scrap patchwork');
+
+    var g = 0;
+    for (i = GRADE_CUT.length - 1; i >= 0; i--) { if (score >= GRADE_CUT[i]) { g = i; break; } }
+    return { grade: GRADES[g], score: score, marks: marks };
+  }
+
   // ── Palettes. Curated harmonious SCHEMES, one per bug. ──────────────
   // Each scheme is a designed 4-color set instead of 4 independent picks,
   // so bugs read as intentional, not muddy. Roles:
@@ -315,36 +364,29 @@
   // cel shadows (toward the scheme's dark), pattern clipped to the body, and a
   // fit-to-canvas pass keep any roll a viable, on-model fighter. Deterministic
   // (toFixed quantized). Faces right, viewBox 200x200.
-  // ── _generateBugSVG(hash, size, level): grow-assembly bug. ───────────
-  // The codeblock is the GENOME: it rolls a spine of stitch-point segments
-  // plus a vocabulary of parts (legs, wings, dorsal spines, horns, pincers,
-  // stinger tail, extra eyes), each with a rolled growth threshold. LEVEL
-  // decides how much has grown in, so a fresh bug is a simple stitched grub
-  // and a trained one is its full intricate fighter. Same codeblock always
-  // grows the same path. Deterministic, palette-recolored, seams are visible
-  // cross-stitches ("sewn from litter"). Faces right, viewBox 200x200.
-  function _generateBugSVG(hash, size, level, opts) {
-    level = level || 30;
-    // FX LIVE (2026-07-29, NEXT_SESSION plan C): the free-fidelity pass is now
-    // the default look everywhere. Pure seeded shading, no new rolls, so
-    // determinism holds. One-line revert: FX_LIVE = false.
-    var FX_LIVE = true;
-    var fx = (opts && ('fx' in opts)) ? !!opts.fx : FX_LIVE;  // free-fidelity pass: merge + one-light cel shade + rim light + LOD
-    var merge = fx || !!(opts && opts.merge);   // experimental: fuse segments into one silhouette + unified outline
-    var lod = fx && size <= 64;           // small renders drop fine detail (stitches, veins, barbs)
-    var t = hashToBugTraits(hash), pal = PALETTES[t.palette] || PALETTES[0];
-    var primary = pal.primary, accent = pal.accent, secondary = pal.secondary;
-    function _rgb(h){ h=h.replace('#',''); return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) }; }
-    function _hx(o){ var c=function(v){ return ('0'+Math.max(0,Math.min(255,Math.round(v))).toString(16)).slice(-2); }; return '#'+c(o.r)+c(o.g)+c(o.b); }
-    function dk(h,f){ var c=_rgb(h); return _hx({ r:c.r*(1-f), g:c.g*(1-f), b:c.b*(1-f) }); }
-    function lt(h,f){ var c=_rgb(h); return _hx({ r:c.r+(255-c.r)*f, g:c.g+(255-c.g)*f, b:c.b+(255-c.b)*f }); }
-    function mix(a,b,tt){ var x=_rgb(a),y=_rgb(b); return _hx({ r:x.r+(y.r-x.r)*tt, g:x.g+(y.g-x.g)*tt, b:x.b+(y.b-x.b)*tt }); }
-    function q(v){ return v.toFixed(2); }
-    var R = seededRng(hash + '|grow');
-    var growth = Math.max(0.12, Math.min(1, level / 22));
-    var ol = dk(pal.dark, 0.2), stitchCol = lt(pal.dark, 0.35), spineCol = mix(primary, pal.dark, 0.3);
-    var cx = 100, cy = 110, i, u, x;
+  var _uidSeq = 0;   /* see the uid comment in _generateBugSVG: ids must be per RENDER */
 
+  // ── pure colour helpers (module scope so bugPlan and the renderer share one
+  //    implementation; hoisted out of _generateBugSVG 2026-08-24, unchanged). ──
+  function _rgb(h){ h=h.replace('#',''); return { r:parseInt(h.slice(0,2),16), g:parseInt(h.slice(2,4),16), b:parseInt(h.slice(4,6),16) }; }
+  function _hx(o){ var c=function(v){ return ('0'+Math.max(0,Math.min(255,Math.round(v))).toString(16)).slice(-2); }; return '#'+c(o.r)+c(o.g)+c(o.b); }
+  function dk(h,f){ var c=_rgb(h); return _hx({ r:c.r*(1-f), g:c.g*(1-f), b:c.b*(1-f) }); }
+  function lt(h,f){ var c=_rgb(h); return _hx({ r:c.r+(255-c.r)*f, g:c.g+(255-c.g)*f, b:c.b+(255-c.b)*f }); }
+  function mix(a,b,tt){ var x=_rgb(a),y=_rgb(b); return _hx({ r:x.r+(y.r-x.r)*tt, g:x.g+(y.g-x.g)*tt, b:x.b+(y.b-x.b)*tt }); }
+
+  // ── bugPlan(hash, pal) -> THE BODY PLAN THE RENDERER ACTUALLY DRAWS. ──
+  // ⛔ Extracted VERBATIM from _generateBugSVG on 2026-08-24 and the renderer
+  // now calls it, so there is exactly ONE roll sequence in this file. Anything
+  // that wants to know what a bug LOOKS like (the grade, a gate, a sim) asks
+  // this, instead of reading trait indices that nothing draws.
+  // Level independent: `plan.*` are GROWTH THRESHOLDS, so the plan describes
+  // the finished adult and a grade computed from it never changes as a bug
+  // levels up. Proof of no drift: scripts/plan_determinism.js.
+  function bugPlan(hash, pal) {
+    pal = pal || PALETTES[hashToBugTraits(hash).palette] || PALETTES[0];
+    var primary = pal.primary, accent = pal.accent, secondary = pal.secondary;
+    var R = seededRng(hash + '|grow');
+    var cx = 100, cy = 110, i, u, x;
     // roll the full body plan (level-independent)
     var N = 3 + Math.floor(R() * 4), seg = [], rTail = 13 + R() * 7, rHead = 8 + R() * 4;
     for (i = 0; i < N; i++) { u = i / (N - 1); seg.push({ r: rTail + (rHead - rTail) * u + (i > 0 && i < N - 1 ? (R() - 0.5) * 4 : 0) }); }
@@ -375,14 +417,59 @@
     var antKind = Math.floor(R() * 3), eyeKind = Math.floor(R() * 3);   // head detail, rolled last
     var legKind = Math.floor(R() * 3);   // 0 thin, 1 sturdy, 2 raptorial forelegs
     var plateKind = (R() < 0.4) ? 1 : 0;   // carapace: dorsal armor plates over each body segment
+    return { N: N, seg: seg, thoraxI: thoraxI, plan: plan, wSweep: wSweep, hornCurl: hornCurl,
+      tailLen: tailLen, wingKind: wingKind, wingUp: wingUp, jawKind: jawKind, tailKind: tailKind,
+      mats: mats, segMat: segMat, antKind: antKind, eyeKind: eyeKind, legKind: legKind,
+      plateKind: plateKind };
+  }
+
+  // ── _generateBugSVG(hash, size, level): grow-assembly bug. ───────────
+  // The codeblock is the GENOME: it rolls a spine of stitch-point segments
+  // plus a vocabulary of parts (legs, wings, dorsal spines, horns, pincers,
+  // stinger tail, extra eyes), each with a rolled growth threshold. LEVEL
+  // decides how much has grown in, so a fresh bug is a simple stitched grub
+  // and a trained one is its full intricate fighter. Same codeblock always
+  // grows the same path. Deterministic, palette-recolored, seams are visible
+  // cross-stitches ("sewn from litter"). Faces right, viewBox 200x200.
+  function _generateBugSVG(hash, size, level, opts) {
+    level = level || 30;
+    // FX LIVE (2026-07-29, NEXT_SESSION plan C): the free-fidelity pass is now
+    // the default look everywhere. Pure seeded shading, no new rolls, so
+    // determinism holds. One-line revert: FX_LIVE = false.
+    var FX_LIVE = true;
+    var fx = (opts && ('fx' in opts)) ? !!opts.fx : FX_LIVE;  // free-fidelity pass: merge + one-light cel shade + rim light + LOD
+    var merge = fx || !!(opts && opts.merge);   // experimental: fuse segments into one silhouette + unified outline
+    var lod = fx && size <= 64;           // small renders drop fine detail (stitches, veins, barbs)
+    var t = hashToBugTraits(hash), pal = PALETTES[t.palette] || PALETTES[0];
+    var primary = pal.primary, accent = pal.accent, secondary = pal.secondary;
+    function q(v){ return v.toFixed(2); }
+    var growth = Math.max(0.12, Math.min(1, level / 22));
+    var ol = dk(pal.dark, 0.2), stitchCol = lt(pal.dark, 0.35), spineCol = mix(primary, pal.dark, 0.3);
+    var cx = 100, cy = 110, i, u, x;
+    /* ⛔ the body plan lives in bugPlan() now, so the GRADE can read the same
+       rolls the renderer draws. Do not inline these rolls again. */
+    var P = bugPlan(hash, pal);
+    var N = P.N, seg = P.seg, thoraxI = P.thoraxI, plan = P.plan, wSweep = P.wSweep,
+        hornCurl = P.hornCurl, tailLen = P.tailLen, wingKind = P.wingKind, wingUp = P.wingUp,
+        jawKind = P.jawKind, tailKind = P.tailKind, mats = P.mats, segMat = P.segMat,
+        antKind = P.antKind, eyeKind = P.eyeKind, legKind = P.legKind, plateKind = P.plateKind;
     var has = function (th) { return growth >= th; };
     var plated = plateKind && wingKind !== 2;   // no plates under an elytra shell
 
+    /* The drawn extent of the bug at a given growth. Used twice: once to fit an
+       oversized adult inside the canvas, and once to FRAME the camera. */
+    function frameAt(gr) {
+      var hv = function (th) { return gr >= th; };
+      return {
+        top: Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (hv(plan.wings) ? wingUp : 8) - (hv(Math.min.apply(0, plan.spines)) ? 10 : 0) - (plated ? 8 : 0),
+        minx: Math.min.apply(0, seg.map(function (s) { return s.x - s.r; })) - (hv(plan.tail) ? tailLen * 1.3 + 6 : 4),
+        maxx: Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (hv(plan.pincers) ? 16 : 8) + (hv(plan.horns) ? 10 : 0) + (hv(plan.wings) && wingKind !== 2 ? 16 : 0),
+        bottom: Math.max.apply(0, seg.map(function (s) { return s.y + s.r; })) + 22
+      };
+    }
     // fit to canvas (account for the parts that have grown in)
-    var top = Math.min.apply(0, seg.map(function (s) { return s.y - s.r; })) - (has(plan.wings) ? wingUp : 8) - (has(Math.min.apply(0, plan.spines)) ? 10 : 0) - (plated ? 8 : 0);
-    var minx = Math.min.apply(0, seg.map(function (s) { return s.x - s.r; })) - (has(plan.tail) ? tailLen * 1.3 + 6 : 4);
-    var maxx = Math.max.apply(0, seg.map(function (s) { return s.x + s.r; })) + (has(plan.pincers) ? 16 : 8) + (has(plan.horns) ? 10 : 0) + (has(plan.wings) && wingKind !== 2 ? 16 : 0);
-    var bottom = Math.max.apply(0, seg.map(function (s) { return s.y + s.r; })) + 22;
+    var fr = frameAt(growth);
+    var top = fr.top, minx = fr.minx, maxx = fr.maxx, bottom = fr.bottom;
     var w = maxx - minx, h = bottom - top, f = Math.min(1, 176 / w, 182 / h);
     if (f < 1) { var mmx = (minx + maxx) / 2, mmy = (top + bottom) / 2; seg.forEach(function (s) { s.x = cx + (s.x - mmx) * f; s.y = cy + (s.y - mmy) * f; s.r *= f; }); tailLen *= f; }
 
@@ -394,7 +481,22 @@
     var shadow = '<ellipse cx="' + q((shL + shR) / 2) + '" cy="' + q(shBy) + '" rx="' + q((shR - shL) / 2) + '" ry="5" fill="' + pal.dark + '" opacity="0.18"/>';
 
     function grad(id, base) { return '<linearGradient id="' + id + '" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="' + lt(base, 0.28) + '"/><stop offset="0.5" stop-color="' + base + '"/><stop offset="1" stop-color="' + mix(base, pal.dark, 0.42) + '"/></linearGradient>'; }
-    var uid = hash.substr(0, 6);
+    /* ⛔ THE ID MUST BE UNIQUE PER RENDER, not per hash. It used to be
+       hash.substr(0,6), so every copy of the same bug on a page emitted the
+       SAME <linearGradient id="gb0abc123"> and <filter id="bfxabc123">. Your
+       champion is drawn five times at once (HOME, the dumpster champion card,
+       the challenger strip, a ladder row, and the arena), and an ID reference
+       resolves to the FIRST match in document order, which is the copy sitting
+       inside a display:none screen. Chrome never rasterizes paint servers in a
+       hidden subtree, so every visible copy filled with url(#gb0abc123) painted
+       NOTHING: the body vanished and the card showed a wire skeleton of legs,
+       antennae and stitches. That is what the arena portraits and two of six
+       BUGDEX cards looked like on 2026-08-24, in a real screenshot, at the real
+       device pixel ratio. The counter makes every render its own document.
+       ⛔ ids are the ONLY thing that varies between two renders of the same
+       codeblock: scripts/plan_determinism.js normalizes them and still demands
+       byte equality on everything else. */
+    var uid = hash.substr(0, 6) + (_uidSeq = (_uidSeq + 1) % 100000).toString(36);
     var matDefs = mats.map(function (m, k) { return grad('gb' + k + uid, m); }).join('');
     // merged-silhouette filter: blur+threshold fuses overlapping segment circles
     // into one organic shape, then a dilated flood makes ONE ink outline hugging
@@ -541,8 +643,34 @@
     }
     if (has(plan.extraEyes)) { front += '<ellipse cx="' + q(head.x + head.r * 0.05) + '" cy="' + q(head.y - head.r * 0.45) + '" rx="' + q(eR * 0.5) + '" ry="' + q(eR * 0.6) + '" fill="' + dk(pal.dark, 0.05) + '" stroke="' + ol + '" stroke-width="1"/>'; }
 
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="' + size + '" height="' + size + '">'
-      + defs + shadow + back + legs + (merge ? '<g filter="url(#bfx' + uid + ')">' + body + celOverlay + '</g>' : body) + plates + stitches + shell + front + '</svg>';
+    /* ⛔ THE CAMERA. Until 2026-08-24 this was a hard viewBox="0 0 200 200", and
+       the fit above only ever scales DOWN, so a compact bug drew inside maybe a
+       third of its own box. At the sizes the game actually uses (58px champion
+       picker, 84px BUGDEX card) that left four faint specks: playing it, you
+       could not tell an insect from a smudge. The camera now frames the art.
+       It does NOT frame it tight, because then a level 1 grub and a level 30
+       adult would fill the card identically and growth would stop reading.
+       The camera is framed on the FINISHED ADULT and then held still, so a
+       level 1 grub sits small in the box its grown self will fill, grows in
+       place rather than jumping around, and both ends of that are legible.
+       Camera only: no path in this function moves because of it. */
+    var fA = frameAt(1);
+    var side = Math.max(fA.maxx - fA.minx, fA.bottom - fA.top) * 1.06;
+    var vbx = (fA.minx + fA.maxx) / 2 - side / 2, vby = (fA.top + fA.bottom) / 2 - side / 2;
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + q(vbx) + ' ' + q(vby) + ' ' + q(side) + ' ' + q(side) + '" width="' + size + '" height="' + size + '">'
+      /* ⛔ the body is drawn TWICE when the merge filter is on, and that is
+         deliberate. The filter fuses the segment circles with a gaussian blur
+         and then an feColorMatrix threshold (alpha must clear 0.46). Chrome
+         rasterizes filters at device resolution, and at the sizes this game
+         actually ships (84px BUGDEX card at devicePixelRatio 2) some genomes
+         fall under that threshold and the ENTIRE BODY DISAPPEARS, leaving a
+         wire skeleton of legs, antennae and stitches on the card. Seen on 2 of
+         6 cards in a real 412x915 dsf2 screenshot on 2026-08-24; invisible at
+         dsf5, which is why no review had ever caught it. The plain copy under
+         the filtered group is covered pixel for pixel by the filter's own
+         SourceGraphic when the filter works, so it changes nothing then, and
+         it is the whole bug when the filter blows out. */
+        + defs + shadow + back + legs + (merge ? body + '<g filter="url(#bfx' + uid + ')">' + body + celOverlay + '</g>' : body) + plates + stitches + shell + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
@@ -810,7 +938,12 @@
   // bugStats(codeblock) -> the full fighter profile. Deterministic.
   function bugStats(codeblock) {
     var t = hashToBugTraits(codeblock);
-    var winged = (t.wing % 5) !== 4;
+    /* ⛔ 2026-08-24: winged used to be (t.wing % 5) !== 4, a trait index the
+       renderer never draws, so a bug with no wings on screen could be tagged
+       Flying and carry +22 spd and +12 eva for wings you cannot see. It now
+       asks bugPlan, which is what _generateBugSVG draws from: the tag and the
+       picture agree. */
+    var winged = bugPlan(codeblock).plan.wings !== 999;
     var hp  = 40 + (t.bodyLen % 40) + Math.floor((t.bodyW % 30) / 2);
     var atk = 30 + (t.head * 7) % 50 + ((t.head % 2) ? 8 : 0);
     var def = 30 + (t.body * 5) % 45 + ((t.pattern % 5 === 0) ? 6 : 0) + (winged ? 0 : 12);
@@ -896,7 +1029,8 @@
   // ── Exports (browser + Node). ───────────────────────────────────────
   var _api = {
     sha256Hex: sha256Hex, hb: hb, hc: hc, hexToRGB: hexToRGB,
-    hashToBugTraits: hashToBugTraits, _generateBugSVG: _generateBugSVG,
+    hashToBugTraits: hashToBugTraits, _generateBugSVG: _generateBugSVG, bugPlan: bugPlan,
+    bugGrade: bugGrade, GRADES: GRADES, GRADE_CUT: GRADE_CUT,
     bugName: bugName, bugSpecies: bugSpecies, bugDesignation: bugDesignation,
     bugLore: bugLore, bugIdentity: bugIdentity, seededRng: seededRng, PALETTES: PALETTES,
     TYPES: TYPES, TYPE_CHART: TYPE_CHART, typeMatchup: typeMatchup,
