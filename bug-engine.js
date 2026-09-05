@@ -573,7 +573,13 @@
       }
     }
     var lw = (legKind === 1) ? 1 : 0;   // sturdy legs are thicker
+    /* COHERENCE PASS (2026-09-05, the Lucid Winds flower lessons): every leg starts at a dark
+       coxa socket on the segment, the way every plant leaf leaves the stem through a petiole
+       swell, so a limb reads as attached instead of laid beside the body. No new rolls. */
+    var sockets = '';
     seg.forEach(function (s, i) { if (!has(plan.legs[i])) return; var ky = s.y + s.r * 0.7 + 8;
+      if (!lod) sockets += '<circle cx="' + q(s.x - 2) + '" cy="' + q(s.y + s.r * 0.5) + '" r="' + q(1.5 + lw * 0.6) + '" fill="' + ol + '"/>'
+        + '<circle cx="' + q(s.x + 2) + '" cy="' + q(s.y + s.r * 0.5) + '" r="' + q(1.5 + lw * 0.6) + '" fill="' + ol + '"/>';
       legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="' + (2.2 + lw) + '" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
       legs += '<path d="M ' + q(s.x + 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 3) + ' ' + q(ky) + ' L ' + q(s.x - 6) + ' ' + q(ky + 10) + '" fill="none" stroke="' + ol + '" stroke-width="' + (2.6 + lw) + '" stroke-linecap="round" stroke-linejoin="round"/>'; });
     if (legKind === 2) {   // raptorial forelegs: a bent, hooked limb reaching forward off the thorax
@@ -589,6 +595,14 @@
     // unaffected; it simply re-lights the patchwork under a single sun.
     var celOverlay = '';
     if (fx) { seg.forEach(function (s) { celOverlay += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#cel' + uid + ')"/>'; }); }
+    /* three layer catch light (flower renderer, Phase 22): a wide soft glow, then a tight
+       specular hot spot on the tightest curve, both on the top-left of every segment so the
+       whole bug agrees on one light. Skipped at LOD so a 58px card stays clean. */
+    if (fx && !lod) { seg.forEach(function (s) {
+      var hx = s.x - s.r * 0.36, hy = s.y - s.r * 0.42;
+      celOverlay += '<circle cx="' + q(hx) + '" cy="' + q(hy) + '" r="' + q(s.r * 0.5) + '" fill="' + lt(primary, 0.5) + '" opacity="0.14"/>'
+        + '<ellipse cx="' + q(hx) + '" cy="' + q(hy) + '" rx="' + q(s.r * 0.22) + '" ry="' + q(s.r * 0.13) + '" fill="#ffffff" opacity="0.34" transform="rotate(-28 ' + q(hx) + ' ' + q(hy) + ')"/>';
+    }); }
     if (plated) {   // dorsal armor cap over each body segment (not the head)
       seg.forEach(function (s, i) {
         if (i === N - 1) return;
@@ -604,6 +618,7 @@
     var head = seg[N - 1], eR = head.r * 0.42, ax = head.x + head.r * 0.2, ay = head.y - head.r * 0.8;
     if (has(0.12)) {
       var t1x = ax + 20, t1y = ay - 20, t2x = ax + 12, t2y = ay - 24;   // antenna tips
+      if (!lod) front += '<circle cx="' + q(ax - 2) + '" cy="' + q(ay + 0.5) + '" r="2.1" fill="' + ol + '"/>';
       front += '<path d="M ' + q(ax) + ' ' + q(ay) + ' Q ' + q(ax + 10) + ' ' + q(ay - 14) + ' ' + q(t1x) + ' ' + q(t1y) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/>'
         + '<path d="M ' + q(ax - 4) + ' ' + q(ay) + ' Q ' + q(ax + 4) + ' ' + q(ay - 16) + ' ' + q(t2x) + ' ' + q(t2y) + '" fill="none" stroke="' + ol + '" stroke-width="1.8" stroke-linecap="round"/>';
       if (antKind === 1) {   // clubbed tips
@@ -654,6 +669,17 @@
        level 1 grub sits small in the box its grown self will fill, grows in
        place rather than jumping around, and both ends of that are legible.
        Camera only: no path in this function moves because of it. */
+    /* depth separation without a filter: a dark copy of a part layer offset 1.4px down-right at
+       0.38, the flower renderer's leaf shadow. Ids and url(#) refs inside the copy get a suffix so
+       an authored wing symbol's gradient never resolves into its own shadow. Off at LOD. */
+    function partShadow(layer) {
+      if (lod || !layer) return '';
+      var sh = layer.replace(/id="([^"]+)"/g, 'id="$1_sh"').replace(/url\(#([^)]+)\)/g, 'url(#$1_sh)')
+        .replace(/fill="[^"]*"/g, 'fill="' + ol + '"').replace(/stroke="[^"]*"/g, 'stroke="' + ol + '"').replace(/opacity="[^"]*"/g, '');
+      return '<g transform="translate(1.4 1.6)" opacity="0.38">' + sh + '</g>';
+    }
+    /* when the hero part is in (wings), the legs step back a little, the way leaves dim under a bloom */
+    var legsGroup = sockets + (has(plan.wings) ? '<g opacity="0.88">' + legs + '</g>' : legs);
     var fA = frameAt(1);
     var side = Math.max(fA.maxx - fA.minx, fA.bottom - fA.top) * 1.06;
     var vbx = (fA.minx + fA.maxx) / 2 - side / 2, vby = (fA.top + fA.bottom) / 2 - side / 2;
@@ -670,7 +696,7 @@
          the filtered group is covered pixel for pixel by the filter's own
          SourceGraphic when the filter works, so it changes nothing then, and
          it is the whole bug when the filter blows out. */
-        + defs + shadow + back + legs + (merge ? body + '<g filter="url(#bfx' + uid + ')">' + body + celOverlay + '</g>' : body) + plates + stitches + shell + front + '</svg>';
+        + defs + shadow + partShadow(back) + back + partShadow(legs) + legsGroup + (merge ? body + '<g filter="url(#bfx' + uid + ')">' + body + celOverlay + '</g>' : body) + plates + stitches + shell + front + '</svg>';
   }
 
   // ══ IDENTITY ENGINE ═════════════════════════════════════════════════
