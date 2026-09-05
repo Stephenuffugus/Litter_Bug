@@ -323,6 +323,9 @@ function ok(cond, label, detail) {
       document.getElementById('b-dex').click();
       const chips = [...document.querySelectorAll('#x-chips .chip')];
       const chipH = chips.length ? chips[0].getBoundingClientRect().height : 0;
+      /* the meters above the first card must not eat half the screen: hud bottom to first card top */
+      const hudB = document.querySelector('#s-dex .hud').getBoundingClientRect().bottom, gridT = document.getElementById('x-grid').getBoundingClientRect().top;
+      const headH = Math.round(gridT - hudB), oneRow = chips.every(ch => Math.abs(ch.getBoundingClientRect().top - chips[0].getBoundingClientRect().top) < 2);
       const total = document.querySelectorAll('#x-grid .card').length;
       const fam = D.dex().map(b => E.bugFamily(b.cb).wing);
       let filterOk = true, detail = [];
@@ -350,7 +353,7 @@ function ok(cond, label, detail) {
       D.setLvl(idx, 30); D.openSpec(idx);
       const latentAt30 = document.querySelectorAll('#sp-front .mark.latent').length;
       const grownRow30 = [...document.querySelectorAll('#sp-back .row')].map(r => r.textContent).find(t => /^GROWN/.test(t)) || '';
-      return { nameSame, loreKept, fourLines, fxN: fx.length, partOk, n, wingLeak, keysUsed: Object.keys(keys).length, chips: chips.length, chipH, total, filterOk, detail, back, famLine: famLine ? famLine.textContent : null, famRow,
+      return { nameSame, loreKept, fourLines, fxN: fx.length, partOk, n, wingLeak, keysUsed: Object.keys(keys).length, chips: chips.length, chipH, headH, oneRow, total, filterOk, detail, back, famLine: famLine ? famLine.textContent : null, famRow,
         partsParallel, preferOk, bestLat: best.lat, latentAt1, grownRow1, latentAt30, grownRow30 };
     });
     await idPage.close();
@@ -360,7 +363,8 @@ function ok(cond, label, detail) {
     ok(idr.partOk === idr.n, 'the fourth line names a part the plan drew, from that part\'s bank', idr.partOk + '/' + idr.n);
     ok(idr.wingLeak === 0, 'a wingless bug never gets a wing line', idr.wingLeak);
     ok(idr.keysUsed >= 25, 'the part line draws on a wide bank', idr.keysUsed + ' parts used over 600');
-    ok(idr.chips === 5 && idr.chipH >= 48, 'five family chips over the Bugdex, 48px tall', { chips: idr.chips, chipH: idr.chipH });
+    ok(idr.chips === 5 && idr.chipH >= 48 && idr.oneRow, 'five family chips over the Bugdex, 48px tall, on one row', { chips: idr.chips, chipH: idr.chipH, oneRow: idr.oneRow });
+    ok(idr.headH <= 250, 'the meters above the first card stay under a third of a 915 tall phone', idr.headH);
     ok(idr.total === 12 && idr.filterOk && idr.back === 12, 'a chip filters the grid to its family and ALL brings it back', idr.detail);
     ok(!!idr.famLine && /^[A-Za-z]+ · [a-z ]+$/.test(idr.famLine) && idr.famRow, 'the specimen card names the family, front and ledger', idr.famLine);
     ok(idr.partsParallel === idr.n, 'every scored mark carries the growth threshold it is drawn at', idr.partsParallel + '/' + idr.n);

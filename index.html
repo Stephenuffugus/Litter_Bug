@@ -167,10 +167,13 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .fladder .gcell .gn small{font-size:10px;color:var(--dim);font-weight:800}
 .fladder .gcell .gl{font-size:9px}
 /* the family chips: ALL or one wing family, a real filter over the grid */
-.dexchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+/* one row, scrolling if it must: two wrapped rows put half a screen of meters above the first card */
+.dexchips{display:flex;flex-wrap:nowrap;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.dexchips::-webkit-scrollbar{display:none}   /* a classic scrollbar drawn inside the row covered the chips' bottom third */
 /* ⛔ the stage scales 0.69 at 375 wide, so 48 RENDERED px needs 70 CSS px, same reason .btn is 76 */
-.dexchips .chip{flex:none;min-height:70px;min-width:72px;padding:0 16px;border-radius:16px;border:1px solid var(--line);background:#10151b;
-  color:var(--dim);font-size:13px;font-weight:800;letter-spacing:1px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+/* ⛔ 70 not 62: at stage scale 0.694 a 62px chip is 43 real px wide */
+.dexchips .chip{flex:none;min-height:70px;min-width:70px;padding:0 11px;border-radius:16px;border:1px solid var(--line);background:#10151b;
+  color:var(--dim);font-size:12px;font-weight:800;letter-spacing:1px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 .dexchips .chip b{color:var(--ink);font-size:18px;line-height:1}
 .dexchips .chip.on{background:#123a1f;border-color:#2f8a4c;color:#9be5b0}
 .dexchips .chip.on b{color:#e6ecf2}
@@ -1779,7 +1782,7 @@ function paintDex(){
   var chips=$('x-chips'), fc=[0,0,0,0];
   dex.forEach(function(b){ var f=famOf(b.cb); if(f) fc[f.wing]++; });
   var ch='<button class="chip'+(DEX_FILTER<0?' on':'')+'" data-fam="-1">ALL<b>'+dex.length+'</b></button>';
-  FAM_WING.forEach(function(nm,i){ ch+='<button class="chip'+(DEX_FILTER===i?' on':'')+'" data-fam="'+i+'">'+nm+'<b>'+fc[i]+'</b></button>'; });
+  FAM_SHORT.forEach(function(nm,i){ ch+='<button class="chip'+(DEX_FILTER===i?' on':'')+'" data-fam="'+i+'" title="'+FAM_WING[i]+'">'+nm+'<b>'+fc[i]+'</b></button>'; });
   chips.innerHTML=ch;
   var cb=chips.querySelectorAll('.chip'), q;
   for(q=0;q<cb.length;q++)(function(el){ el.onclick=function(){ DEX_FILTER=parseInt(el.getAttribute('data-fam'),10); paintDex(); }; })(cb[q]);
@@ -1800,7 +1803,7 @@ function paintDex(){
   });
   if(!shown) g.innerHTML='<div class="empty">No '+FAM_WING[DEX_FILTER].toLowerCase()+' pinned yet. They turn up when they turn up.</div>';
 }
-var FAM_WING=['VEILWINGS','DRAGONETS','SHELLBACKS','WALKERS'], FAM_HEAD=['ROUND','WEDGE','CREST','SNOUT'], FAM_TAIL=['NO TAIL','PLAIN','FORKED','STINGER'];
+var FAM_WING=['VEILWINGS','DRAGONETS','SHELLBACKS','WALKERS'], FAM_SHORT=['VEIL','DRAGON','SHELL','WALK'], FAM_HEAD=['ROUND','WEDGE','CREST','SNOUT'], FAM_TAIL=['NO TAIL','PLAIN','FORKED','STINGER'];
 /* the family a bug belongs to, read off the SAME plan the renderer draws from (the engine
    owns the names; the tail is counted here for the meter only) */
 function famOf(cb){
