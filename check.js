@@ -398,6 +398,28 @@ function ok(cond, label, detail) {
     ok(snd.loggedWhileOff, 'muted still logs the beat (the mute is at the speaker, not the game)', snd.loggedWhileOff);
     ok(snd.ctx, 'an AudioContext exists after the first beat', snd.ctx);
 
+    // ══ VOCABULARY 2 ══════════════════════════════════════════════════
+    group('vocabulary 2: new shapes on the body, not one grade moved');
+    const v2Page = await open(FILE + '?lbtest=1');
+    const v2 = await v2Page.evaluate(async () => {
+      const E = window.BUG_ENGINE;
+      const fx = await (await fetch('fixtures/grades-3000.json?' + Math.random())).json();
+      let moved = 0, n = 0;
+      for (const h in fx) { n++; const g = E.bugGrade(h); if (g.grade + ':' + g.score !== fx[h]) moved++; }
+      const seg = [0, 0, 0, 0]; let irid = 0, pairs = 0, tint = 0, bad = 0, tear = 0, iridDrawn = 0, m = 600;
+      for (let i = 0; i < m; i++) {
+        const rr = E.seededRng('v2-' + i); let h = ''; for (let k = 0; k < 64; k++) h += Math.floor(rr() * 16).toString(16);
+        const P = E.bugPlan(h); seg[P.segShape]++; if (P.irid) irid++; if (P.legPairs === 2) pairs++; if (P.wingTint) tint++;
+        if (i < 200) { const svg = E._generateBugSVG(h, 150, 31); if (/NaN|undefined/.test(svg)) bad++; if (P.segShape === 1 && /A [\d.]+ [\d.]+ 0 0 1/.test(svg)) tear++; if (P.irid && svg.indexOf('id="gi') >= 0) iridDrawn++; }
+      }
+      return { n, moved, seg, irid, pairs, tint, m, bad, tear, iridDrawn };
+    });
+    await v2Page.close();
+    ok(v2.n === 3000 && v2.moved === 0, 'three thousand bugs grade and score exactly as before the pass', v2.moved + ' moved of ' + v2.n);
+    ok(v2.seg[0] > v2.m * 0.35 && v2.seg[0] < v2.m * 0.55 && v2.seg[1] > 0 && v2.seg[2] > 0 && v2.seg[3] > 0, 'segment shapes roll: about half stay round, the three new shapes all occur', v2.seg);
+    ok(v2.irid > v2.m * 0.12 && v2.irid < v2.m * 0.32 && v2.pairs > v2.m * 0.2 && v2.pairs < v2.m * 0.4 && v2.tint > v2.m * 0.3, 'iridescence, a second leg pair and a wing tint roll at their rates', { irid: v2.irid, pairs: v2.pairs, tint: v2.tint });
+    ok(v2.bad === 0 && v2.tear > 0 && v2.iridDrawn > 0, 'two hundred renders are clean, teardrops and the sweep reach the picture', { bad: v2.bad, tear: v2.tear, iridDrawn: v2.iridDrawn });
+
     // ══ A CORRUPT SAVE ════════════════════════════════════════════════
     group('a junk save boots into a clean game, not a dead page');
     const JUNK = [

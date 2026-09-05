@@ -440,12 +440,22 @@
     var antStyle = (R() < 0.5) ? 1 + Math.floor(R() * 2) : 0, eyeStyle = (R() < 0.5) ? 1 + Math.floor(R() * 2) : 0;
     var legStyle = (R() < 0.5) ? 1 + Math.floor(R() * 2) : 0, headKind = (R() < 0.55) ? 1 + Math.floor(R() * 3) : 0;
     var patternSeed = Math.floor(R() * 1000);
+    /* ── VOCABULARY PASS 2 (2026-09-05). ⛔ Appended after patternSeed, cosmetic only, the grade
+       is identical for every codeblock (fixtures/grades-3000.json is the gate). ──
+       segShape  0 round, 1 teardrop scales that point at the tail, 2 flat, 3 ringed
+       irid      an iridescent sweep across the body (22%)
+       wingTint  0 the palette accent, 1 leaning to the secondary, 2 leaning to the primary
+       legPairs  1, or 2 on the thorax (30%) */
+    var segShape = (R() < 0.45) ? 0 : 1 + Math.floor(R() * 3);
+    var irid = (R() < 0.22) ? 1 : 0;
+    var wingTint = (R() < 0.55) ? 0 : 1 + Math.floor(R() * 2);
+    var legPairs = (R() < 0.3) ? 2 : 1;
     return { N: N, seg: seg, thoraxI: thoraxI, plan: plan, wSweep: wSweep, hornCurl: hornCurl,
       tailLen: tailLen, wingKind: wingKind, wingUp: wingUp, jawKind: jawKind, tailKind: tailKind,
       mats: mats, segMat: segMat, antKind: antKind, eyeKind: eyeKind, legKind: legKind,
       plateKind: plateKind, patternKind: patternKind, wingStyle: wingStyle, hornKind: hornKind,
       spineKind: spineKind, antStyle: antStyle, eyeStyle: eyeStyle, legStyle: legStyle, headKind: headKind,
-      patternSeed: patternSeed };
+      patternSeed: patternSeed, segShape: segShape, irid: irid, wingTint: wingTint, legPairs: legPairs };
   }
 
   // ── _generateBugSVG(hash, size, level): grow-assembly bug. ───────────
@@ -480,7 +490,8 @@
         antKind = P.antKind, eyeKind = P.eyeKind, legKind = P.legKind, plateKind = P.plateKind,
         patternKind = P.patternKind || 0, wingStyle = P.wingStyle || 0, hornKind = P.hornKind || 0,
         spineKind = P.spineKind || 0, antStyle = P.antStyle || 0, eyeStyle = P.eyeStyle || 0,
-        legStyle = P.legStyle || 0, headKind = P.headKind || 0, pSeed = P.patternSeed || 0;
+        legStyle = P.legStyle || 0, headKind = P.headKind || 0, pSeed = P.patternSeed || 0,
+        segShape = P.segShape || 0, irid = P.irid || 0, wingTint = P.wingTint || 0, legPairs = P.legPairs || 1;
     var patCol = mix(pal.dark, accent, 0.25), patLt = lt(accent, 0.15);
     var has = function (th) { return growth >= th; };
     var plated = plateKind && wingKind !== 2;   // no plates under an elytra shell
@@ -554,7 +565,11 @@
       + '<stop offset="0.66" stop-color="' + pal.dark + '" stop-opacity="0.16"/>'
       + '<stop offset="1" stop-color="' + pal.dark + '" stop-opacity="0.3"/>'
       + '</linearGradient>' : '';
-    var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(accent, 0.1)) + bodyFx + celGrad + '</defs>';
+    var wingCol = wingTint === 1 ? mix(accent, secondary, 0.5) : (wingTint === 2 ? mix(accent, primary, 0.45) : accent);
+    /* oil slick: a pink to cyan sweep, the two hues the eye reads as iridescence on any base colour */
+    var iridA = mix(secondary, '#ff9ad6', 0.55), iridB = mix(accent, '#7fe0ff', 0.6);
+    var iridDef = irid ? '<linearGradient id="gi' + uid + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + iridA + '" stop-opacity="0"/><stop offset="0.38" stop-color="' + iridA + '" stop-opacity="0.85"/><stop offset="0.62" stop-color="' + iridB + '" stop-opacity="0.85"/><stop offset="1" stop-color="' + iridB + '" stop-opacity="0"/></linearGradient>' : '';
+    var defs = '<defs>' + matDefs + grad('gh' + uid, secondary) + grad('gw' + uid, lt(wingCol, 0.1)) + iridDef + bodyFx + celGrad + '</defs>';
     var back = '', legs = '', body = '', plates = '', stitches = '', shell = '', front = '';
 
     function wingDetail(ox, oy, sc, op) {
@@ -620,6 +635,10 @@
         + '<circle cx="' + q(s.x + 2) + '" cy="' + q(s.y + s.r * 0.5) + '" r="' + q(1.5 + lw * 0.6) + '" fill="' + ol + '"/>';
       legs += '<path d="M ' + q(s.x - 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 7) + ' ' + q(ky) + ' L ' + q(s.x - 11) + ' ' + q(ky + 9) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="' + (2.2 + lw) + '" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
       legs += '<path d="M ' + q(s.x + 2) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x - 3) + ' ' + q(ky) + ' L ' + q(s.x - 6) + ' ' + q(ky + 10) + '" fill="none" stroke="' + ol + '" stroke-width="' + (2.6 + lw) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+      if (legPairs === 2 && i === thoraxI) {   // a second pair on the thorax, a step forward and a touch shorter
+        legs += '<path d="M ' + q(s.x + 5) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x + 1) + ' ' + q(ky - 1) + ' L ' + q(s.x - 3) + ' ' + q(ky + 7) + '" fill="none" stroke="' + dk(ol, -0.2) + '" stroke-width="' + (2 + lw * 0.8).toFixed(1) + '" stroke-linecap="round" stroke-linejoin="round"/>'
+          + '<path d="M ' + q(s.x + 9) + ' ' + q(s.y + s.r * 0.5) + ' L ' + q(s.x + 5) + ' ' + q(ky - 1) + ' L ' + q(s.x + 2) + ' ' + q(ky + 8) + '" fill="none" stroke="' + ol + '" stroke-width="' + (2 + lw * 0.8).toFixed(1) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+      }
       if (!lod && legStyle === 1) legs += '<path d="M ' + q(s.x - 6) + ' ' + q(ky + 10) + ' l -3 2 M ' + q(s.x - 6) + ' ' + q(ky + 10) + ' l 3 2" fill="none" stroke="' + ol + '" stroke-width="1.4" stroke-linecap="round"/>';
       if (!lod && legStyle === 2) legs += '<path d="M ' + q(s.x - 3.5) + ' ' + q(ky + 3) + ' l -3 1 M ' + q(s.x - 4.5) + ' ' + q(ky + 6) + ' l -3 1 M ' + q(s.x - 1) + ' ' + q(ky - 3) + ' l -3 1" fill="none" stroke="' + ol + '" stroke-width="1" stroke-linecap="round" opacity="0.8"/>'; });
     if (legKind === 2) {   // raptorial forelegs: a bent, hooked limb reaching forward off the thorax
@@ -630,8 +649,23 @@
       if (spineKind === 1) back += '<circle cx="' + q(s.x) + '" cy="' + q(s.y - s.r - 3) + '" r="4" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1"/>';
       else if (spineKind === 2) back += '<path d="M ' + q(s.x - 1) + ' ' + q(s.y - s.r + 1) + ' q 2 -9 -4 -17" fill="none" stroke="' + spineCol + '" stroke-width="2.4" stroke-linecap="round"/><path d="M ' + q(s.x - 1) + ' ' + q(s.y - s.r + 1) + ' q 2 -9 -4 -17" fill="none" stroke="' + ol + '" stroke-width="0.7" opacity="0.6"/>';
       else back += '<path d="M ' + q(s.x) + ' ' + q(s.y - s.r) + ' l -3 -9 l 6 0 z" fill="' + spineCol + '" stroke="' + ol + '" stroke-width="1"/>'; });
+    /* one segment, in the body's shape: round, a teardrop scale pointing at the tail, flat, or
+       round with a ring. The head is always round. The same function paints the iridescent
+       sweep so it sits exactly on the segment it colours. */
+    function segShapePath(s, i, fillAttr, strokeAttr, ring) {
+      var x = s.x, y = s.y, r = s.r, k = (i === N - 1) ? 0 : segShape, out;
+      if (k === 1) return '<path d="M ' + q(x - r * 1.5) + ' ' + q(y) + ' Q ' + q(x - r * 0.45) + ' ' + q(y - r * 1.04) + ' ' + q(x + r * 0.15) + ' ' + q(y - r)
+        + ' A ' + q(r) + ' ' + q(r) + ' 0 0 1 ' + q(x + r * 0.15) + ' ' + q(y + r) + ' Q ' + q(x - r * 0.45) + ' ' + q(y + r * 1.04) + ' ' + q(x - r * 1.5) + ' ' + q(y) + ' Z"' + fillAttr + strokeAttr + '/>';
+      if (k === 2) return '<ellipse cx="' + q(x) + '" cy="' + q(y + r * 0.06) + '" rx="' + q(r * 1.12) + '" ry="' + q(r * 0.84) + '"' + fillAttr + strokeAttr + '/>';
+      out = '<circle cx="' + q(x) + '" cy="' + q(y) + '" r="' + q(r) + '"' + fillAttr + strokeAttr + '/>';
+      if (k === 3 && ring) out += '<circle cx="' + q(x) + '" cy="' + q(y) + '" r="' + q(r * 0.74) + '" fill="none" stroke="' + ol + '" stroke-width="1.7" opacity="0.6"/>'
+        + '<circle cx="' + q(x) + '" cy="' + q(y) + '" r="' + q(r * 0.74) + '" fill="none" stroke="' + lt(mats[segMat[i]] || primary, 0.3) + '" stroke-width="0.8" opacity="0.5" transform="translate(0 -1.2)"/>';
+      return out;
+    }
+    var iridLayer = '';
     seg.forEach(function (s, i) { var isHead = (i === N - 1), gid = isHead ? ('gh' + uid) : ('gb' + segMat[i] + uid);
-      body += '<circle cx="' + q(s.x) + '" cy="' + q(s.y) + '" r="' + q(s.r) + '" fill="url(#' + gid + ')"' + (merge ? '' : ' stroke="' + ol + '" stroke-width="2.4"') + '/>';
+      body += segShapePath(s, i, ' fill="url(#' + gid + ')"', (merge ? '' : ' stroke="' + ol + '" stroke-width="2.4"'), true);
+      if (irid && !isHead && !lod) iridLayer += segShapePath(s, i, ' fill="url(#gi' + uid + ')"', ' opacity="0.72"', false);
       if (i < N - 1 && !lod) { var s2 = seg[i + 1], mx = (s.x + s2.x) / 2, my = (s.y + s2.y) / 2, rr = Math.min(s.r, s2.r) * 0.8, j, yy; for (j = -1; j <= 1; j++) { yy = my + j * rr * 0.7; stitches += '<path d="M ' + q(mx - 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx + 3) + ' ' + q(yy + 2.5) + ' M ' + q(mx + 3) + ' ' + q(yy - 2.5) + ' L ' + q(mx - 3) + ' ' + q(yy + 2.5) + '" stroke="' + stitchCol + '" stroke-width="1" stroke-linecap="round"/>'; } } });
     // fx cel-shade overlay: the same segment circles once more, filled with the
     // hard-stop one-light gradient. Same alpha, so the merge outline/rim are
@@ -639,7 +673,7 @@
     /* body patterns: bands, spots, stripes, chevrons or speckle on every body segment, in a tone
        between the palette's dark and its accent so the pattern belongs to the scheme. Grows in
        with the shell. A deterministic per bug seed jitters the spots. */
-    var patterns = '';
+    var patterns = iridLayer;
     if (patternKind && !lod && has(0.3)) { seg.forEach(function (s, i) { if (i === N - 1) return; var r = s.r, x0 = s.x, y0 = s.y, k;
       if (patternKind === 1) { patterns += '<path d="M ' + q(x0 - r * 0.15) + ' ' + q(y0 - r * 0.92) + ' q ' + q(-r * 0.5) + ' ' + q(r * 0.92) + ' 0 ' + q(r * 1.84) + ' l 5 0 q ' + q(-r * 0.5) + ' ' + q(-r * 0.92) + ' 0 ' + q(-r * 1.84) + ' z" fill="' + patCol + '" opacity="0.55"/>'; }
       else if (patternKind === 2) { for (k = 0; k < 3; k++) { var sa = (pSeed * 7 + i * 13 + k * 29) % 100 / 100, sx = x0 + (sa - 0.5) * r * 1.1, sy = y0 - r * 0.15 + ((pSeed * 3 + k * 17 + i * 5) % 100 / 100 - 0.5) * r * 0.9; patterns += '<circle cx="' + q(sx) + '" cy="' + q(sy) + '" r="' + q(r * (0.14 + (k % 2) * 0.07)) + '" fill="' + patCol + '" opacity="0.6"/>'; } }
