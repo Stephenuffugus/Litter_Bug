@@ -1,0 +1,868 @@
+[
+ {
+  "h": "1f59ba8f0882456281d83f3a81e1fa78b96c857a1bae54b976f9a3d9a4637c05",
+  "name": "Baron Sodium Click",
+  "species": "Formicus cinerea",
+  "lore": "Logged as orange rind, tempered patient.\nIt waits out the sweepers, and asks for nothing.\nIt remembers a season that did not come back, and little else.",
+  "grade": "COMMON",
+  "marks": [
+   "pincers",
+   "2 dorsal spines",
+   "raptorial forelegs"
+  ]
+ },
+ {
+  "h": "5e203218e127b9d911a1d9de73aaa9a26e08e9bc3159fe8182782a6c89417eb3",
+  "name": "Amber Locust",
+  "species": "Cinisina noctisus",
+  "lore": "Skittish to the last, it keeps to the wet cardboard.\nBorn where the machines went quiet.\nSworn to answer the lamp.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "plated carapace",
+   "horns",
+   "pincers",
+   "extra eyes",
+   "2 dorsal spines"
+  ]
+ },
+ {
+  "h": "9a08826de19f78a9dcadff5e4aab111b00d6b3d02166c62e75a0e2bc0429d895",
+  "name": "Foil Moth",
+  "species": "Cinisymis recurrensis",
+  "lore": "Territorial to the last, it keeps to the recycling drift.\nBorn where the machines went quiet.\nThey found it in the sodium dark, crowned in wax paper.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "pincers",
+   "stinger tail",
+   "1 dorsal spine",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "babb13e864a32740a10727c7c4c906e7b4312fc7a81a2694733c113a70cd0660",
+  "name": "Tallow Skit",
+  "species": "Cinisymis oblitii",
+  "lore": "Logged as matchflame orange, tempered skittish.\nBorn where the tide left its wrack.\nIt has outlived seven broods and buried the count.",
+  "grade": "RARE",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "hooked pincers",
+   "full spine ridge",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "ee8e91bf04563f4d1bbbe6621ef81ccf707a6a6f087ed0a75f3a79f3951acaff",
+  "name": "Brass Beetle",
+  "species": "Detritaa oblitata",
+  "lore": "Watchful to the last, it keeps to the bottle-bank.\nHatched on collection day in the gutter.\nThey found it in the sodium dark, crowned in wax paper.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "1 dorsal spine",
+   "raptorial forelegs",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "5a62f86a6391b29bdb7bbfa2818d9c38bccefb62eca2bce28bdacf9a52d3c1b7",
+  "name": "Bottleglass Firebrat the Tarnished",
+  "species": "Noctuops recurra",
+  "lore": "Its shell holds the bruised plum of wax paper.\nWhen the long heat comes, it goes still and waits.\nNo rival king has ever out-waited it twice.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "pincers",
+   "stinger tail",
+   "extra eyes",
+   "1 dorsal spine",
+   "long body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "6f33160fdfa564ad02bb03a06d4f874569f16ee363ba0a4cb21fcf07ff2495a7",
+  "name": "Grit Cicada",
+  "species": "Vespaops cinereata",
+  "lore": "Logged as terracotta clay, tempered defiant.\nNo gull has ever moved it twice.\nThey found it in the sodium dark, crowned in cellophane.",
+  "grade": "COMMON",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "2 dorsal spines",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "86777176861f50d49a59b9e2f34f6b2d023f971cffdf5e683fddad2d9b9873a5",
+  "name": "Rust Borer the Unswept",
+  "species": "Lampyra oblitensis",
+  "lore": "Its shell holds the seafoam rinse of a bent straw.\nSworn to outlast the winter.\nIt has outlived a dozen broods and buried the count.",
+  "grade": "COMMON",
+  "marks": [
+   "plated carapace",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "2dc76ad09756d157a2ed60a4ce14615c1efe13a2f8d477be07e455c5ecaeadd8",
+  "name": "Husk Firebrat",
+  "species": "Culexodes cinereii",
+  "lore": "A quiet thing, it waits out the sweepers.\nBorn where the lamps first buzzed on.\nIt remembers the hum of the last lamp, and little else.",
+  "grade": "EPIC",
+  "marks": [
+   "elytra shell",
+   "hooked pincers",
+   "barbed stinger",
+   "extra eyes",
+   "3 dorsal spines",
+   "six segment body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "9de5c068bf55a137cede5a7d404e4ad9986e3022fe1c8a3e1c9fd8bd27f12ac4",
+  "name": "Clinker Roach the Bottlefed",
+  "species": "Lithoa sodiuma",
+  "lore": "A territorial thing, it walks the same seam of pavement.\nIt maps the drains by heart, and asks for nothing.\nBorn where the tide left its wrack.",
+  "grade": "COMMON",
+  "marks": [
+   "elytra shell",
+   "extra eyes",
+   "2 dorsal spines"
+  ]
+ },
+ {
+  "h": "e3698369c80622026866eb91ceacff4e240f7e8807873ea40523424770fea7e2",
+  "name": "Velvet Mite",
+  "species": "Scoriaodes detritensis",
+  "lore": "Its shell holds the mustard smear of a bent straw.\nIt remembers one bright wrapper, and little else.\nIt keeps the old boundaries, and asks for nothing.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "hooked pincers",
+   "extra eyes",
+   "2 dorsal spines",
+   "raptorial forelegs",
+   "long body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "a1a105ab1742046d760109f40a715b806d30d41f22f662925091fa7de7fe0556",
+  "name": "Rust Spinner",
+  "species": "Scoriaa minimata",
+  "lore": "A skittish thing, it walks the same seam of pavement.\nIt has outlived three broods and buried the count.\nHatched after the floods in the underpass.",
+  "grade": "EPIC",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "hooked pincers",
+   "barbed stinger",
+   "4 dorsal spines",
+   "long body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "9bddd4c35a7fbc815221234dabc85a58227bda514bd03a530fe40ab460a5a2a1",
+  "name": "Baron Ember Roach",
+  "species": "Aurelops gutteriensis",
+  "lore": "A defiant thing, it hoards bright scraps.\nNo gull has ever unseated it twice.\nIt remembers the hum of the last lamp, and little else.",
+  "grade": "COMMON",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "stinger tail",
+   "1 dorsal spine"
+  ]
+ },
+ {
+  "h": "e253652a6f3c8118dc9d77335caf6b753ce5639dff2f405f71d4d33197aa5d97",
+  "name": "Dame Mossy Silverfish the Unswept",
+  "species": "Lampyrymis noctisata",
+  "lore": "A watchful thing, it follows the scent of spilled sugar.\nWhen the grey comes, it holds its ground.\nIt has outlived forty broods and buried the count.",
+  "grade": "COMMON",
+  "marks": [
+   "pincers",
+   "stinger tail",
+   "six segment body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "94c3b50894d5945596d2d5f016bb85f4a9346d05b70779191afc5fbaab3ef642",
+  "name": "Tallow Watcher the Persistent",
+  "species": "Chitinus cellophanosa",
+  "lore": "A vengeful thing, it maps the drains by heart.\nNo sweeper has ever outlasted it twice.\nWhen the sweepers comes, it folds its wings and endures.",
+  "grade": "COMMON",
+  "marks": [
+   "four wings",
+   "extra eyes",
+   "1 dorsal spine",
+   "raptorial forelegs"
+  ]
+ },
+ {
+  "h": "f824aeb282a6e1bbb20253b8d6da09e8215ee6871600e67fad75c17eb0ed0607",
+  "name": "Dame Sodium Mantis the Hollow",
+  "species": "Ferraus cinereosa",
+  "lore": "Logged as icebox frost, tempered skittish.\nThey found it in the wet cardboard, crowned in cigarette silver.\nWhen the long heat comes, it will not be moved.",
+  "grade": "LEGENDARY",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "pincers",
+   "stinger tail",
+   "extra eyes",
+   "5 dorsal spines",
+   "six segment body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "492bff85d022d4b69a76f755897f962fc008133b4cb1435e9a534062c743651f",
+  "name": "Saint Brass Roach",
+  "species": "Detritaus tarnixii",
+  "lore": "Solitary to the last, it keeps to the bottle-bank.\nBorn where the machines went quiet.\nNo gull has ever cornered it twice.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "plated carapace",
+   "extra eyes",
+   "2 dorsal spines",
+   "raptorial forelegs",
+   "long body"
+  ]
+ },
+ {
+  "h": "9866b524e3e30e0ba53b7727e049c40709783944655dca6b82e315009036485a",
+  "name": "Chrome Beetle",
+  "species": "Ferraina detritus",
+  "lore": "Its shell holds the bilge water of cellophane.\nIt has outlived forty broods and buried the count.\nIt remembers the shape of an old territory, and little else.",
+  "grade": "COMMON",
+  "marks": [
+   "membrane wings",
+   "horns",
+   "pincers",
+   "2 dorsal spines"
+  ]
+ },
+ {
+  "h": "ad3a288c86e9e946f18322bb260e5225fab5eda6361945776056cb52f6fad825",
+  "name": "Cobweb Silverfish",
+  "species": "Cinisymis detritata",
+  "lore": "Wary to the last, it keeps to the skip.\nSworn to guard the drift.\nNo rival brood has ever cornered it twice.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "pincers",
+   "barbed stinger",
+   "2 dorsal spines"
+  ]
+ },
+ {
+  "h": "bfbb92dd90472f5d07bf380a69636d140661595e557afd27fefa1fb6d7710046",
+  "name": "Gutter Skit",
+  "species": "Aurelina rubigata",
+  "lore": "Its shell holds the frost blue of foil.\nNo boot has ever unseated it twice.\nBorn where the rain forgot to stop.",
+  "grade": "RARE",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "horns",
+   "pincers",
+   "3 dorsal spines",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "c75e1219e1a6d7a566fe72a62fa508f59e1bf8155c7e56a7d33510e40a02e862",
+  "name": "Ceramic Spinner the Kept",
+  "species": "Acanthodes cellophanosa",
+  "lore": "A skittish thing, it answers only to the rain.\nBorn where nothing was thrown away.\nWhen the frost comes, it digs in deeper.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "horns",
+   "pincers",
+   "barbed stinger",
+   "2 dorsal spines",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "36602b7805a87c503e0f86f56c6462763e0531358bca5a9ff76fb9b43dda3f1f",
+  "name": "Chrome Watcher",
+  "species": "Chitina oblitensis",
+  "lore": "Its shell holds the caution-tape yellow of bottle-glass.\nHatched at first frost in the bottle-bank.\nIt remembers one bright wrapper, and little else.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "pincers",
+   "stinger tail",
+   "1 dorsal spine",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "c0f416369cc4c8c061a617cd89000fdaccfa5f7a07730d479a06338e56bfabda",
+  "name": "Sir Lichen Katydid the Unswept",
+  "species": "Tenebriops tarnixosa",
+  "lore": "Its shell holds the cola brown of foil.\nIt counts what it cannot keep, and asks for nothing.\nWhen the frost comes, it doubles its patrol.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "extra eyes",
+   "1 dorsal spine",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "6b0327286ef836d3effdeea65ad9948cee0f31de06a97f215936c7382247347d",
+  "name": "Warden Gutter Beetle",
+  "species": "Sordidops oblitus",
+  "lore": "Logged as caution-tape yellow, tempered solitary.\nBorn where the frost took the others.\nIt remembers the shape of an old territory, and little else.",
+  "grade": "COMMON",
+  "marks": [
+   "four wings",
+   "horns",
+   "2 dorsal spines",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "8655a701912f9a02123901bce111495f1e2a19c0f4155848e6c26e9dfaadac39",
+  "name": "Warden Brittle Earwig the Gutterborn",
+  "species": "Tenebriodes sodiuma",
+  "lore": "Logged as sea glass, tempered watchful.\nNo rival brood has ever out-waited it twice.\nBorn where the machines went quiet.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "pincers",
+   "extra eyes",
+   "2 dorsal spines",
+   "raptorial forelegs",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "e0d2c3bdd2b713585c6b38668c12131cd4e191416a309f86a0ee036d8baa6514",
+  "name": "Old Foil Katydid the Sodium-Lit",
+  "species": "Lithoa ferriensis",
+  "lore": "A stubborn thing, it keeps the old boundaries.\nBorn where the frost took the others.\nIt remembers the hum of the last lamp, and little else.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "elytra shell",
+   "barbed stinger",
+   "extra eyes",
+   "1 dorsal spine",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "07e827b649db7b2673c2005a1b60ac4bf9a6f5cd589ce0820106e81c6e771c06",
+  "name": "Warden Chrome Filing",
+  "species": "Aurelina recurrensis",
+  "lore": "Its shell holds the verdigris of cigarette silver.\nIt has outlived nine broods and buried the count.\nHatched at the turn of the tide in the sodium dark.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "pincers",
+   "stinger tail",
+   "2 dorsal spines",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "df4a3c1e082c1aaff720feac7d37f11f47b8ef6273a7b524cf49faeb91fcf78d",
+  "name": "Saint Dusty Beetle the Persistent",
+  "species": "Acanthus gutteriata",
+  "lore": "Vengeful to the last, it keeps to the gutter.\nNo rival king has ever cornered it twice.\nHatched on collection day in the underpass.",
+  "grade": "COMMON",
+  "marks": [
+   "plated carapace",
+   "2 dorsal spines",
+   "raptorial forelegs",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "a591802c69618185a6f593eb67ff56164790db2ff1190058da4ddc1f91a9155a",
+  "name": "Lichen Roach",
+  "species": "Detritaus ferriensis",
+  "lore": "A patient thing, it maps the drains by heart.\nIt has outlived a dozen broods and buried the count.\nNo frost has ever cornered it twice.",
+  "grade": "EPIC",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "horns",
+   "hooked pincers",
+   "barbed stinger",
+   "3 dorsal spines",
+   "six segment body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "89deba0c99e06993f1995744ea733718b7ae8f301538577081c18720dfb20d60",
+  "name": "Old Cellophane Crawler",
+  "species": "Cryptoa vespidii",
+  "lore": "Stubborn to the last, it keeps to the gutter.\nIt remembers a season that did not come back, and little else.\nIt has outlived more broods and buried the count.",
+  "grade": "RARE",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "horns",
+   "hooked pincers",
+   "full spine ridge",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "ddd620ed80fba1335cbcff75b66d2aeb1dbfaec9db50f2b3f37d7191ba635ee9",
+  "name": "Salt Mantis the Sodium-Lit",
+  "species": "Acanthymis ferriii",
+  "lore": "Its shell holds the wet slate of foil.\nBorn where the tide left its wrack.\nThey found it in the tin gardens, crowned in wax paper.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "barbed stinger",
+   "1 dorsal spine",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "a5caefe519f1e20f4d71a769b5752a0282143b0497b9041b9eb445e76728c2e6",
+  "name": "Rust Mite the Late",
+  "species": "Formicus sodiumata",
+  "lore": "Its shell holds the motor oil of packing foam.\nNo boot has ever routed it twice.\nWhen the frost comes, it goes still and waits.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "plated carapace",
+   "horns",
+   "pincers",
+   "stinger tail",
+   "1 dorsal spine",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "c807326074c9fa6aa5ec7cb97cd7719df7d8d27d2d71cc273ee67b671500d66f",
+  "name": "Ash Chafer the Bottlefed",
+  "species": "Lithoella gutteriosa",
+  "lore": "A patient thing, it guards a square of warm concrete.\nWhen the grey comes, it will not be moved.\nIt remembers a season that did not come back, and little else.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "2 dorsal spines",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "66aee397594d71193dd905c8d246fd9566e2201c7624fac312b8c52f5497dd95",
+  "name": "Amber Roach",
+  "species": "Culexella cellophanii",
+  "lore": "Defiant to the last, it keeps to the skip.\nHatched at closing time in the bottle-bank.\nWhen the frost comes, it holds its ground.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "horns",
+   "3 dorsal spines",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "26bd6b7a795cd9f052298dfa905f93ff2055c1f8e3626ae9e3aed0696eecf261",
+  "name": "Tin Cicada",
+  "species": "Noctuodes oblita",
+  "lore": "A defiant thing, it hoards bright scraps.\nIt remembers a season that did not come back, and little else.\nThey found it in a landfill dawn, crowned in grit.",
+  "grade": "COMMON",
+  "marks": [
+   "pincers",
+   "extra eyes",
+   "1 dorsal spine",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "4d58e3bea38d8d01880cd21830d80fb70261bb4447d6b9e26e41f45057646550",
+  "name": "Cobweb Earwig the Recurring",
+  "species": "Vespaa cellophanus",
+  "lore": "Logged as tea-stain brown, tempered restless.\nBorn where a gate was left open.\nIt has outlived a dozen broods and buried the count.",
+  "grade": "LEGENDARY",
+  "marks": [
+   "membrane wings",
+   "plated carapace",
+   "horns",
+   "stinger tail",
+   "extra eyes",
+   "5 dorsal spines",
+   "raptorial forelegs",
+   "six segment body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "f9322e57d5fb459024619dae5d6f2889c0db5cf0a711d524bf15e45df5afd64c",
+  "name": "Ash Lantern",
+  "species": "Cinisa sodiumii",
+  "lore": "A wary thing, it hoards bright scraps.\nIt maps the drains by heart, and asks for nothing.\nWhen the frost comes, it doubles its patrol.",
+  "grade": "RARE",
+  "marks": [
+   "plated carapace",
+   "horns",
+   "stinger tail",
+   "extra eyes",
+   "4 dorsal spines",
+   "six segment body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "e158a68dc69cf08e377de11ae69c49334ddd9ba5322f2f210e780496588f433c",
+  "name": "Amber Borer",
+  "species": "Aurelina cellophanensis",
+  "lore": "Its shell holds the wet asphalt of a bottlecap crown.\nSworn to hold the grate.\nWhen the floodwater comes, it goes still and waits.",
+  "grade": "COMMON",
+  "marks": [
+   "plated carapace",
+   "horns",
+   "extra eyes",
+   "1 dorsal spine"
+  ]
+ },
+ {
+  "h": "92618b646acbca81d8aa66fccf269cdba5630653228cf910b59e18b142b381c8",
+  "name": "Ash Click",
+  "species": "Vespaus ferriata",
+  "lore": "A wary thing, it keeps the old boundaries.\nHatched at closing time in the tin gardens.\nSworn to hold the grate.",
+  "grade": "RARE",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "pincers",
+   "extra eyes",
+   "2 dorsal spines",
+   "raptorial forelegs",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "238cda914c08aba8c9cfef18084bfce8130849659236a4fb292bd27f1e3f640b",
+  "name": "Cellophane Silverfish",
+  "species": "Lithoops sodiuma",
+  "lore": "Its shell holds the graphite grey of a bent straw.\nThey found it in the skip, crowned in a bottlecap crown.\nWhen the floodwater comes, it doubles its patrol.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "hooked pincers",
+   "2 dorsal spines",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "7eed785240fc5020d84606d39be2fdb3cc74fc277726667e3b50550449bfc759",
+  "name": "Wax Crawler the Long-Waiting",
+  "species": "Gutterina rubigosa",
+  "lore": "Logged as nettle green, tempered territorial.\nIt waits out the sweepers, and asks for nothing.\nIt has outlived forty broods and buried the count.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "extra eyes",
+   "2 dorsal spines",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "0270a630dfec07a41de91a12dc40df8afecee3199cdca76f2cf076652acad79a",
+  "name": "Clinker Lantern",
+  "species": "Strataina oblitensis",
+  "lore": "Logged as chalk blue, tempered quiet.\nThey found it in the gutter, crowned in packing foam.\nIt answers only to the rain, and asks for nothing.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "plated carapace",
+   "horns",
+   "extra eyes",
+   "1 dorsal spine",
+   "six segment body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "c5781bd654d11663262e8a92c462351766a3dea6e5b0100ffe4fd2714f041b3e",
+  "name": "Baron Foil Hopper the Late",
+  "species": "Acanthella sordida",
+  "lore": "Logged as wet tar, tempered watchful.\nNo sweeper has ever out-waited it twice.\nHatched during the long dust in the tin gardens.",
+  "grade": "COMMON",
+  "marks": [
+   "membrane wings",
+   "plated carapace",
+   "long body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "bfd0510d55fb6c1f9effb9c4d7bb8ff4f352ac3c4518a9b33d217290076df8ea",
+  "name": "Saint Brass Chafer the Recurring",
+  "species": "Noctuella minimus",
+  "lore": "Its shell holds the nettle green of a snapped twist-tie.\nBorn where nothing was thrown away.\nIt remembers one bright wrapper, and little else.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "horns",
+   "pincers",
+   "extra eyes",
+   "2 dorsal spines",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "99846d9b4e1abb5c5ee43d353ca9dd019172cd8b81c89d9a40187ae55f558b9c",
+  "name": "Brass Beetle",
+  "species": "Detritaa detritii",
+  "lore": "Its shell holds the dock leaf of a bottlecap crown.\nThey found it in the storm grate, crowned in foil.\nIt has outlived nine broods and buried the count.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "horns",
+   "hooked pincers",
+   "2 dorsal spines",
+   "six segment body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "9d7d59ddc21befee35e0126a4728afa73a547bef2c219d2e1b2aaccb238d8f0c",
+  "name": "Mossy Crawler",
+  "species": "Detritaella cellophana",
+  "lore": "Its shell holds the roadside clover of a bottlecap crown.\nIt walks the same seam of pavement, and asks for nothing.\nThey found it in the underpass, crowned in packing foam.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "horns",
+   "stinger tail",
+   "3 dorsal spines",
+   "raptorial forelegs",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "2424e9f3ab9512a6af30559d3796decb834e9d22e504fbb14a8361c4596df061",
+  "name": "Duke Chrome Borer the Persistent",
+  "species": "Cryptoella oblita",
+  "lore": "Quiet to the last, it keeps to the overflow.\nIt follows the scent of spilled sugar, and asks for nothing.\nNo rival king has ever cornered it twice.",
+  "grade": "RARE",
+  "marks": [
+   "membrane wings",
+   "plated carapace",
+   "horns",
+   "extra eyes",
+   "2 dorsal spines",
+   "raptorial forelegs",
+   "six segment body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "bd4e127dfe95176733f99693cca680a8e463cd787d9222bee776fa4550da25dd",
+  "name": "Velvet Spinner the Unspent",
+  "species": "Tenebriina noctisosa",
+  "lore": "Defiant to the last, it keeps to the bottle-bank.\nWhen the floodwater comes, it doubles its patrol.\nIt has outlived forty broods and buried the count.",
+  "grade": "EPIC",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "pincers",
+   "stinger tail",
+   "extra eyes",
+   "4 dorsal spines",
+   "raptorial forelegs",
+   "long body"
+  ]
+ },
+ {
+  "h": "f7035c82be69df0a1010da2d11bab8c8ae8bb45468a0cd52c7cb12049adfe9b5",
+  "name": "Cobweb Beetle the Recurring",
+  "species": "Culexops minima",
+  "lore": "Vengeful to the last, it keeps to the sodium dark.\nWhen the sweepers comes, it folds its wings and endures.\nSworn to keep the corner.",
+  "grade": "COMMON",
+  "marks": [
+   "four wings",
+   "pincers",
+   "2 dorsal spines",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "1448bde0e8ace5f48922e3aa948b892dd59d8597a3b7cfd36eddbfc2098a63b7",
+  "name": "Mossy Watcher",
+  "species": "Aurelus gutteriosa",
+  "lore": "Its shell holds the orange rind of a snapped twist-tie.\nSworn to hold the grate.\nThey found it in the bottle-bank, crowned in bottle-glass.",
+  "grade": "EPIC",
+  "marks": [
+   "horns",
+   "barbed stinger",
+   "extra eyes",
+   "4 dorsal spines",
+   "raptorial forelegs",
+   "six segment body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "2d4b600fa451960dc3f3e73db9cc7fa4b4116118064b6951da8e97152779a3ae",
+  "name": "Soot Weevil",
+  "species": "Vespaina noctisosa",
+  "lore": "Wary to the last, it keeps to the overflow.\nSworn to keep what it found.\nWhen the sweepers comes, it will not be moved.",
+  "grade": "RARE",
+  "marks": [
+   "four wings",
+   "horns",
+   "hooked pincers",
+   "stinger tail",
+   "extra eyes",
+   "2 dorsal spines",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "8a31fbd13862aa8ea4c659329cbcd4a83fff43d42fe9b23e45aedaac078e0b26",
+  "name": "Glass Spinner",
+  "species": "Formicus sordidensis",
+  "lore": "Defiant to the last, it keeps to the sodium dark.\nHatched in the last week of summer in the skip.\nIt answers only to the rain, and asks for nothing.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "membrane wings",
+   "pincers",
+   "barbed stinger",
+   "extra eyes",
+   "3 dorsal spines",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "ab0872dc6c87ed688017916537fdf1b85e2e5459a7ba432dd8cf292540afc0c5",
+  "name": "Tallow Lantern",
+  "species": "Detritaops sordidosa",
+  "lore": "Its shell holds the wax paper of a bent straw.\nIt has outlived seven broods and buried the count.\nHatched at closing time in the bottle-bank.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "four wings",
+   "horns",
+   "stinger tail",
+   "3 dorsal spines",
+   "raptorial forelegs",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "c773f6e5a3be9010ad9ded278b239c3a97e64dfa795815af6ba2d85f00e362b1",
+  "name": "Husk Watcher the Long-Waiting",
+  "species": "Tenebriops detritensis",
+  "lore": "Wary to the last, it keeps to the culvert.\nSworn to outlast the winter.\nHatched at the turn of the tide in the recycling drift.",
+  "grade": "COMMON",
+  "marks": [
+   "horns",
+   "4 dorsal spines",
+   "long body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "dd95e2e1a995fe75ce6a7ebb8c9ba03d5c56113b9bfc42103cd0027efa8140d2",
+  "name": "Vellum Mite the Frayed",
+  "species": "Cinisodes recurrosa",
+  "lore": "Its shell holds the antifreeze green of wax paper.\nIt remembers one bright wrapper, and little else.\nIt has outlived a dozen broods and buried the count.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "stinger tail",
+   "3 dorsal spines",
+   "raptorial forelegs",
+   "six segment body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "2576d4c250cc23bfd08d65bb1bd803f457be8c27a325d24737e397d474b4c51d",
+  "name": "Warden Chrome Cicada",
+  "species": "Scoriaina minimata",
+  "lore": "Territorial to the last, it keeps to the alley behind the diner.\nWhen the sweepers comes, it digs in deeper.\nIt has outlived a dozen broods and buried the count.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "elytra shell",
+   "pincers",
+   "extra eyes",
+   "2 dorsal spines",
+   "six segment body"
+  ]
+ },
+ {
+  "h": "ae5087a94d75a91cae465b6583c88452d5ae2c9dfa82ba786ed9f4f994cfc79b",
+  "name": "Husk Locust the Hollow",
+  "species": "Scoriaa oblitata",
+  "lore": "Logged as bog myrtle, tempered territorial.\nWhen the long heat comes, it digs in deeper.\nBorn where the machines went quiet.",
+  "grade": "RARE",
+  "marks": [
+   "plated carapace",
+   "horns",
+   "pincers",
+   "barbed stinger",
+   "extra eyes",
+   "1 dorsal spine",
+   "long body",
+   "four scrap patchwork"
+  ]
+ },
+ {
+  "h": "b23abbfc4bf89fc68d115a6e2d0ff861b864c4d20b88b3bee3452dbfe453ae4b",
+  "name": "Paper Lantern",
+  "species": "Cinisops rubigata",
+  "lore": "Logged as ironstone rust, tempered quiet.\nThey found it in the culvert, crowned in a bottlecap crown.\nWhen the sweepers comes, it digs in deeper.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "four wings",
+   "plated carapace",
+   "horns",
+   "pincers",
+   "stinger tail",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "f31f881322d8b2978d65470d78ecc54b7278de33786a3f1e37497c57da37814d",
+  "name": "Mother Brass Vesper",
+  "species": "Vespaymis vulgarata",
+  "lore": "Stubborn to the last, it keeps to the skip.\nIt hoards bright scraps, and asks for nothing.\nThey found it in the parking-lot verge, crowned in a snapped twist-tie.",
+  "grade": "EPIC",
+  "marks": [
+   "elytra shell",
+   "horns",
+   "pincers",
+   "stinger tail",
+   "3 dorsal spines",
+   "raptorial forelegs",
+   "six segment body",
+   "three scrap patchwork"
+  ]
+ },
+ {
+  "h": "6b163dfa72ec8ac27ce603e8e8881c828b1047773efa62744610811a42a7054d",
+  "name": "Tallow Firebrat the Late",
+  "species": "Chitinina sodiuma",
+  "lore": "Its shell holds the seafoam rinse of bottle-glass.\nIt remembers the shape of an old territory, and little else.\nNo rival king has ever unseated it twice.",
+  "grade": "UNCOMMON",
+  "marks": [
+   "four wings",
+   "pincers",
+   "stinger tail",
+   "3 dorsal spines",
+   "four scrap patchwork"
+  ]
+ }
+]

@@ -142,6 +142,15 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .fladder .gcell .gn{font-size:16px}
 .fladder .gcell .gn small{font-size:10px;color:var(--dim);font-weight:800}
 .fladder .gcell .gl{font-size:9px}
+/* the family chips: ALL or one wing family, a real filter over the grid */
+.dexchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+/* ⛔ the stage scales 0.69 at 375 wide, so 48 RENDERED px needs 70 CSS px, same reason .btn is 76 */
+.dexchips .chip{flex:none;min-height:70px;min-width:72px;padding:0 16px;border-radius:16px;border:1px solid var(--line);background:#10151b;
+  color:var(--dim);font-size:13px;font-weight:800;letter-spacing:1px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.dexchips .chip b{color:var(--ink);font-size:18px;line-height:1}
+.dexchips .chip.on{background:#123a1f;border-color:#2f8a4c;color:#9be5b0}
+.dexchips .chip.on b{color:#e6ecf2}
+.specfam{font-size:11px;letter-spacing:2px;color:var(--dim);font-weight:800;margin-top:4px;text-transform:uppercase}
 .bins{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
 .bin{min-height:110px;border-radius:14px;border:2px solid var(--line);background:linear-gradient(180deg,#1a2330,#10161d);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;
@@ -202,6 +211,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .specname{font-size:27px;font-weight:800;margin-top:6px}
 .specsp{font-size:15px;color:var(--dim);font-style:italic}
 .marks{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;max-width:420px}
+.mark.latent{opacity:.55;border-style:dashed}
 .mark{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;padding:4px 9px;border-radius:999px;
   border:1px solid #28323d;color:var(--dim);white-space:nowrap}
 .speclore{font-size:16px;line-height:1.5;margin-top:10px;max-width:420px;color:var(--ink)}
@@ -489,6 +499,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
     <div class="pad">
       <div class="gladder" id="x-ladder"></div>
       <div class="fladder" id="x-fam"></div>
+      <div class="dexchips" id="x-chips"></div>
       <div class="dexgrid" id="x-grid"></div>
       <div class="stack" style="margin-top:18px">
         <button class="btn ghost" id="b-dex-back">Back</button>
@@ -581,7 +592,7 @@ if (window.parent !== window) {
   swsHi(); window.addEventListener('load', swsHi); setTimeout(swsHi, 700);
 }
 </script>
-<script src="bug-engine.js?v=20260905b"></script>
+<script src="bug-engine.js?v=20260905c"></script>
 <script src="battle-engine.js?v=20260905b"></script>
 <script>
 /* ==========================================================================
@@ -771,10 +782,22 @@ function paintPill(el,grade){
 }
 /* The grade's receipt: the parts that scored, which are parts you can SEE on
    the art. A tier label nobody can point at is just a number. */
-function paintMarks(el,gr){
-  var m=(gr&&gr.marks)||[];
-  el.innerHTML = m.length
-    ? m.map(function(x){ return '<span class="mark" style="border-color:'+GRADE_COLOR[gr.grade]+'44;color:'+GRADE_COLOR[gr.grade]+'">'+x+'</span>'; }).join('')
+/* growth: the renderer draws a part once growth (growLvl(level)/22) clears its threshold */
+function growthOf(lvl){ return Math.max(0.12, Math.min(1, growLvl(lvl||1)/22)); }
+function lvlFor(th){ return Math.max(1, Math.ceil((22*th-7)/0.8)); }
+/* what is still to come at this level: count, and the first part in line */
+function growthLeft(gr,lvl){
+  var ps=(gr&&gr.parts)||[], g=growthOf(lvl), left=[], i;
+  for(i=0;i<ps.length;i++) if(ps[i].th>g) left.push(ps[i]);
+  left.sort(function(a,b){ return a.th-b.th; });
+  return { total:ps.length, left:left.length, next:left[0]||null, nextLvl:left[0]?Math.max((lvl||1)+1, lvlFor(left[0].th)):0 };
+}
+/* ⛔ a chip for a part that is not drawn yet is DASHED: a fresh LEGENDARY is a plain grub
+   with nine promises, and the chips have to say which promises are kept so far */
+function paintMarks(el,gr,lvl){
+  var ps=(gr&&gr.parts)||[], g=growthOf(lvl||1);
+  el.innerHTML = ps.length
+    ? ps.map(function(p){ var lat=p.th>g; return '<span class="mark'+(lat?' latent':'')+'" style="border-color:'+GRADE_COLOR[gr.grade]+(lat?'66':'44')+';color:'+GRADE_COLOR[gr.grade]+'">'+p.label+'</span>'; }).join('')
     : '<span class="mark" style="border-color:#28323d">a plain grub, nothing grown in</span>';
 }
 
@@ -1514,12 +1537,14 @@ async function doMint(){
   pending={ cb:cb, at:Date.now(), grade:gr.grade, score:gr.score, lvl:1, wins:0 };
   $('m-art').innerHTML=bugSVG(cb,230,1);
   paintPill($('m-grade'), gr.grade);
-  paintMarks($('m-marks'),gr);
+  paintMarks($('m-marks'),gr,1);
   $('m-name').textContent=id.name;
   $('m-species').textContent=id.species;
   $('m-lore').textContent=id.lore;
   $('m-kicker').textContent='SPECIMEN '+((SAVE.dex||[]).length+1);
-  $('m-grow').textContent='Level 1. It fights small. Every win in the dumpster grows it.';
+  var gl=growthLeft(gr,1);
+  $('m-grow').textContent='Level 1. It fights small. Every win in the dumpster grows it.'
+    +(gl.left ? ' '+gl.left+' of '+gl.total+' parts still to grow in, the '+gl.next.label+' first, at level '+gl.nextLvl+'.' : '');
   show('s-mint');
 }
 function keepBug(){
@@ -1566,7 +1591,17 @@ function paintDex(){
     g.innerHTML='<div class="empty">Nothing pinned yet. Work the alley for thirty Shinies and something will turn up.</div>';
     return;
   }
+  var chips=$('x-chips'), fc=[0,0,0,0];
+  dex.forEach(function(b){ var f=famOf(b.cb); if(f) fc[f.wing]++; });
+  var ch='<button class="chip'+(DEX_FILTER<0?' on':'')+'" data-fam="-1">ALL<b>'+dex.length+'</b></button>';
+  FAM_WING.forEach(function(nm,i){ ch+='<button class="chip'+(DEX_FILTER===i?' on':'')+'" data-fam="'+i+'">'+nm+'<b>'+fc[i]+'</b></button>'; });
+  chips.innerHTML=ch;
+  var cb=chips.querySelectorAll('.chip'), q;
+  for(q=0;q<cb.length;q++)(function(el){ el.onclick=function(){ DEX_FILTER=parseInt(el.getAttribute('data-fam'),10); paintDex(); }; })(cb[q]);
+  var shown=0;
   dex.forEach(function(b,i){
+    if(DEX_FILTER>=0){ var ff=famOf(b.cb); if(!ff||ff.wing!==DEX_FILTER) return; }
+    shown++;
     var c=document.createElement('div'); c.className='card';
     c.innerHTML='<div>'+bugSVG(b.cb,84,lvlOf(b))+'</div>'
       +'<div class="nm">'+BUG_ENGINE.bugName(b.cb)+'</div>'
@@ -1575,15 +1610,18 @@ function paintDex(){
     c.onclick=function(){ openSpec(i); };
     g.appendChild(c);
   });
+  if(!shown) g.innerHTML='<div class="empty">No '+FAM_WING[DEX_FILTER].toLowerCase()+' pinned yet. They turn up when they turn up.</div>';
 }
-var FAM_WING=['MEMBRANE','FOUR WING','SHELL','WINGLESS'], FAM_HEAD=['ROUND','WEDGE','CREST','SNOUT'], FAM_TAIL=['NO TAIL','PLAIN','FORKED','STINGER'];
-/* the family a bug belongs to, read off the SAME plan the renderer draws from */
+var FAM_WING=['VEILWINGS','DRAGONETS','SHELLBACKS','WALKERS'], FAM_HEAD=['ROUND','WEDGE','CREST','SNOUT'], FAM_TAIL=['NO TAIL','PLAIN','FORKED','STINGER'];
+/* the family a bug belongs to, read off the SAME plan the renderer draws from (the engine
+   owns the names; the tail is counted here for the meter only) */
 function famOf(cb){
-  var P=null; try{ P=BUG_ENGINE.bugPlan(cb); }catch(e){}
-  if(!P||!P.plan) return null;
+  var P=null, F=null; try{ P=BUG_ENGINE.bugPlan(cb); F=BUG_ENGINE.bugFamily(cb); }catch(e){}
+  if(!P||!P.plan||!F) return null;
   var has=function(v){ return v!=null && v!==999; };
-  return { wing: has(P.plan.wings) ? (P.wingKind||0) : 3, head: P.headKind||0, tail: has(P.plan.tail) ? 1+(P.tailKind||0) : 0 };
+  return { wing: F.wing, head: F.head, tail: has(P.plan.tail) ? 1+(P.tailKind||0) : 0 };
 }
+var DEX_FILTER=-1;   /* -1 all, else a wing family index */
 var SPEC=-1;
 function _esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 function specData(b){
@@ -1602,13 +1640,17 @@ function openSpec(i){
     +'<div class="gradepill" id="sp-grade">'+b.grade+'</div>'
     +'<div class="specname" style="margin-top:8px">'+_esc(id.name)+'</div>'
     +'<div class="specsp">'+_esc(id.species)+'</div>'
+    +'<div class="specfam">'+_esc(id.family.name)+' · '+_esc(id.family.headName)+'</div>'
     +'<div class="marks" id="sp-marks" style="margin-top:8px"></div>'
     +'<div class="lore">'+_esc(id.lore)+'</div>';
-  paintPill($('sp-grade'), b.grade); paintMarks($('sp-marks'), D.gr);
+  paintPill($('sp-grade'), b.grade); paintMarks($('sp-marks'), D.gr, D.lvl);
   var rows='';
   function row(k,v){ rows+='<div class="row"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>'; }
   row('GRADE', b.grade+' <span style="color:'+col+'">·</span> score '+D.gr.score);
+  row('FAMILY', _esc(id.family.name)+', '+_esc(id.family.headName));
   row('PARTS', D.gr.marks.length ? _esc(D.gr.marks.join(', ')) : 'a plain grub, nothing grown in');
+  var gl=growthLeft(D.gr, D.lvl);
+  if(gl.total) row('GROWN', gl.left ? (gl.total-gl.left)+' of '+gl.total+' parts in · the '+_esc(gl.next.label)+' at level '+gl.nextLvl : 'fully grown, every part in');
   if(f){ row('TYPE', _esc(f.type+(f.type2?' and '+f.type2:''))+' · '+_esc(f.cls)); row('SHEET', f.maxhp+' HP · ATK '+f.atk+' · DEF '+f.def+' · SPD '+f.spd); }
   row('LEVEL', D.lvl+' · '+D.wins+' win'+(D.wins===1?'':'s')+' in the dumpster');
   if(D.pal) row('SCRAP', _esc(D.pal.name)+' <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+D.pal.primary+';vertical-align:-1px"></span>');
@@ -1643,6 +1685,7 @@ function renderBugCard(b, done){
   var nameLines=wrapText(ctx, id.name, W-100, 2); nameLines.forEach(function(l,i){ ctx.fillText(l, W/2, 100+i*36); });
   var ny=100+nameLines.length*36;
   ctx.fillStyle='#8fa0b2'; ctx.font='italic 18px Georgia,serif'; ctx.fillText(id.species, W/2, ny+4);
+  ctx.fillStyle='#5f6d7c'; ctx.font='800 11px "Trebuchet MS",sans-serif'; ctx.fillText((id.family.name+'   \u00b7   '+id.family.headName).toUpperCase().split('').join('\u200a'), W/2, ny+24);
   var svg=bugSVG(b.cb, 380, D.lvl), img=new Image(), url=null;
   try{ url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'})); }catch(e){}
   function finish(){
@@ -1655,10 +1698,10 @@ function renderBugCard(b, done){
     ctx.font='800 16px "Trebuchet MS",sans-serif'; var gw=ctx.measureText(b.grade).width+44;
     ctx.fillStyle=col+'26'; ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.beginPath(); ctx.roundRect((W-gw)/2, gy-20, gw, 36, 18); ctx.fill(); ctx.stroke();
     ctx.fillStyle=col; ctx.fillText(b.grade.split('').join(' '), W/2, gy+5);
-    var marks=D.gr.marks.length?D.gr.marks:['a plain grub'];
+    var parts=D.gr.parts.length?D.gr.parts:[{label:'a plain grub',th:0}], gnow=growthOf(D.lvl);
     ctx.font='700 13px "Trebuchet MS",sans-serif'; var cx=0, cy=gy+48, chips=[], lineW=0, line=[];
-    marks.forEach(function(m){ var w=ctx.measureText(m.toUpperCase()).width+26; if(lineW+w+8>W-80&&line.length){ chips.push(line); line=[]; lineW=0; } line.push({t:m.toUpperCase(),w:w}); lineW+=w+8; }); if(line.length) chips.push(line);
-    chips.slice(0,2).forEach(function(ln,li){ var tot=ln.reduce(function(a,c){return a+c.w+8;},0)-8, x=(W-tot)/2, y=cy+li*34; ln.forEach(function(c){ ctx.fillStyle='#0e141b'; ctx.strokeStyle=col+'66'; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(x,y-14,c.w,28,14); ctx.fill(); ctx.stroke(); ctx.fillStyle=col; ctx.fillText(c.t, x+c.w/2, y+5); x+=c.w+8; }); });
+    parts.forEach(function(p){ var m=p.label, w=ctx.measureText(m.toUpperCase()).width+26; if(lineW+w+8>W-80&&line.length){ chips.push(line); line=[]; lineW=0; } line.push({t:m.toUpperCase(),w:w,lat:p.th>gnow}); lineW+=w+8; }); if(line.length) chips.push(line);
+    chips.slice(0,2).forEach(function(ln,li){ var tot=ln.reduce(function(a,c){return a+c.w+8;},0)-8, x=(W-tot)/2, y=cy+li*34; ln.forEach(function(c){ ctx.setLineDash(c.lat?[4,3]:[]); ctx.globalAlpha=c.lat?0.6:1; ctx.fillStyle='#0e141b'; ctx.strokeStyle=col+'66'; ctx.lineWidth=1; ctx.beginPath(); ctx.roundRect(x,y-14,c.w,28,14); ctx.fill(); ctx.stroke(); ctx.fillStyle=col; ctx.fillText(c.t, x+c.w/2, y+5); x+=c.w+8; }); }); ctx.setLineDash([]); ctx.globalAlpha=1;
     var ly=cy+Math.min(chips.length,2)*34+18;
     ctx.fillStyle='#e6ecf2'; ctx.font='19px Georgia,serif'; wrapText(ctx, id.lore, W-110, 4).forEach(function(l,i){ ctx.fillText(l, W/2, ly+i*28); });
     ctx.fillStyle='#8fa0b2'; ctx.font='700 13px "Trebuchet MS",sans-serif';

@@ -81,26 +81,30 @@
   // never guessed. Re-run the tuner after any change to the scoring above.
   var GRADE_CUT = [0, 28, 36, 44, 52, 59, 65];
   function bugGrade(codeblock) {
-    var P = bugPlan(codeblock), pl = P.plan, marks = [], score = 0, i;
-    function add(n, label) { score += n; if (label) marks.push(label); }
+    var P = bugPlan(codeblock), pl = P.plan, marks = [], parts = [], score = 0, i;
+    /* `parts` runs parallel to `marks` and carries the GROWTH THRESHOLD the renderer draws
+       each part at (0 = drawn from the first day). A freshly minted bug is drawn at growth
+       MINT_GROWTH, so a LEGENDARY can be a plain grub with nine promises; the page reads
+       these thresholds to say which promises are kept yet. ⛔ scoring unchanged. */
+    function add(n, label, th) { score += n; if (label) { marks.push(label); parts.push({ label: label, th: th || 0 }); } }
 
     /* wings: the loudest thing in the silhouette. 25% of bugs are wingless. */
     if (pl.wings !== 999) {
-      if (P.wingKind === 2) add(9, 'elytra shell');
-      else if (P.wingKind === 1) add(7, 'four wings');
-      else add(4, 'membrane wings');
+      if (P.wingKind === 2) add(9, 'elytra shell', pl.wings);
+      else if (P.wingKind === 1) add(7, 'four wings', pl.wings);
+      else add(4, 'membrane wings', pl.wings);
     }
     /* carapace plates. The renderer suppresses them under an elytra shell, so
        the score must too or it would credit armour you cannot see. */
     if (P.plateKind && P.wingKind !== 2) add(6, 'plated carapace');
-    if (pl.horns !== 999) add(5, 'horns');
-    if (pl.pincers !== 999) add(P.jawKind === 3 ? 8 : 5, P.jawKind === 3 ? 'hooked pincers' : 'pincers');
-    if (pl.tail !== 999) add(P.tailKind === 2 ? 8 : 5, P.tailKind === 2 ? 'barbed stinger' : 'stinger tail');
-    if (pl.extraEyes !== 999) add(7, 'extra eyes');
-    var sp = 0;
-    for (i = 0; i < pl.spines.length; i++) if (pl.spines[i] !== 999) sp++;
-    if (sp >= P.N) add(sp * 3 + 4, 'full spine ridge');
-    else if (sp) add(sp * 3, sp + ' dorsal spine' + (sp > 1 ? 's' : ''));
+    if (pl.horns !== 999) add(5, 'horns', pl.horns);
+    if (pl.pincers !== 999) add(P.jawKind === 3 ? 8 : 5, P.jawKind === 3 ? 'hooked pincers' : 'pincers', pl.pincers);
+    if (pl.tail !== 999) add(P.tailKind === 2 ? 8 : 5, P.tailKind === 2 ? 'barbed stinger' : 'stinger tail', pl.tail);
+    if (pl.extraEyes !== 999) add(7, 'extra eyes', pl.extraEyes);
+    var sp = 0, spTh = 1;
+    for (i = 0; i < pl.spines.length; i++) if (pl.spines[i] !== 999) { sp++; if (pl.spines[i] < spTh) spTh = pl.spines[i]; }
+    if (sp >= P.N) add(sp * 3 + 4, 'full spine ridge', spTh);
+    else if (sp) add(sp * 3, sp + ' dorsal spine' + (sp > 1 ? 's' : ''), spTh);
     if (P.legKind === 2) add(6, 'raptorial forelegs');
     if (P.N >= 6) add(5, 'six segment body');
     else if (P.N === 5) add(3, 'long body');
@@ -109,8 +113,11 @@
 
     var g = 0;
     for (i = GRADE_CUT.length - 1; i >= 0; i--) { if (score >= GRADE_CUT[i]) { g = i; break; } }
-    return { grade: GRADES[g], score: score, marks: marks };
+    return { grade: GRADES[g], score: score, marks: marks, parts: parts };
   }
+  /* the growth a bug is drawn at on the day it is minted: index.html's growLvl(1) is 8, and
+     _generateBugSVG reads growth = level / 22. Kept here so the lore and the page agree. */
+  var MINT_GROWTH = 8 / 22;
 
   // ── Palettes. Curated harmonious SCHEMES, one per bug. ──────────────
   // Each scheme is a designed 4-color set instead of 4 independent picks,
@@ -942,7 +949,115 @@
       var s = fill(tpl);
       s = s.charAt(0).toUpperCase() + s.slice(1);
       return /[.!?]$/.test(s) ? s : s + '.';
-    }).join('\n');
+    }).join('\n') + '\n' + bugPartLine(codeblock).line;
+  }
+
+  // ══ THE PART LINE (identity depth, 2026-09-05) ════════════════════════
+  // One sentence of lore that names a part the renderer actually drew, read
+  // off the SAME plan the grade reads. It has its own rng stream ('|parts'),
+  // so the three lines every bug already had are untouched: this is line four.
+  // ⛔ A wingless bug can never draw a wing line: the candidates come from the
+  // plan, the bank is only ever indexed by a candidate.
+  var PART_LINES = {
+    shell:        ['Its shell is two halves that close with a click.', 'The shell shuts over its back like a lid on a tin.', 'Under the shell, wings it has never once used.'],
+    fourWings:    ['Four wings, and it uses all of them, never in time.', 'Two pairs of wings that beat against each other.', 'It hovers. Nothing this size should hover.'],
+    membrane:     ['Its wings are {material} held up to the light.', 'Wings you can read a label through.', 'Thin wings, folded flat, faster than they look.'],
+    wingless:     ['No wings. It walks everywhere and always arrives.', 'It never grew wings and never seemed to mind.', 'Wingless, and lower to the ground for it.'],
+    veined:       ['The wing veins run like cracks in old glass.', 'Every vein in its wings is a road it has taken.'],
+    eyespot:      ['An eyespot on each wing, watching whatever it is not.', 'The eyespots on its wings blink when it lands.'],
+    tattered:     ['Its wings are torn at the edges and it flies anyway.', 'Tattered wings. Something got close, once.'],
+    plates:       ['Plates down its back, each one a different scrap.', 'A carapace of plates that do not quite match.', 'Armour on its back, bolted on one plate at a time.'],
+    hornsCurved:  ['It leads with its horns and the horns curve back.', 'Curved horns, worn smooth at the tips.'],
+    hornsAntler:  ['Branched horns like a stripped antenna mast.', 'Its horns fork, and fork again.'],
+    hornsKnob:    ['Two blunt knobs for horns. It rams things.', 'Its horns are knobs, and it swings them like hammers.'],
+    hookedPincers:['The pincers hook inward and do not let go.', 'Hooked pincers, and a habit of using them first.'],
+    pincers:      ['It carries its pincers open, like a question.', 'Pincers wide enough for a bottle cap.'],
+    barbed:       ['The stinger is barbed and it has been used.', 'A clubbed stinger it drags behind it like a threat.'],
+    forkedTail:   ['A forked tail that tastes the air behind it.', 'Its tail splits in two and each half twitches on its own.'],
+    plainTail:    ['The tail ends in a point it keeps clean.', 'A plain tail, held high, that says it is not afraid.'],
+    extraEyes:    ['It has more eyes than it needs and uses every one.', 'Extra eyes, so nothing gets close from behind.'],
+    fullRidge:    ['A ridge of spines from head to tail, like a torn zipper.', 'Spines down the whole back, one for each segment.'],
+    quills:       ['Long quills stand off its back like fence wire.', 'Quills that rattle when it runs.'],
+    knobSpines:   ['A row of rounded knobs down its back.', 'Its spines are worn to knobs and it wears them proudly.'],
+    spines:       ['One spine on its back, worn to a nub.', 'A few spines, enough to make a gull think twice.'],
+    raptorial:    ['Its forelegs fold like a jackknife and open faster.', 'Raptorial forelegs. It does not chase. It waits.'],
+    claws:        ['Claws on every foot, which is how it climbs glass.', 'Tarsal claws that tick on tin.'],
+    fringed:      ['Fringed legs, feathered like a brush.', 'Its legs are fringed with hairs that catch the dust.'],
+    wedge:        ['A wedge of a head, all angle and stare.', 'Its head is a mantis wedge that turns to follow you.'],
+    crest:        ['A crest on its head like a bent bottle cap.', 'It wears a crest and holds it up in the rain.'],
+    snout:        ['A long snout for reaching into places that were sealed.', 'Its snout finds the seam in anything.'],
+    bands:        ['Banded down the body like a warning label.', 'Bands of colour across every segment.'],
+    spots:        ['Spotted, as if something dripped on it and dried.', 'Spots down its back like old paint.'],
+    stripes:      ['Striped lengthwise, like a barcode that will not scan.', 'Stripes along its back, one for every winter.'],
+    chevrons:     ['Chevrons down its back, pointing home.', 'Marked with chevrons, like a road sign nobody reads.'],
+    speckle:      ['Speckled all over, like it stood too close to spray paint.', 'A speckle across the body that hides it in grit.'],
+    whip:         ['Antennae long as whips, always moving.', 'Whip antennae it tastes the wind with.'],
+    fan:          ['Fan tipped antennae, opened like two small combs.', 'Its antennae end in fans and it is always listening.'],
+    slit:         ['Slit pupils, like a cat that gave up on people.', 'Eyes with slits in them that narrow when you move.'],
+    glossy:       ['Big glossy eyes with the lamp caught in each.', 'Eyes so glossy the whole alley is in them.'],
+    sixSeg:       ['Six segments, sewn end to end.', 'A body six segments long, each one a different find.'],
+    patchwork:    ['Sewn from four scraps and proud of none of them.', 'A patchwork of scraps that never matched and never will.']
+  };
+  var WING_KEYS = { shell: 1, fourWings: 1, membrane: 1, veined: 1, eyespot: 1, tattered: 1 };
+  function bugPartCandidates(codeblock) {
+    var P = bugPlan(codeblock), pl = P.plan, c = [], i, sp = 0;
+    var hasWings = pl.wings !== 999;
+    // rarest first, so the choice leans toward what the grade also noticed
+    if (pl.extraEyes !== 999) c.push('extraEyes');
+    if (pl.pincers !== 999) c.push(P.jawKind === 3 ? 'hookedPincers' : 'pincers');
+    if (pl.tail !== 999) c.push(P.tailKind === 2 ? 'barbed' : (P.tailKind === 1 ? 'forkedTail' : 'plainTail'));
+    for (i = 0; i < pl.spines.length; i++) if (pl.spines[i] !== 999) sp++;
+    if (sp >= P.N) c.push('fullRidge');
+    else if (sp) c.push(P.spineKind === 2 ? 'quills' : (P.spineKind === 1 ? 'knobSpines' : 'spines'));
+    if (P.legKind === 2) c.push('raptorial');
+    if (hasWings) {
+      if (P.wingKind === 2) c.push('shell');
+      else {
+        c.push(P.wingKind === 1 ? 'fourWings' : 'membrane');
+        if (P.wingStyle === 1) c.push('veined'); else if (P.wingStyle === 2) c.push('eyespot'); else if (P.wingStyle === 3) c.push('tattered');
+      }
+    } else c.push('wingless');
+    if (pl.horns !== 999) c.push(P.hornKind === 1 ? 'hornsAntler' : (P.hornKind === 2 ? 'hornsKnob' : 'hornsCurved'));
+    if (P.plateKind && P.wingKind !== 2) c.push('plates');
+    if (P.headKind === 1) c.push('wedge'); else if (P.headKind === 2) c.push('crest'); else if (P.headKind === 3) c.push('snout');
+    if (P.patternKind) c.push(['bands', 'spots', 'stripes', 'chevrons', 'speckle'][P.patternKind - 1]);
+    if (P.legStyle === 1) c.push('claws'); else if (P.legStyle === 2) c.push('fringed');
+    if (P.antStyle === 1) c.push('whip'); else if (P.antStyle === 2) c.push('fan');
+    if (P.eyeStyle === 1) c.push('slit'); else if (P.eyeStyle === 2) c.push('glossy');
+    if (P.N >= 6) c.push('sixSeg');
+    if (P.mats.length >= 4) c.push('patchwork');
+    return c;
+  }
+  /* the growth threshold a part line's part is drawn at; 0 for parts drawn from day one */
+  function partThreshold(codeblock, key) {
+    var P = bugPlan(codeblock), pl = P.plan, i, m = 1;
+    if (WING_KEYS[key]) return pl.wings;
+    if (key === 'hornsCurved' || key === 'hornsAntler' || key === 'hornsKnob') return pl.horns;
+    if (key === 'hookedPincers' || key === 'pincers') return pl.pincers;
+    if (key === 'barbed' || key === 'forkedTail' || key === 'plainTail') return pl.tail;
+    if (key === 'extraEyes') return pl.extraEyes;
+    if (key === 'fullRidge' || key === 'quills' || key === 'knobSpines' || key === 'spines') { for (i = 0; i < pl.spines.length; i++) if (pl.spines[i] !== 999 && pl.spines[i] < m) m = pl.spines[i]; return m; }
+    return 0;
+  }
+  function bugPartLine(codeblock) {
+    var c = bugPartCandidates(codeblock), rng = seededRng(codeblock + '|parts');
+    // ⛔ a line about a part you cannot see yet is a lie on the mint screen: prefer the parts
+    // drawn at mint growth, and only fall back to a promise when nothing else is there
+    var now = c.filter(function (k) { return partThreshold(codeblock, k) <= MINT_GROWTH; });
+    var pool = now.length ? now : c;
+    // one of the three loudest, so a bug with a stinger and a shell is not always the stinger
+    var key = pool[Math.floor(rng() * Math.min(3, pool.length))];
+    var line = pick(rng, PART_LINES[key]).replace('{material}', pick(rng, LORE_MATERIAL));
+    return { key: key, line: line };
+  }
+
+  // ── the family: what a bug IS, read off the two loudest shape rolls ──
+  var FAMILY_WING = ['Veilwing', 'Dragonet', 'Shellback', 'Walker'];
+  var FAMILY_HEAD = ['round headed', 'wedge headed', 'crested', 'snouted'];
+  function bugFamily(codeblock) {
+    var P = bugPlan(codeblock);
+    var w = P.plan.wings !== 999 ? (P.wingKind || 0) : 3, hd = P.headKind || 0;
+    return { wing: w, head: hd, name: FAMILY_WING[w], headName: FAMILY_HEAD[hd], label: FAMILY_WING[w] + ', ' + FAMILY_HEAD[hd] };
   }
 
   // bugIdentity: the whole nameplate for a bug.
@@ -951,7 +1066,9 @@
       name: bugName(codeblock),
       species: bugSpecies(codeblock),
       designation: bugDesignation(codeblock),
-      lore: bugLore(codeblock)
+      lore: bugLore(codeblock),
+      family: bugFamily(codeblock),
+      part: bugPartLine(codeblock)
     };
   }
 
@@ -1125,7 +1242,7 @@
     hashToBugTraits: hashToBugTraits, _generateBugSVG: _generateBugSVG, bugPlan: bugPlan,
     bugGrade: bugGrade, GRADES: GRADES, GRADE_CUT: GRADE_CUT,
     bugName: bugName, bugSpecies: bugSpecies, bugDesignation: bugDesignation,
-    bugLore: bugLore, bugIdentity: bugIdentity, seededRng: seededRng, PALETTES: PALETTES,
+    bugLore: bugLore, bugIdentity: bugIdentity, bugPartLine: bugPartLine, partThreshold: partThreshold, MINT_GROWTH: MINT_GROWTH, bugPartCandidates: bugPartCandidates, bugFamily: bugFamily, PART_LINES: PART_LINES, FAMILY_WING: FAMILY_WING, FAMILY_HEAD: FAMILY_HEAD, seededRng: seededRng, PALETTES: PALETTES,
     TYPES: TYPES, TYPE_CHART: TYPE_CHART, typeMatchup: typeMatchup,
     typeMatchupDual: typeMatchupDual, CLASSES: CLASSES, bugStats: bugStats,
     WING_BANK: WING_BANK, BODY_BANK: BODY_BANK, HEAD_BANK: HEAD_BANK,

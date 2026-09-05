@@ -297,6 +297,77 @@ function ok(cond, label, detail) {
     ok(cl.head2 === 'CLEAN SHIFT' && cl.stamps2 === 1 && cl.week2 === 0, 'a clean shift on another block is clean but does not stamp the week', cl);
     ok(cl.head3 === 'SHIFT OVER', 'a shift that runs out of clock is SHIFT OVER, not clean', cl.head3);
 
+    // ══ IDENTITY DEPTH ════════════════════════════════════════════════
+    group('identity depth: the lore names a part the bug has, and no name moves');
+    /* fixtures/identity-60.json was captured from the engine BEFORE the part line
+       existed. A bug is its name: the sixty must still answer to theirs, their old
+       three lines must still lead, and line four must name a part the plan drew. */
+    const idPage = await open(FILE + '?lbtest=1');
+    const idr = await idPage.evaluate(async () => {
+      const E = window.BUG_ENGINE, D = window.LB_DEV; D.reset();
+      const fx = await (await fetch('fixtures/identity-60.json?' + Math.random())).json();
+      let nameSame = 0, loreKept = 0, fourLines = 0;
+      fx.forEach(f => { const id = E.bugIdentity(f.h); if (id.name === f.name && id.species === f.species) nameSame++; if (id.lore.indexOf(f.lore) === 0) loreKept++; if (id.lore.split('\n').length === 4) fourLines++; });
+      let partOk = 0, wingLeak = 0, keys = {}, n = 600;
+      for (let i = 0; i < n; i++) {
+        /* sha256Hex is async in the browser; a seeded rng gives the same 600 hashes every run */
+        const rr = E.seededRng('idcheck-' + i); let h = ''; for (let k = 0; k < 64; k++) h += Math.floor(rr() * 16).toString(16);
+        const p = E.bugPartLine(h), c = E.bugPartCandidates(h), P = E.bugPlan(h);
+        const bank = E.PART_LINES[p.key] || [];
+        if (c.indexOf(p.key) >= 0 && bank.some(t => p.line.indexOf(t.split('{')[0]) === 0)) partOk++;
+        keys[p.key] = 1;
+        if (P.plan.wings === 999 && /^(shell|fourWings|membrane|veined|eyespot|tattered)$/.test(p.key)) wingLeak++;
+      }
+      /* the family chips over a dozen minted bugs */
+      for (let i = 0; i < 12; i++) { D.setShinies(D.mintCost); await D.doMint(); D.keep(); }
+      document.getElementById('b-dex').click();
+      const chips = [...document.querySelectorAll('#x-chips .chip')];
+      const chipH = chips.length ? chips[0].getBoundingClientRect().height : 0;
+      const total = document.querySelectorAll('#x-grid .card').length;
+      const fam = D.dex().map(b => E.bugFamily(b.cb).wing);
+      let filterOk = true, detail = [];
+      chips.slice(1).forEach((ch, i) => { ch.click(); const shown = document.querySelectorAll('#x-grid .card').length; const want = fam.filter(w => w === i).length; detail.push(shown + '/' + want); if (shown !== want) filterOk = false; });
+      chips[0].click(); const back = document.querySelectorAll('#x-grid .card').length;
+      D.openSpec(0); const famLine = document.querySelector('#sp-front .specfam');
+      const famRow = [...document.querySelectorAll('#sp-back .row .k')].some(k => k.textContent === 'FAMILY');
+      /* growth honesty: parts carry thresholds, the part line prefers what is drawn at mint,
+         and a young high grade bug wears dashed chips for what has not grown in */
+      let partsParallel = 0, preferOk = 0;
+      for (let i = 0; i < n; i++) {
+        const rr = E.seededRng('idcheck-' + i); let h = ''; for (let k = 0; k < 64; k++) h += Math.floor(rr() * 16).toString(16);
+        const g = E.bugGrade(h); if (g.parts.length === g.marks.length && g.parts.every((p, j) => p.label === g.marks[j] && p.th >= 0 && p.th <= 1)) partsParallel++;
+        const c = E.bugPartCandidates(h), p = E.bugPartLine(h);
+        const anyNow = c.some(k => E.partThreshold(h, k) <= E.MINT_GROWTH);
+        if (!anyNow || E.partThreshold(h, p.key) <= E.MINT_GROWTH) preferOk++;
+      }
+      /* a fixture with the most latent parts, pinned at level 1 then grown to 30 */
+      let best = null; fx.forEach(f => { const g = E.bugGrade(f.h); const lat = g.parts.filter(p => p.th > E.MINT_GROWTH).length; if (!best || lat > best.lat) best = { h: f.h, lat, grade: g.grade }; });
+      D.dex().push({ cb: best.h, grade: best.grade, lvl: 1, wins: 0, at: Date.now() });
+      const idx = D.dex().length - 1;
+      D.openSpec(idx);
+      const latentAt1 = document.querySelectorAll('#sp-front .mark.latent').length;
+      const grownRow1 = [...document.querySelectorAll('#sp-back .row')].map(r => r.textContent).find(t => /^GROWN/.test(t)) || '';
+      D.setLvl(idx, 30); D.openSpec(idx);
+      const latentAt30 = document.querySelectorAll('#sp-front .mark.latent').length;
+      const grownRow30 = [...document.querySelectorAll('#sp-back .row')].map(r => r.textContent).find(t => /^GROWN/.test(t)) || '';
+      return { nameSame, loreKept, fourLines, fxN: fx.length, partOk, n, wingLeak, keysUsed: Object.keys(keys).length, chips: chips.length, chipH, total, filterOk, detail, back, famLine: famLine ? famLine.textContent : null, famRow,
+        partsParallel, preferOk, bestLat: best.lat, latentAt1, grownRow1, latentAt30, grownRow30 };
+    });
+    await idPage.close();
+    ok(idr.nameSame === idr.fxN, 'sixty fixture bugs still answer to their name and species', idr.nameSame + '/' + idr.fxN);
+    ok(idr.loreKept === idr.fxN, 'the three lore lines every bug already had still lead', idr.loreKept + '/' + idr.fxN);
+    ok(idr.fourLines === idr.fxN, 'and every bug now has a fourth line', idr.fourLines + '/' + idr.fxN);
+    ok(idr.partOk === idr.n, 'the fourth line names a part the plan drew, from that part\'s bank', idr.partOk + '/' + idr.n);
+    ok(idr.wingLeak === 0, 'a wingless bug never gets a wing line', idr.wingLeak);
+    ok(idr.keysUsed >= 25, 'the part line draws on a wide bank', idr.keysUsed + ' parts used over 600');
+    ok(idr.chips === 5 && idr.chipH >= 48, 'five family chips over the Bugdex, 48px tall', { chips: idr.chips, chipH: idr.chipH });
+    ok(idr.total === 12 && idr.filterOk && idr.back === 12, 'a chip filters the grid to its family and ALL brings it back', idr.detail);
+    ok(!!idr.famLine && /^[A-Za-z]+ · [a-z ]+$/.test(idr.famLine) && idr.famRow, 'the specimen card names the family, front and ledger', idr.famLine);
+    ok(idr.partsParallel === idr.n, 'every scored mark carries the growth threshold it is drawn at', idr.partsParallel + '/' + idr.n);
+    ok(idr.preferOk === idr.n, 'the part line prefers a part drawn at mint growth when there is one', idr.preferOk + '/' + idr.n);
+    ok(idr.bestLat >= 3 && idr.latentAt1 === idr.bestLat && /of \d+ parts in · the .+ at level \d+/.test(idr.grownRow1), 'a young bug wears a dashed chip for every part not grown in yet, and the ledger says which is next', { lat: idr.bestLat, at1: idr.latentAt1, row: idr.grownRow1 });
+    ok(idr.latentAt30 === 0 && /fully grown/.test(idr.grownRow30), 'at level 30 every chip is solid and the ledger says fully grown', { at30: idr.latentAt30, row: idr.grownRow30 });
+
     // ══ A CORRUPT SAVE ════════════════════════════════════════════════
     group('a junk save boots into a clean game, not a dead page');
     const JUNK = [
@@ -359,9 +430,14 @@ function ok(cond, label, detail) {
     // ══ THE CARD YOU CAN HOLD ═════════════════════════════════════════
     group('the specimen card renders a 640x960 PNG with the bug on it');
     const card = await p.evaluate(async () => {
-      const D = window.LB_DEV; D.reset();
+      const D = window.LB_DEV, E = window.BUG_ENGINE; D.reset();
       D.setShinies(D.mintCost); await D.doMint(); D.keep();
-      const b = D.dex()[0];
+      /* ⛔ a FIXED bug, not the random mint: the lit test reads saturation and brightness, and
+         a dark scrap palette (Oil Slick, Sodium Night) paints under 3% however big the bug is.
+         Sixty fixtures measured 0.012 to 0.304 on 2026-09-05, so the random mint flipped this
+         check about half the time. Fixture 0 is a bright Baron on a plain plate: 0.30. */
+      const fx = await (await fetch('fixtures/identity-60.json?' + Math.random())).json();
+      const b = { cb: fx[0].h, grade: E.bugGrade(fx[0].h).grade, lvl: 1, wins: 0, at: Date.now() };
       const cv = await new Promise(res => D.renderCard(b, res));
       const ctx = cv.getContext('2d');
       /* the art band: count pixels that are not the plate or the ground */
@@ -375,7 +451,7 @@ function ok(cond, label, detail) {
     ok(card.w === 640 && card.h === 960, 'the card canvas is 640x960', card);
     /* ⛔ a card with no bug on it is a coloured rectangle. The art band must carry real paint:
        watched red by removing the drawImage in a mutant copy, which leaves only the plate. */
-    ok(card.litShare > 0.08, 'the art band of the card has the bug painted in it (more than the plate alone)', card.litShare);
+    ok(card.litShare > 0.15, 'the art band of the card has the bug painted in it (more than the plate alone)', card.litShare);
     ok(card.frontHasArt && card.backHasHash && card.onScreen === 's-spec', 'the specimen flip card shows the bug on the front and the full hash on the back', card);
 
     // ══ THE GRADE READS THE ART ═══════════════════════════════════════
