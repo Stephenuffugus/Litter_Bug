@@ -40,16 +40,22 @@ html,body{height:100%;background:#000;overflow:hidden;overscroll-behavior:none;
    FURTHER back than looks right: 34px of blur under a scrim that is nearly
    opaque. If you can read the backdrop, it is too loud. */
 #bg-far{position:absolute;left:-12%;top:-12%;width:124%;height:124%;z-index:1;
-  filter:blur(34px) saturate(.7) brightness(.85);opacity:.62;transition:filter .5s ease,opacity .5s ease}
+  filter:blur(14px) saturate(.8) brightness(.9);opacity:.72;transition:filter .5s ease,opacity .5s ease}
 #bg-far svg{width:100%;height:100%;display:block}
 #bg-scrim{position:absolute;inset:0;z-index:2;pointer-events:none;
-  background:linear-gradient(180deg,rgba(18,24,32,.86) 0%,rgba(11,13,16,.94) 52%,rgba(11,13,16,.985) 100%)}
+  background:linear-gradient(180deg,rgba(18,24,32,.55) 0%,rgba(11,13,16,.68) 52%,rgba(11,13,16,.80) 100%)}
+/* the same alley, outside the stage: a 540x960 stage on a 412x915 phone leaves a 90px band top
+   and bottom, and until 2026-09-05 those bands were dead black. Now the alley runs under them. */
+#wrap-bg{position:absolute;left:-6%;top:-6%;width:112%;height:112%;z-index:0;pointer-events:none;
+  filter:blur(24px) saturate(.8) brightness(1.35);opacity:.9}
+#wrap-bg svg{width:100%;height:100%;display:block}
+#stage{z-index:1}
 /* one alley, tinted per room, so the rooms feel like different places without
    needing five backdrops */
-#stage[data-scr="s-dump"] #bg-far,#stage[data-scr="s-arena"] #bg-far{filter:blur(34px) saturate(.85) brightness(.72) hue-rotate(-22deg);opacity:.7}
-#stage[data-scr="s-dex"] #bg-far,#stage[data-scr="s-spec"] #bg-far{filter:blur(38px) saturate(.55) brightness(.9) hue-rotate(16deg);opacity:.5}
-#stage[data-scr="s-mint"] #bg-far{filter:blur(30px) saturate(1) brightness(1.05);opacity:.8}
-#stage[data-scr="s-play"] #bg-far{filter:blur(42px) saturate(.4) brightness(.6);opacity:.4}
+#stage[data-scr="s-dump"] #bg-far,#stage[data-scr="s-arena"] #bg-far{filter:blur(14px) saturate(.85) brightness(.72) hue-rotate(-22deg);opacity:.75}
+#stage[data-scr="s-dex"] #bg-far,#stage[data-scr="s-spec"] #bg-far{filter:blur(18px) saturate(.55) brightness(.9) hue-rotate(16deg);opacity:.6}
+#stage[data-scr="s-mint"] #bg-far{filter:blur(12px) saturate(1) brightness(1.05);opacity:.85}
+#stage[data-scr="s-play"] #bg-far{filter:blur(20px) saturate(.5) brightness(.6);opacity:.5}
 .screen{position:absolute;inset:0;display:none;flex-direction:column;z-index:20;background:transparent}
 .screen.on{display:flex}
 .pad{padding:22px;flex:1;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -103,25 +109,46 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 /* ── micro games ── */
 .field{position:relative;flex:1;border-radius:16px;border:1px solid var(--line);overflow:hidden;
   background:#0e141b;margin-top:12px}
+/* every job draws a PLACE under its pieces: a chute, a heap, a wall, a shelf. Sized to the
+   real field at init, so the scene never stretches. Pointer events off: it is never a target. */
+.scene{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.field>*:not(.scene){z-index:1}
+.fieldchip{position:absolute;left:12px;top:12px;z-index:3;pointer-events:none;font-size:13px;font-weight:800;
+  letter-spacing:1.5px;color:var(--shine);background:#0b0d10cc;border:1px solid var(--line);border-radius:999px;padding:7px 12px}
+/* the block picker: an icon of the place, the name, and your best on that block */
+.btn.job{justify-content:flex-start;gap:14px;padding:0 16px 0 12px;text-align:left}
+.btn.job .bi{width:58px;height:58px;flex:none;border-radius:12px;background:#0b0f14;border:1px solid #28323d;
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.btn.job .bi svg{width:58px;height:58px;display:block}
+.btn.job .bn{flex:1;min-width:0;font-size:19px}
+.btn.job .best{flex:none;font-size:12px;letter-spacing:1px;color:var(--dim);font-weight:800;text-align:right;line-height:1.2}
+.btn.job .best b{display:block;font-size:17px;color:var(--shine)}
+.btn.job.primary .best,.btn.job.primary .best b{color:#08150c}
+.btn.job.primary .bi{background:#123a1f;border-color:#2f8a4c}
 .bins{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
-.bin{min-height:96px;border-radius:14px;border:2px solid var(--line);background:#151c25;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;
-  font-size:15px;font-weight:800;letter-spacing:.5px}
+.bin{min-height:110px;border-radius:14px;border:2px solid var(--line);background:linear-gradient(180deg,#1a2330,#10161d);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;
+  font-size:15px;font-weight:800;letter-spacing:.5px;position:relative;overflow:hidden}
+.bin svg{width:54px;height:54px;display:block}
 .bin:active{filter:brightness(1.25)}
 .bin .bl{font-size:12px;color:var(--dim);letter-spacing:1px}
-.falling{position:absolute;width:66px;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  background:#141b24;
-  border-radius:12px;font-size:13px;font-weight:800;text-align:center;line-height:1.1;padding:4px;
-  box-shadow:0 6px 14px #0007}
+.falling{position:absolute;width:92px;height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  background:none;border-radius:14px;font-size:13px;font-weight:800;text-align:center;line-height:1.1;padding:2px;
+  filter:drop-shadow(0 6px 4px #0009)}
 /* the piece a bin tap will resolve. Three can ride the belt, so which one is
    live must never be a guess. */
-.falling.active{outline:3px solid #fff;outline-offset:3px;filter:brightness(1.12)}
+.falling.active{background:#ffffff14;box-shadow:0 0 0 3px #fff,0 0 22px #fff8;filter:drop-shadow(0 6px 4px #0009) brightness(1.12)}
 .puff{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;pointer-events:none;
   animation:puffout .4s ease-out forwards}
 @keyframes puffout{from{transform:scale(.5);opacity:.95}to{transform:scale(4.2);opacity:0}}
 /* ── pry the lids ── */
-.prywrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:20px}
-.pryhint{font-size:17px;color:var(--dim);text-align:center;min-height:48px;line-height:1.4}
+.prywrap{position:absolute;inset:0 0 110px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px 20px 0}
+.pryhint{font-size:17px;color:var(--ink);text-align:center;min-height:48px;line-height:1.4;text-shadow:0 1px 3px #000;
+  background:#0b0d10aa;border-radius:12px;padding:8px 14px}
+.prylid{width:340px;height:340px;flex:none}
+.prylid svg{width:100%;height:100%;display:block}
+.pryshelf{position:absolute;left:0;right:0;bottom:22px;height:96px;display:flex;align-items:flex-end;justify-content:center;gap:4px;padding:0 14px;pointer-events:none}
+.pryshelf svg{width:44px;height:62px;display:block;flex:none}
 .prybar{position:relative;width:100%;max-width:400px;height:64px;border-radius:14px;background:#101820;
   border:1px solid var(--line);overflow:hidden}
 .prybar.good{border-color:var(--grub);box-shadow:0 0 22px #6fd08c66}
@@ -133,9 +160,13 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .pryjars{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:400px}
 .pryjars .jar{color:var(--shine);font-size:22px}
 .pile{position:absolute;inset:0}
-.pileitem{position:absolute;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
-  border-radius:9px;background:#39485a}
-.flab{font-size:8.5px;font-weight:700;letter-spacing:.02em;line-height:1}
+/* ⛔ 68 CSS px, not 44: at the 0.763 stage scale of a 412 phone the old tile landed at 34 REAL
+   px, under the 48 floor, and the audit driver measured it at 36 to 40. No tile plate now: the junk
+   lies on the heap with its own cast shadow, and the hit area is the invisible 68px square. */
+.pileitem{position:absolute;width:68px;height:68px;display:flex;align-items:center;justify-content:center;
+  border-radius:12px;background:transparent}
+.pileitem svg{width:56px;height:56px;display:block}
+.flab{font-size:12px;font-weight:800;letter-spacing:.03em;line-height:1;text-shadow:0 1px 2px #000}
 .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:120px;z-index:80;background:#0f151bee;
   border:1px solid var(--line);border-radius:13px;padding:13px 20px;font-size:17px;font-weight:700;
   opacity:0;transition:opacity .25s ease;pointer-events:none}
@@ -227,8 +258,19 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
   background:#121922;padding:22px}
 .overhead{font-size:34px;font-weight:800;color:var(--shine);letter-spacing:1px}
 /* ── the dumpster ── */
+/* before your first bug the screen used to be one grey sentence, an empty green outline and 500px
+   of nothing. Now it is a closed dumpster with a padlock, the sentence in cream, and the door to the
+   alley, which is the thing the sentence is telling you to go and do. */
+.lockpanel{display:flex;flex-direction:column;align-items:center;gap:8px;border:1px solid var(--line);border-radius:18px;
+  background:#0f151bcc;padding:18px 18px 22px;margin-top:10px;text-align:center}
+.lockpanel svg{width:260px;height:180px;display:block}
+.lockpanel .lk{font-size:19px;line-height:1.45;color:var(--ink);max-width:400px}
+.lockpanel .lk2{font-size:15px;line-height:1.45;color:var(--dim);max-width:400px}
+#k-note{font-size:17px;color:var(--ink);line-height:1.5}
 .champbar{display:flex;align-items:center;gap:12px;border:1px solid #2f4a38;border-radius:15px;
   background:#111b16;padding:10px 12px;margin-top:10px}
+.champstrip .cs.ghost{border-style:dashed;border-color:#28323d;background:#0e141b;cursor:default;color:#3d4956}
+.champstrip .cs.ghost .l{color:#3d4956;font-size:10px;letter-spacing:1px}
 /* ⛔ overflow-x:auto forces overflow-y to auto too, so a strip without an
    explicit height CLIPS the bottom of its cards. It ate the LV labels. */
 .champstrip{display:flex;flex:none;gap:9px;overflow-x:auto;overflow-y:hidden;height:124px;align-items:flex-start;
@@ -255,12 +297,15 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
   padding:0 18px;border-radius:26px;border:1px solid var(--line);background:#0f151bdd;color:var(--dim);
   font-size:15px;font-weight:700;cursor:pointer}
 .stamp{position:absolute;right:12px;bottom:14px;z-index:60;font-size:12px;color:#3d4956}
+/* the grub is alive: its antennae twitch once every couple of seconds. On a still heap that is the
+   one thing that moves, so a patient eye finds it even when its tone has walked into the junk. */
+@keyframes lbtw{0%,78%,100%{transform:rotate(0)}84%{transform:rotate(-9deg)}91%{transform:rotate(6deg)}}
 </style>
 <meta name="description" content="Play a trial and mint a one of one bug made of trash, then battle for the dumpster.">
 <link rel="canonical" href="https://lucidwinds.com/satellites/litter-bug/">
 </head>
 <body>
-<div id="wrap"><div id="stage" data-scr="s-home">
+<div id="wrap"><div id="wrap-bg"><svg id="wrap-svg" viewBox="0 0 500 280" preserveAspectRatio="xMidYMid slice"></svg></div><div id="stage" data-scr="s-home">
 <div id="bg-far"><svg id="bg-svg" viewBox="0 0 500 280" preserveAspectRatio="xMidYMid slice"></svg></div>
 <div id="bg-scrim"></div>
 
@@ -428,6 +473,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
     </div>
     <div class="pad">
       <div class="dim" id="k-note" style="text-align:center"></div>
+      <div id="k-lock" style="display:none"></div>
       <div class="champbar" id="k-champ"></div>
       <div class="champstrip" id="k-strip"></div>
       <div id="k-list" style="margin-top:12px"></div>
@@ -491,7 +537,7 @@ if (window.parent !== window) {
    reimplements them; this file is the loop that turns them into a game.
    ⛔ No real trademarks. No em-dashes in player copy. No free-text input.
    ========================================================================== */
-var VW=540, VH=960, BUILD='v1.0';
+var VW=540, VH=960, BUILD='v1.1';
 function $(id){ return document.getElementById(id); }
 
 /* ⛔ MEASURE visualViewport, NEVER innerHeight: the URL bar sliding away changes
@@ -511,7 +557,7 @@ var DEX_KEY='lb_dex_v1';          /* ⛔ schema versioned from day one */
 /* ⛔ every persisted key must exist HERE or the loader below silently drops it:
    it copies `for(var k in SAVE)`, so a key absent from the default is a key
    that never survives a reload. champ and king are load bearing. */
-var SAVE={ shinies:0, dex:[], jobs:0, lastDay:0, champ:null, king:null };
+var SAVE={ shinies:0, dex:[], jobs:0, lastDay:0, champ:null, king:null, bests:{} };
 /* ⛔ A SAVE IS UNTRUSTED INPUT. try/catch around JSON.parse is not enough: a
    well formed blob with the wrong SHAPE gets through and then kills the whole
    script block on first use, which takes every function in this file with it,
@@ -536,6 +582,11 @@ function loadSave(){
   SAVE.shinies=Math.round(_num(r.shinies,0));
   SAVE.jobs=Math.round(_num(r.jobs,0));
   SAVE.lastDay=Math.round(_num(r.lastDay,0));
+  /* your best shift on each block, shown on the picker. A number to beat is the cheapest
+     reason to come back to a block you have already worked. */
+  var bests={}, bk=(r.bests&&typeof r.bests==='object'&&!(r.bests instanceof Array))?r.bests:{};
+  ['sort','grub','wire','pry'].forEach(function(k){ var v=Math.round(_num(bk[k],0)); if(v>0) bests[k]=Math.min(SHIFT_CAP,v); });
+  SAVE.bests=bests;
   var dex=[], i;
   if(r.dex instanceof Array) for(i=0;i<r.dex.length;i++){ var e=_cleanEntry(r.dex[i]); if(e) dex.push(e); }
   SAVE.dex=dex;
@@ -648,35 +699,85 @@ function toast(msg){ var t=$('toast'); t.textContent=msg; t.classList.add('on');
   setTimeout(function(){ t.classList.remove('on'); },1700); }
 
 /* ---------- the alley backdrop, drawn ---------- */
-function drawAlley(){
+/* One alley, drawn three times with three id prefixes (the home card, the stage backdrop, the
+   band outside the stage), because gradient ids must be unique in the document or a fill
+   resolves into a hidden copy and paints nothing. Until 2026-09-05 this was nine flat window
+   rectangles and a triangle; now it is brick, a dumpster with the lid up, a chain fence, a
+   fire escape, a puddle under the lamp, the junk from the trials lying about, and a cat. */
+function alleyMarkup(p){
   var s=[];
-  s.push('<rect x="0" y="0" width="500" height="280" fill="#0f1620"/>');
-  /* far wall + windows */
-  s.push('<rect x="0" y="30" width="500" height="180" fill="#141c26"/>');
-  for(var i=0;i<9;i++){
-    var wx=18+i*54, lit=(i%3===0);
-    s.push('<rect x="'+wx+'" y="'+(52+(i%2)*34)+'" width="30" height="38" rx="2" fill="'+(lit?'#2a3444':'#171f2a')+'"/>');
-    if(lit) s.push('<rect x="'+(wx+4)+'" y="'+(56+(i%2)*34)+'" width="22" height="16" fill="#3c4a5e" opacity="0.7"/>');
+  s.push('<defs>'
+   +'<linearGradient id="'+p+'-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070a0e"/><stop offset="1" stop-color="#1a2430"/></linearGradient>'
+   +'<linearGradient id="'+p+'-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>'
+   +'<radialGradient id="'+p+'-lamp" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffe6a0" stop-opacity=".95"/><stop offset=".3" stop-color="#e8c46a" stop-opacity=".4"/><stop offset="1" stop-color="#e8c46a" stop-opacity="0"/></radialGradient>'
+   +'<linearGradient id="'+p+'-cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c46a" stop-opacity=".26"/><stop offset="1" stop-color="#e8c46a" stop-opacity="0"/></linearGradient>'
+   +'<linearGradient id="'+p+'-ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f2a36"/><stop offset="1" stop-color="#0b1015"/></linearGradient>'
+   +'<pattern id="'+p+'-brick" width="26" height="12" patternUnits="userSpaceOnUse"><rect width="26" height="12" fill="#1c242e"/><path d="M0 6h26M13 0v6M0 6v6M26 6v6" stroke="#141b23" stroke-width="1.3"/></pattern>'
+   +'<pattern id="'+p+'-fence" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 6h12M6 0v12" stroke="#4a5868" stroke-width="1.1"/></pattern>'
+   +'<linearGradient id="'+p+'-fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fa0b2" stop-opacity="0"/><stop offset="1" stop-color="#8fa0b2" stop-opacity=".14"/></linearGradient>'
+   +'<linearGradient id="'+p+'-dump" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e5237"/><stop offset="1" stop-color="#16281b"/></linearGradient>'
+   +'</defs>');
+  s.push('<rect width="500" height="280" fill="url(#'+p+'-sky)"/>');
+  /* rooftops, far */
+  s.push('<path d="M0 62h40v-18h30v10h26v-22h54v14h20v-8h38v18h44v-12h30v8h60v-20h36v26h48v-10h74v80H0z" fill="#0d131a"/>');
+  s.push('<rect x="118" y="40" width="4" height="6" fill="#e8c46a" opacity=".5"/><rect x="330" y="46" width="3" height="5" fill="#e8c46a" opacity=".35"/>');
+  /* the wall */
+  s.push('<rect x="0" y="72" width="500" height="138" fill="url(#'+p+'-brick)"/>');
+  s.push('<rect x="0" y="72" width="500" height="138" fill="url(#'+p+'-wall)"/>');
+  /* windows, two lit */
+  var i;
+  for(i=0;i<5;i++){
+    var wx=88+i*66, wy=86+(i%2)*12, lit=(i===1||i===4);
+    s.push('<rect x="'+wx+'" y="'+wy+'" width="30" height="40" rx="2" fill="'+(lit?'#3a3320':'#11171f')+'"/>');
+    if(lit) s.push('<rect x="'+(wx+3)+'" y="'+(wy+3)+'" width="24" height="34" fill="#e8c46a" opacity=".28"/>');
+    s.push('<path d="M'+(wx+15)+' '+wy+'v40M'+wx+' '+(wy+20)+'h30" stroke="#0b0d10" stroke-width="2" opacity=".8"/>');
+    s.push('<rect x="'+(wx-3)+'" y="'+(wy+40)+'" width="36" height="4" fill="#2c3743"/>');
   }
-  /* streetlight and its pool */
-  s.push('<rect x="404" y="18" width="6" height="150" fill="#222c38"/>');
-  s.push('<path d="M407 24 q26 0 30 22" stroke="#222c38" stroke-width="6" fill="none"/>');
-  s.push('<circle cx="437" cy="50" r="9" fill="#e8c46a"/>');
-  s.push('<path d="M437 56 L392 210 L482 210 Z" fill="#e8c46a" opacity="0.10"/>');
+  /* fire escape, left */
+  s.push('<path d="M14 72v130M40 72v130M14 100h26M14 128h26M14 156h26M14 184h26" stroke="#2c3744" stroke-width="3" fill="none"/>');
+  s.push('<path d="M12 116h30l6 14H6z" fill="#243040"/><path d="M12 172h30l6 14H6z" fill="#243040"/>');
+  /* downpipe, right edge */
+  s.push('<rect x="482" y="60" width="7" height="150" fill="#26303c"/><rect x="480" y="120" width="11" height="6" fill="#2f3a48"/>');
+  /* chain fence panel */
+  s.push('<rect x="296" y="122" width="100" height="86" fill="url(#'+p+'-fence)" opacity=".9"/>');
+  s.push('<rect x="296" y="122" width="100" height="86" fill="none" stroke="#4a5868" stroke-width="2"/><rect x="294" y="120" width="4" height="90" fill="#3a4757"/><rect x="394" y="120" width="4" height="90" fill="#3a4757"/>');
+  /* the lamp */
+  s.push('<rect x="404" y="60" width="6" height="152" fill="#2a3440"/>');
+  s.push('<path d="M407 84h28v10" stroke="#2f3a48" stroke-width="5" fill="none" stroke-linecap="round"/>');
+  s.push('<rect x="424" y="92" width="22" height="10" rx="3" fill="#3a4454"/>');
+  s.push('<ellipse cx="435" cy="104" rx="10" ry="4" fill="#ffe6a0"/>');
+  s.push('<circle cx="435" cy="104" r="48" fill="url(#'+p+'-lamp)"/>');
+  s.push('<path d="M424 106L366 212H500V180Z" fill="url(#'+p+'-cone)"/>');
   /* ground */
-  s.push('<rect x="0" y="206" width="500" height="74" fill="#1a232e"/>');
-  s.push('<path d="M0 206 Q250 199 500 206" stroke="#232f3c" stroke-width="3" fill="none"/>');
-  /* bins and scattered junk */
-  s.push('<rect x="28" y="150" width="70" height="58" rx="5" fill="#1e2a35"/><rect x="24" y="144" width="78" height="10" rx="4" fill="#27333f"/>');
-  s.push('<rect x="112" y="164" width="52" height="44" rx="4" fill="#1b2732"/>');
-  for(var j=0;j<7;j++){
-    var jx=180+j*38, jy=214+((j*7)%12);
-    s.push('<rect x="'+jx+'" y="'+jy+'" width="12" height="7" rx="2" fill="#2b3846" opacity="0.9"/>');
-  }
-  var mk=s.join('');
-  $('alley-svg').innerHTML=mk;
-  /* the same alley, far away and out of focus, behind every room */
-  var bg=$('bg-svg'); if(bg) bg.innerHTML=mk;
+  s.push('<rect x="0" y="208" width="500" height="72" fill="url(#'+p+'-ground)"/>');
+  s.push('<path d="M0 208Q250 202 500 208" stroke="#2c3744" stroke-width="2.5" fill="none"/>');
+  s.push('<ellipse cx="432" cy="244" rx="54" ry="9" fill="#1c2836"/><ellipse cx="434" cy="244" rx="20" ry="3" fill="#e8c46a" opacity=".22"/>');
+  /* the dumpster, lid up */
+  s.push('<rect x="40" y="134" width="112" height="74" rx="4" fill="url(#'+p+'-dump)"/>');
+  s.push('<rect x="40" y="134" width="112" height="74" rx="4" fill="none" stroke="#0b0d10" stroke-width="1.5"/>');
+  s.push('<path d="M64 140v64M100 140v64M136 140v64" stroke="#0b0d10" stroke-width="1.5" opacity=".35"/>');
+  s.push('<rect x="34" y="126" width="124" height="12" rx="3" fill="#3a6444" transform="rotate(-9 34 138)"/>');
+  s.push('<rect x="50" y="152" width="34" height="16" rx="2" fill="#e8c46a" opacity=".14"/>');
+  s.push('<path d="M124 140v58" stroke="#4a3220" stroke-width="3" opacity=".55"/>');
+  s.push('<circle cx="56" cy="210" r="6" fill="#0b0d10"/><circle cx="136" cy="210" r="6" fill="#0b0d10"/>');
+  /* bags, a box, the junk from the trials */
+  s.push('<ellipse cx="174" cy="200" rx="18" ry="12" fill="#151c25"/><ellipse cx="194" cy="204" rx="14" ry="9" fill="#182029"/><path d="M170 190l4-8 4 8" stroke="#1f2833" stroke-width="3" fill="none"/>');
+  s.push('<rect x="216" y="182" width="34" height="26" fill="#3b2f22"/><path d="M216 182l17-8 17 8z" fill="#4a3c2c"/><path d="M233 182v26" stroke="#0b0d10" stroke-width="1.5" opacity=".4"/>');
+  var junk=[['can',256,214,'#5d6b7a'],['bottle',286,206,'#3f6f8f'],['cap',318,220,'#6b7686'],['flyer',336,208,'#8a7a4a'],['tin',372,218,'#5d6b7a'],['stub',452,222,'#7a6a48'],['carton',162,222,'#8a7a4a']];
+  for(i=0;i<junk.length;i++) s.push('<g transform="translate('+junk[i][1]+' '+junk[i][2]+') scale(.42) rotate('+((i*37)%50-25)+' 32 32)" opacity=".9">'+junkBody(junk[i][0],junk[i][3])+'</g>');
+  /* the cat on the lid */
+  s.push('<g transform="translate(98 116) rotate(-9)"><ellipse cx="0" cy="8" rx="14" ry="7" fill="#07090c"/><circle cx="12" cy="0" r="6" fill="#07090c"/><path d="M8-4l-1-7 4 4M16-4l1-7-4 4" fill="#07090c"/><path d="M-13 8q-10-3-8-14" stroke="#07090c" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="10" cy="-1" r="1.3" fill="#e8c46a"/><circle cx="14.5" cy="-1" r="1.3" fill="#e8c46a"/></g>');
+  /* fog low */
+  s.push('<rect x="0" y="176" width="500" height="70" fill="url(#'+p+'-fog)"/>');
+  return s.join('');
+}
+/* ⛔ the prefix is a NAMESPACE, not a letter: the first cut used 'b', which made a gradient
+   called "b-dump", and document.getElementById('b-dump') then returned the gradient instead of
+   THE DUMPSTER button, which silently vanished from HOME. Ids collide across the whole page. */
+function drawAlley(){
+  $('alley-svg').innerHTML=alleyMarkup('alleyA');
+  var bg=$('bg-svg'); if(bg) bg.innerHTML=alleyMarkup('alleyB');
+  var wb=$('wrap-svg'); if(wb) wb.innerHTML=alleyMarkup('alleyW');
 }
 
 /* ---------- render a bug ---------- */
@@ -749,11 +850,15 @@ function endJob(){
   if(G.spawn){ clearInterval(G.spawn); G.spawn=null; }
   var paid=earnShinies(G.score);
   noteShift();
-  SAVE.jobs=(SAVE.jobs||0)+1; save();
+  SAVE.jobs=(SAVE.jobs||0)+1;
+  var bests=SAVE.bests||(SAVE.bests={}), prevBest=bests[G.kind]||0, newBest=G.score>prevBest&&G.score>0;
+  if(newBest) bests[G.kind]=G.score;
+  save();
   $('d-shine').textContent='+'+paid;
-  $('d-note').textContent = paid<G.score
+  $('d-note').textContent = (paid<G.score
     ? 'You worked for '+G.score+', but the alley only had '+paid+' left today.'
-    : 'Straight into the jar.';
+    : 'Straight into the jar.')
+    +(newBest ? (prevBest ? ' A new best on this block, up from '+prevBest+'.' : ' Your first shift on this block.') : '');
   var need=Math.max(0,MINT_COST-(SAVE.shinies||0));
   $('d-prog').textContent = need>0
     ? (SAVE.shinies||0)+' of '+MINT_COST+' Shinies. '+need+' more and something hatches.'
@@ -774,7 +879,7 @@ function endJob(){
    colour to the body fill, so late rounds are a shape hunt, not a colour hunt.
    All flat shapes, alley palette, readable at 44px: checked on a contact sheet
    with a flat black column at real size before shipping. */
-function junkSVG(thing,accent,size){
+function junkBody(thing,accent){
   var A=accent||'#8fa0b2', D='#232c38', L='#0b0d10';
   var b={
   bottle:'<path d="M27 8h10v9c0 4 7 6 7 14v25a4 4 0 0 1-4 4H24a4 4 0 0 1-4-4V31c0-8 7-10 7-14z" fill="'+A+'"/><rect x="26" y="4" width="12" height="6" rx="2" fill="'+D+'"/><rect x="24" y="34" width="16" height="14" rx="2" fill="'+L+'" opacity=".28"/>',
@@ -798,21 +903,173 @@ function junkSVG(thing,accent,size){
   tab:'<path d="M22 18a10 10 0 0 1 20 0v6h-6v-6a4 4 0 0 0-8 0v6h-6z" fill="'+A+'"/><rect x="18" y="24" width="28" height="22" rx="8" fill="'+A+'"/><rect x="26" y="30" width="12" height="10" rx="5" fill="'+L+'"/>',
   stub:'<rect x="16" y="22" width="32" height="20" rx="3" fill="'+A+'"/><path d="M24 22v20M40 22v20" stroke="'+L+'" stroke-width="2" stroke-dasharray="3 3" opacity=".6"/><rect x="28" y="28" width="8" height="8" fill="'+L+'" opacity=".35"/>'
   };
-  var body=b[thing]||b.nub;
-  return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" style="display:block">'+body+'</svg>';
+  return b[thing]||b.nub;
+}
+function junkSVG(thing,accent,size,shadow){
+  return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" style="display:block">'
+    +(shadow?'<ellipse cx="33" cy="59" rx="19" ry="4" fill="#000" opacity=".5"/>':'')
+    +junkBody(thing,accent)+'</svg>';
 }
 /* the grub: unmistakably an animal, six legs and a face, so late rounds hide it
    by TONE against same-toned junk instead of hiding a word among words */
-function grubSVG(fill,size){
-  return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" style="display:block">'
-   +'<g stroke="'+fill+'" stroke-width="3" stroke-linecap="round">'
+function grubBody(fill,twitch){
+  return '<g stroke="'+fill+'" stroke-width="3" stroke-linecap="round">'
    +'<path d="M18 44l-6 8"/><path d="M26 48l-3 9"/><path d="M36 48l2 9"/><path d="M44 44l6 8"/></g>'
    +'<ellipse cx="22" cy="38" rx="10" ry="9" fill="'+fill+'"/>'
    +'<ellipse cx="34" cy="36" rx="11" ry="10" fill="'+fill+'"/>'
    +'<circle cx="46" cy="30" r="9" fill="'+fill+'"/>'
-   +'<g stroke="'+fill+'" stroke-width="2.5" stroke-linecap="round"><path d="M50 22l5-7"/><path d="M53 26l8-3"/></g>'
-   +'<circle cx="49" cy="28" r="2" fill="#0b0d10"/>'
+   +'<g stroke="'+fill+'" stroke-width="2.5" stroke-linecap="round"'+(twitch?' style="transform-box:view-box;transform-origin:49px 27px;animation:lbtw 2.6s ease-in-out infinite;animation-delay:'+(-(Math.random()*2.6)).toFixed(2)+'s"':'')+'><path d="M50 22l5-7"/><path d="M53 26l8-3"/></g>'
+   +'<circle cx="49" cy="28" r="2" fill="#0b0d10"/>';
+}
+function grubSVG(fill,size,shadow){
+  return '<svg viewBox="0 0 64 64" width="'+size+'" height="'+size+'" style="display:block">'
+   +(shadow?'<ellipse cx="33" cy="59" rx="19" ry="4" fill="#000" opacity=".5"/>':'')
+   +grubBody(fill,true)+'</svg>';
+}
+/* ============ THE PLACES, 2026-09-05 ============
+   Stephen, Sep 05: "needs built a lot more, not playable". Every job used to run in a bare
+   dark box: one tile falling through a thousand pixels of nothing, grey glyphs on grey tiles,
+   dots and lines on black, a bar in a void. Each job now has a place drawn under it at the
+   real field size: a sorting chute in the alley, the inside of a dumpster with a heap, a wall
+   with a live junction box, a shelf of jars with a tin lid to lever. All flat SVG in the alley
+   palette, no ids reused across scenes (the dex gate checks the whole document for duplicates). */
+function chuteScene(W,H,L,R){
+  var p='sc';
+  return '<svg class="scene" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none"><defs>'
+   +'<pattern id="'+p+'-brick" width="26" height="12" patternUnits="userSpaceOnUse"><rect width="26" height="12" fill="#161d25"/><path d="M0 6h26M13 0v6M0 6v6M26 6v6" stroke="#10161d" stroke-width="1.2"/></pattern>'
+   +'<linearGradient id="'+p+'-steel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2a3440"/><stop offset=".5" stop-color="#4f5d6e"/><stop offset="1" stop-color="#232c37"/></linearGradient>'
+   +'<pattern id="'+p+'-belt" width="40" height="46" patternUnits="userSpaceOnUse"><rect width="40" height="46" fill="#0c1116"/><rect width="40" height="3" fill="#182129"/></pattern>'
+   +'<radialGradient id="'+p+'-lamp" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8c46a" stop-opacity=".32"/><stop offset="1" stop-color="#e8c46a" stop-opacity="0"/></radialGradient>'
+   +'<linearGradient id="'+p+'-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></linearGradient>'
+   +'</defs>'
+   +'<rect width="'+W+'" height="'+H+'" fill="url(#'+p+'-brick)"/>'
+   +'<circle cx="'+(W-30)+'" cy="20" r="180" fill="url(#'+p+'-lamp)"/>'
+   +'<rect x="'+(L-58)+'" y="0" width="10" height="'+H+'" fill="#1f2833"/><rect x="'+(R+48)+'" y="0" width="10" height="'+H+'" fill="#1f2833"/>'
+   +'<rect x="'+L+'" y="0" width="'+(R-L)+'" height="'+H+'" fill="url(#'+p+'-belt)"/>'
+   +'<rect x="'+(L-16)+'" y="0" width="16" height="'+H+'" fill="url(#'+p+'-steel)"/><rect x="'+R+'" y="0" width="16" height="'+H+'" fill="url(#'+p+'-steel)"/>'
+   +'<rect x="'+(L-13)+'" y="0" width="3" height="'+H+'" fill="#fff" opacity=".12"/><rect x="'+(R+3)+'" y="0" width="3" height="'+H+'" fill="#fff" opacity=".12"/>'
+   +'<path d="M'+(L-62)+' 0L'+(R+62)+' 0L'+(R+16)+' 76L'+(L-16)+' 76Z" fill="#2c3744"/><path d="M'+(L-62)+' 0L'+(R+62)+' 0L'+(R+16)+' 76L'+(L-16)+' 76Z" fill="url(#'+p+'-steel)" opacity=".55"/>'
+   +'<rect x="'+(L-16)+'" y="72" width="'+(R-L+32)+'" height="9" fill="#0b0d10" opacity=".75"/>'
+   +'<text x="'+(W/2)+'" y="48" text-anchor="middle" font-size="19" font-weight="800" letter-spacing="5" fill="#e8c46a" opacity=".8">RECYCLING</text>'
+   +'<rect x="0" y="'+(H-76)+'" width="'+W+'" height="76" fill="url(#'+p+'-fade)"/>'
+   +'<rect x="'+(L-16)+'" y="'+(H-10)+'" width="'+(R-L+32)+'" height="10" fill="#0b0d10"/>'
    +'</svg>';
+}
+function heapScene(W,H){
+  var p='gh', i, s='<svg class="scene" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none"><defs>'
+   +'<linearGradient id="'+p+'-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2c21"/><stop offset="1" stop-color="#0e1912"/></linearGradient>'
+   +'<linearGradient id="'+p+'-light" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c46a" stop-opacity=".24"/><stop offset="1" stop-color="#e8c46a" stop-opacity="0"/></linearGradient>'
+   +'<linearGradient id="'+p+'-heap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3846"/><stop offset="1" stop-color="#141b24"/></linearGradient>'
+   +'<linearGradient id="'+p+'-heap2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f2935"/><stop offset="1" stop-color="#0f151c"/></linearGradient>'
+   +'</defs>'
+   +'<rect width="'+W+'" height="'+H+'" fill="url(#'+p+'-wall)"/>';
+  for(i=1;i<5;i++) s+='<path d="M'+Math.round(W*i/5)+' 0v'+H+'" stroke="#233828" stroke-width="3"/>';
+  s+='<path d="M'+Math.round(W*.3)+' 26v90" stroke="#4a3220" stroke-width="5" opacity=".45" stroke-linecap="round"/><path d="M'+Math.round(W*.72)+' 26v140" stroke="#4a3220" stroke-width="4" opacity=".4" stroke-linecap="round"/>'
+   +'<rect x="0" y="0" width="'+W+'" height="26" fill="#2c4a35"/><rect x="0" y="22" width="'+W+'" height="6" fill="#0b0d10" opacity=".6"/>'
+   +'<rect x="0" y="28" width="'+W+'" height="170" fill="url(#'+p+'-light)"/>'
+   +'<path d="M0 '+(H*.42)+'C'+(W*.2)+' '+(H*.30)+' '+(W*.45)+' '+(H*.40)+' '+(W*.6)+' '+(H*.33)+'S'+(W*.9)+' '+(H*.36)+' '+W+' '+(H*.30)+'V'+H+'H0Z" fill="url(#'+p+'-heap2)"/>'
+   +'<circle cx="'+(W*.78)+'" cy="'+(H*.40)+'" r="42" fill="none" stroke="#0d1218" stroke-width="16"/><circle cx="'+(W*.78)+'" cy="'+(H*.40)+'" r="42" fill="none" stroke="#1a2230" stroke-width="5"/>'
+   +'<g transform="rotate(-6 '+(W*.12)+' '+(H*.36)+')"><rect x="'+(W*.12)+'" y="'+(H*.36)+'" width="90" height="60" fill="#2a2119"/><path d="M'+(W*.12)+' '+(H*.36)+'l45-10 45 10z" fill="#3a2e22"/></g>'
+   +'<path d="M0 '+(H*.62)+'C'+(W*.15)+' '+(H*.52)+' '+(W*.35)+' '+(H*.60)+' '+(W*.5)+' '+(H*.55)+'S'+(W*.85)+' '+(H*.60)+' '+W+' '+(H*.52)+'V'+H+'H0Z" fill="url(#'+p+'-heap)"/>'
+   +'<ellipse cx="'+(W*.3)+'" cy="'+(H*.9)+'" rx="70" ry="34" fill="#0f151c" opacity=".7"/><ellipse cx="'+(W*.75)+'" cy="'+(H*.94)+'" rx="80" ry="30" fill="#0f151c" opacity=".7"/>'
+   +'</svg>';
+  return s;
+}
+function wallScene(W,H){
+  var p='ws', cx=W/2;
+  return '<svg class="scene" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none"><defs>'
+   +'<pattern id="'+p+'-brick" width="26" height="12" patternUnits="userSpaceOnUse"><rect width="26" height="12" fill="#141b23"/><path d="M0 6h26M13 0v6M0 6v6M26 6v6" stroke="#0e141a" stroke-width="1.2"/></pattern>'
+   +'<linearGradient id="'+p+'-steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f5d6e"/><stop offset="1" stop-color="#232c37"/></linearGradient>'
+   +'<pattern id="'+p+'-hazard" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="16" fill="#e8c46a"/><rect x="8" width="8" height="16" fill="#0b0d10"/></pattern>'
+   +'<radialGradient id="'+p+'-vig" cx="50%" cy="45%" r="72%"><stop offset=".5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></radialGradient>'
+   +'</defs>'
+   +'<rect width="'+W+'" height="'+H+'" fill="url(#'+p+'-brick)"/>'
+   +'<rect x="0" y="64" width="'+W+'" height="10" fill="#26303c"/><rect x="0" y="64" width="'+W+'" height="3" fill="#fff" opacity=".08"/>'
+   +'<rect x="22" y="64" width="10" height="'+H+'" fill="#26303c"/><rect x="'+(W-32)+'" y="64" width="10" height="'+H+'" fill="#26303c"/>'
+   +'<rect x="'+(cx-58)+'" y="8" width="116" height="66" rx="6" fill="url(#'+p+'-steel)"/><rect x="'+(cx-58)+'" y="8" width="116" height="66" rx="6" fill="none" stroke="#0b0d10" stroke-width="2"/>'
+   +'<rect x="'+(cx-46)+'" y="18" width="92" height="12" fill="url(#'+p+'-hazard)"/>'
+   +'<circle cx="'+(cx-40)+'" cy="58" r="4" fill="#0b0d10"/><circle cx="'+(cx+40)+'" cy="58" r="4" fill="#0b0d10"/>'
+   +'<text x="'+cx+'" y="61" text-anchor="middle" font-size="12" font-weight="800" letter-spacing="3" fill="#e8c46a" opacity=".85">LIVE</text>'
+   +'<path d="M60 '+(H*.3)+'a8 8 0 0 1 16 0M'+(W-76)+' '+(H*.45)+'a8 8 0 0 1 16 0M80 '+(H*.8)+'a8 8 0 0 1 16 0M'+(W-90)+' '+(H*.85)+'a8 8 0 0 1 16 0" stroke="#3a4757" stroke-width="3" fill="none"/>'
+   +'<rect width="'+W+'" height="'+H+'" fill="url(#'+p+'-vig)"/>'
+   +'</svg>';
+}
+function shelfScene(W,H){
+  var p='sh';
+  return '<svg class="scene" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none"><defs>'
+   +'<pattern id="'+p+'-brick" width="26" height="12" patternUnits="userSpaceOnUse"><rect width="26" height="12" fill="#171e27"/><path d="M0 6h26M13 0v6M0 6v6M26 6v6" stroke="#10161d" stroke-width="1.2"/></pattern>'
+   +'<linearGradient id="'+p+'-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a4230"/><stop offset=".2" stop-color="#3e2c1e"/><stop offset="1" stop-color="#241a12"/></linearGradient>'
+   +'<radialGradient id="'+p+'-lamp" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8c46a" stop-opacity=".3"/><stop offset="1" stop-color="#e8c46a" stop-opacity="0"/></radialGradient>'
+   +'</defs>'
+   +'<rect width="'+W+'" height="'+H+'" fill="url(#'+p+'-brick)"/>'
+   +'<circle cx="'+(W*.5)+'" cy="60" r="220" fill="url(#'+p+'-lamp)"/>'
+   +'<rect x="0" y="'+(H-36)+'" width="'+W+'" height="36" fill="url(#'+p+'-wood)"/><rect x="0" y="'+(H-36)+'" width="'+W+'" height="5" fill="#7a5a3e"/>'
+   +'<path d="M40 '+(H-31)+'l-24 30M'+(W-40)+' '+(H-31)+'l24 30" stroke="#2a1e14" stroke-width="6"/>'
+   +'</svg>';
+}
+function binIcon(col){
+  return '<svg viewBox="0 0 64 64"><path d="M14 22h36l-4 34a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4z" fill="#1a222c" stroke="'+col+'" stroke-width="2.5"/>'
+   +'<rect x="10" y="14" width="44" height="10" rx="3" fill="'+col+'"/><rect x="26" y="9" width="12" height="6" rx="2" fill="'+col+'"/>'
+   +'<path d="M24 30v22M32 30v22M40 30v22" stroke="'+col+'" stroke-width="2" opacity=".45"/></svg>';
+}
+function blockIcon(kind){
+  var s='<svg viewBox="0 0 64 64">';
+  if(kind==='sort') s+='<rect x="5" y="28" width="16" height="26" rx="2" fill="#1a222c" stroke="#5aa9e6" stroke-width="2"/><rect x="24" y="28" width="16" height="26" rx="2" fill="#1a222c" stroke="#b9c4d0" stroke-width="2"/><rect x="43" y="28" width="16" height="26" rx="2" fill="#1a222c" stroke="#e8c46a" stroke-width="2"/><rect x="3" y="22" width="20" height="6" rx="2" fill="#5aa9e6"/><rect x="22" y="22" width="20" height="6" rx="2" fill="#b9c4d0"/><rect x="41" y="22" width="20" height="6" rx="2" fill="#e8c46a"/><g transform="translate(20 -2) scale(.4)">'+junkBody('bottle','#5aa9e6')+'</g>';
+  else if(kind==='grub') s+='<path d="M2 40C14 26 28 38 36 28S56 32 62 26V64H2z" fill="#2a3644"/><g transform="translate(4 30) scale(.34)">'+junkBody('nut','#7b8a9c')+'</g><g transform="translate(40 34) scale(.34)">'+junkBody('cap','#7b8a9c')+'</g><g transform="translate(18 12) scale(.5)">'+grubBody('#6fd08c',false)+'</g>';
+  else if(kind==='wire') s+='<path d="M10 50L54 14M10 14L54 50M32 8v48" stroke="#0b0d10" stroke-width="8" stroke-linecap="round"/><path d="M10 50L54 14" stroke="#e07b39" stroke-width="4.5" stroke-linecap="round"/><path d="M10 14L54 50" stroke="#5aa9e6" stroke-width="4.5" stroke-linecap="round"/><path d="M32 8v48" stroke="#e8c46a" stroke-width="4.5" stroke-linecap="round"/><g fill="#e8c46a" stroke="#0b0d10" stroke-width="2"><circle cx="10" cy="14" r="6"/><circle cx="54" cy="14" r="6"/><circle cx="10" cy="50" r="6"/><circle cx="54" cy="50" r="6"/><circle cx="32" cy="8" r="6"/><circle cx="32" cy="56" r="6"/></g>';
+  else s+='<circle cx="28" cy="36" r="22" fill="#4f5d6e" stroke="#0b0d10" stroke-width="2"/><circle cx="28" cy="36" r="15" fill="#2a3440"/><path d="M40 20a20 20 0 0 1 9 12" stroke="#e8c46a" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M44 24l14-14" stroke="#c9d3de" stroke-width="7" stroke-linecap="round"/><path d="M44 24l14-14" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".5"/>';
+  return s+'</svg>';
+}
+function jarSVG(){
+  return '<svg viewBox="0 0 40 56"><rect x="6" y="16" width="28" height="38" rx="6" fill="#5aa9e6" opacity=".5"/><rect x="6" y="16" width="28" height="38" rx="6" fill="none" stroke="#8fc4ea" stroke-width="1.5" opacity=".6"/>'
+   +'<rect x="4" y="12" width="32" height="6" rx="2" fill="#8fa0b2"/><rect x="11" y="22" width="5" height="26" rx="2.5" fill="#fff" opacity=".28"/>'
+   +'<rect x="0" y="0" width="22" height="7" rx="2" fill="#4f5d6e" transform="rotate(-22 4 7)"/></svg>';
+}
+function lidSVG(){
+  var p='pl';
+  return '<svg viewBox="0 0 320 320"><defs>'
+   +'<radialGradient id="'+p+'-tin" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#8f9cad"/><stop offset=".6" stop-color="#4c5868"/><stop offset="1" stop-color="#232b36"/></radialGradient>'
+   +'<radialGradient id="'+p+'-inner" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#3b4553"/><stop offset="1" stop-color="#171d26"/></radialGradient>'
+   +'</defs>'
+   +'<ellipse cx="160" cy="172" rx="126" ry="120" fill="#000" opacity=".45"/>'
+   +'<circle cx="160" cy="160" r="120" fill="url(#'+p+'-tin)"/><circle cx="160" cy="160" r="120" fill="none" stroke="#0b0d10" stroke-width="3"/>'
+   +'<circle cx="160" cy="160" r="100" fill="none" stroke="#0b0d10" stroke-width="5" opacity=".7"/>'
+   +'<circle cx="160" cy="160" r="84" fill="url(#'+p+'-inner)"/><circle cx="160" cy="160" r="84" fill="none" stroke="#fff" stroke-width="2" opacity=".08"/>'
+   +'<text x="160" y="154" text-anchor="middle" font-size="16" font-weight="800" letter-spacing="4" fill="#e8c46a" opacity=".6">ALLEY</text><text x="160" y="178" text-anchor="middle" font-size="12" font-weight="800" letter-spacing="3" fill="#8fa0b2" opacity=".65">PRESERVES</text>'
+   +'<path id="pry-seam-glow" d="" fill="none" stroke="#e8c46a" stroke-width="30" stroke-linecap="round" opacity=".22"/>'
+   +'<path id="pry-seam" d="" fill="none" stroke="#e8c46a" stroke-width="13" stroke-linecap="round" opacity=".95"/>'
+   +'<g id="pry-bar"><rect x="256" y="153" width="62" height="14" rx="6" fill="#c9d3de"/><rect x="256" y="153" width="62" height="5" rx="3" fill="#fff" opacity=".55"/><path d="M258 160l-16-10v20z" fill="#e6ecf2"/></g>'
+   +'</svg>';
+}
+function arcPath(cx,cy,r,a0,a1){
+  var s=a0*Math.PI/180, e=a1*Math.PI/180;
+  return 'M'+(cx+r*Math.cos(s)).toFixed(1)+' '+(cy+r*Math.sin(s)).toFixed(1)+'A'+r+' '+r+' 0 '+((a1-a0)>180?1:0)+' 1 '+(cx+r*Math.cos(e)).toFixed(1)+' '+(cy+r*Math.sin(e)).toFixed(1);
+}
+function dumpsterLockSVG(){
+  var p='dl';
+  return '<svg viewBox="0 0 260 180"><defs><linearGradient id="'+p+'-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f5238"/><stop offset="1" stop-color="#16281b"/></linearGradient>'
+   +'<radialGradient id="'+p+'-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e8c46a" stop-opacity=".35"/><stop offset="1" stop-color="#e8c46a" stop-opacity="0"/></radialGradient></defs>'
+   +'<circle cx="196" cy="40" r="56" fill="url(#'+p+'-glow)"/>'
+   +'<ellipse cx="130" cy="158" rx="150" ry="22" fill="#141b24"/>'
+   +'<rect x="30" y="70" width="200" height="82" rx="6" fill="url(#'+p+'-body)"/><rect x="30" y="70" width="200" height="82" rx="6" fill="none" stroke="#0b0d10" stroke-width="2"/>'
+   +'<rect x="24" y="56" width="212" height="18" rx="4" fill="#3a6444"/><rect x="24" y="70" width="212" height="4" fill="#0b0d10" opacity=".6"/>'
+   +'<path d="M62 78v66M130 78v66M198 78v66" stroke="#0b0d10" stroke-width="2" opacity=".35"/>'
+   +'<rect x="72" y="98" width="116" height="30" rx="3" fill="#e8c46a" opacity=".12"/><text x="130" y="118" text-anchor="middle" font-size="15" font-weight="800" letter-spacing="3" fill="#e8c46a" opacity=".85">BUGS ONLY</text>'
+   +'<circle cx="52" cy="156" r="8" fill="#0b0d10"/><circle cx="208" cy="156" r="8" fill="#0b0d10"/>'
+   +'<path d="M96 60q34 22 68 0" stroke="#8fa0b2" stroke-width="5" fill="none" stroke-dasharray="7 5"/>'
+   +'<rect x="118" y="66" width="24" height="20" rx="4" fill="#e8c46a"/><path d="M123 66v-6a7 7 0 0 1 14 0v6" stroke="#e8c46a" stroke-width="4" fill="none"/><circle cx="130" cy="76" r="3" fill="#1a1405"/>'
+   +'<ellipse cx="18" cy="150" rx="16" ry="10" fill="#0f151c"/><ellipse cx="244" cy="152" rx="12" ry="8" fill="#0f151c"/>'
+   +'</svg>';
+}
+var JOB_LABEL={ sort:'SORT THE RECYCLING', grub:'GRUB HUNT', wire:'WIRE UNTANGLE', pry:'PRY THE LIDS' };
+function paintBlocks(){
+  var jb=document.querySelectorAll('[data-job]'), i;
+  for(i=0;i<jb.length;i++){
+    var k=jb[i].getAttribute('data-job'), best=(SAVE.bests||{})[k]||0;
+    jb[i].classList.add('job');
+    jb[i].innerHTML='<span class="bi">'+blockIcon(k)+'</span><span class="bn">'+(JOB_LABEL[k]||k)+'</span>'
+      +'<span class="best">'+(best?'BEST<b>'+best+'</b>':'NOT YET<br>WORKED')+'</span>';
+  }
 }
 var MATS=[
   {k:'glass', label:'GLASS', col:'#5aa9e6', things:['bottle','jar','pane','tumbler']},
@@ -827,11 +1084,14 @@ var MATS=[
 function initSort(){
   var f=$('p-field');
   G.pieces=[];
+  /* the belt lane: pieces ride the chute, not the whole wall */
+  G.lane=[Math.round(G.fw*0.17), Math.round(G.fw*0.83)];
+  f.innerHTML=chuteScene(G.fw,G.fh,G.lane[0],G.lane[1]);
   var bins=document.createElement('div'); bins.className='bins';
   MATS.forEach(function(m){
     var b=document.createElement('div'); b.className='bin';
     b.style.borderColor=m.col;
-    b.innerHTML='<div style="color:'+m.col+'">'+m.label+'</div><div class="bl">bin</div>';
+    b.innerHTML=binIcon(m.col)+'<div style="color:'+m.col+'">'+m.label+'</div>';
     b.onclick=function(){ sortTap(m.k); };
     bins.appendChild(b);
   });
@@ -862,9 +1122,10 @@ function spawnPiece(){
   var el=document.createElement('div'); el.className='falling';
   /* the tile is dark; the ART carries the material colour, so you sort by the
      shape of the thing and the tint agrees with the bin */
-  el.innerHTML=junkSVG(thing,m.col,44)+'<div class="flab" style="color:'+m.col+'">'+thing+'</div>';
+  el.innerHTML=junkSVG(thing,m.col,66,true)+'<div class="flab" style="color:'+m.col+'">'+thing+'</div>';
   /* ⛔ clamp with Math.max: a zero width field used to make this negative */
-  el.style.left=Math.round(12+Math.random()*Math.max(1,G.fw-90))+'px';
+  var L=(G.lane&&G.lane[0])||12, R=(G.lane&&G.lane[1])||G.fw;
+  el.style.left=Math.round(L+4+Math.random()*Math.max(1,(R-L)-100))+'px';
   el.style.top='0px';
   f.appendChild(el);
   G.pieces.push({ el:el, y:0, mat:m.k });
@@ -910,18 +1171,21 @@ var JUNK=['nut','bolt','cap','pin','clip','nub','tab','stub'];
    scored zero. One item per cell means the grub is always reachable. The hiding
    comes from the grub reading LIKE junk at a glance, not from burying it. */
 function initGrub(){ G.round=0; grubRound(); }
+var HEAP_TONES=['#7b8a9c','#6b7a8c','#8a97a8','#6f7e92'];
 function grubRound(){
-  var f=$('p-field'); f.innerHTML='';
+  var f=$('p-field'); f.innerHTML=heapScene(G.fw,G.fh);
   G.round++;
-  var W=G.fw, H=G.fh, CELL=54;
-  var cols=Math.max(2,Math.floor((W-10)/CELL)), rows=Math.max(2,Math.floor((H-10)/CELL));
+  /* ⛔ 68, not 54: the cell is the touch target, and 54 CSS px at the 0.763 stage scale of a
+     412 phone is 41 REAL px. 68 lands at 52. The grid still leaves a gap between neighbours. */
+  var W=G.fw, H=G.fh, CELL=68, TOP=Math.round(H*0.16);
+  var cols=Math.max(2,Math.floor((W-10)/CELL)), rows=Math.max(2,Math.floor((H-TOP-10)/CELL));
   var slots=cols*rows;
   var n=Math.min(slots, 12+G.round*4);
   var order=[], i;
   for(i=0;i<slots;i++) order.push(i);
   for(i=slots-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), t=order[i]; order[i]=order[j]; order[j]=t; }
   var grubAt=Math.floor(Math.random()*n);
-  var padX=(W-cols*CELL)/2, padY=(H-rows*CELL)/2;
+  var padX=(W-cols*CELL)/2, padY=TOP+(H-TOP-rows*CELL)/2;
   for(i=0;i<n;i++){
     var cell=order[i], cx=cell%cols, cy=Math.floor(cell/cols);
     var el=document.createElement('div'); el.className='pileitem';
@@ -934,11 +1198,14 @@ function grubRound(){
     /* ⛔ the contact sheet showed 0.78 still reads green: the camo has to be
        able to REACH the junk tone, or round eight is round one. At 0.95 the
        body matches the junk fill and only the legs and antennae betray it. */
+    /* the junk is not one grey any more: four heap tones, so "the odd colour" stops being the
+       tell and the grub has to be found by its legs. Its own tone walks into the heap's. */
     var tint=Math.min(0.95, 0.10+G.round*0.09);
-    if(isGrub){ el.innerHTML=grubSVG(mixHex('#6fd08c','#8fa0b2',tint),38); }
-    else { el.innerHTML=junkSVG(JUNK[Math.floor(Math.random()*JUNK.length)],'#8fa0b2',38); }
-    el.style.left=Math.round(padX+cx*CELL+4+Math.random()*6)+'px';
-    el.style.top=Math.round(padY+cy*CELL+4+Math.random()*6)+'px';
+    var tone=HEAP_TONES[Math.floor(Math.random()*HEAP_TONES.length)];
+    if(isGrub){ el.innerHTML=grubSVG(mixHex('#6fd08c',tone,tint),56,true); }
+    else { el.innerHTML=junkSVG(JUNK[Math.floor(Math.random()*JUNK.length)],tone,56,true); }
+    el.style.left=Math.round(padX+cx*CELL+Math.random()*4)+'px';
+    el.style.top=Math.round(padY+cy*CELL+Math.random()*4)+'px';
     el.style.transform='rotate('+(Math.random()*40-20)+'deg)';
     (function(g,e){ e.onclick=function(){ grubTap(g,e); }; })(isGrub,el);
     f.appendChild(el);
@@ -960,13 +1227,16 @@ function grubTap(isGrub,el){
    The fourth block, and the only one whose verb is TIMING rather than aim.
    A bar sweeps, you tap while it is over the seam. The seam narrows every time
    you land it, so the job scales with your nerve instead of your tap rate. */
+/* the bar was a strip in a void. It is a tin lid now, seen from above on a shelf: the seam is
+   a gold arc on the rim, the marker is a pry bar riding round the rim, and every lid you lever
+   off becomes an open jar on the shelf below. Same numbers underneath (pos, zone, zoneAt). */
+function pryAngle(pos){ return -120+pos*300; }
 function initPry(){
   var f=$('p-field');
-  f.innerHTML='<div class="prywrap">'
-    +'<div class="pryhint" id="pry-hint">Tap when the marker is on the seam</div>'
-    +'<div class="prybar" id="pry-bar"><div class="pryzone" id="pry-zone"></div>'
-    +'<div class="prymark" id="pry-mark"></div></div>'
-    +'<div class="pryjars" id="pry-jars"></div></div>';
+  f.innerHTML=shelfScene(G.fw,G.fh)+'<div class="prywrap">'
+    +'<div class="pryhint" id="pry-hint">Tap PRY when the bar is on the gold seam</div>'
+    +'<div class="prylid" id="pry-lid">'+lidSVG()+'</div></div>'
+    +'<div class="pryshelf" id="pry-jars"></div>';
   var btn=document.createElement('button'); btn.className='btn gold'; btn.textContent='PRY';
   btn.onclick=pryTap; $('p-controls').appendChild(btn);
   G.lids=0; G.zone=0.34; G.pos=0; G.dir=1;
@@ -977,29 +1247,31 @@ function initPry(){
     var dt=Math.min(60,now-last); last=now;
     G.pos+=G.dir*(0.55+G.lids*0.05)*dt/1000;
     if(G.pos>1){ G.pos=1; G.dir=-1; } if(G.pos<0){ G.pos=0; G.dir=1; }
-    var m=$('pry-mark'); if(m) m.style.left=(G.pos*100)+'%';
+    var m=$('pry-bar'); if(m) m.setAttribute('transform','rotate('+pryAngle(G.pos).toFixed(1)+' 160 160)');
     G.raf=requestAnimationFrame(loop);
   })(last);
 }
 function pryPlace(){
   G.zoneAt=0.08+Math.random()*(0.84-G.zone);
-  var z=$('pry-zone');
-  if(z){ z.style.left=(G.zoneAt*100)+'%'; z.style.width=(G.zone*100)+'%'; }
+  var d=arcPath(160,160,100,pryAngle(G.zoneAt),pryAngle(G.zoneAt+G.zone));
+  var z=$('pry-seam'), g=$('pry-seam-glow');
+  if(z) z.setAttribute('d',d); if(g) g.setAttribute('d',d);
 }
 function pryTap(){
   if(!G||G.over) return;
   var hit=(G.pos>=G.zoneAt && G.pos<=G.zoneAt+G.zone);
-  var bar=$('pry-bar');
+  var lid=$('pry-lid');
   if(hit){
     G.lids++; bump(3);
     G.zone=Math.max(0.09, G.zone*0.86);
-    if(bar){ bar.classList.add('good'); setTimeout(function(){ bar.classList.remove('good'); },220); }
-    var jars=$('pry-jars'); if(jars) jars.innerHTML+='<span class="jar">◍</span>';
+    if(lid){ lid.style.filter='drop-shadow(0 0 18px #6fd08c)'; setTimeout(function(){ lid.style.filter=''; },220); }
+    var jars=$('pry-jars');
+    if(jars){ var n=Math.min(G.lids,11), j='', q; for(q=0;q<n;q++) j+=jarSVG(); jars.innerHTML=j+(G.lids>11?'<div style="color:#e8c46a;font-size:13px;font-weight:800;padding:0 4px 20px">+'+(G.lids-11)+'</div>':''); }
     $('pry-hint').textContent='Lid '+G.lids+'. The seam is tighter now.';
   } else {
     bump(-1);
     G.zone=Math.min(0.34, G.zone*1.10);
-    if(bar){ bar.classList.add('bad'); setTimeout(function(){ bar.classList.remove('bad'); },220); }
+    if(lid){ lid.style.filter='drop-shadow(0 0 18px #c4543e)'; setTimeout(function(){ lid.style.filter=''; },220); }
     $('pry-hint').textContent='The lid held. Try again.';
   }
   pryPlace();
@@ -1021,8 +1293,9 @@ function wireCrossings(){
   }
   return n;
 }
+var WIRE_COL=['#e07b39','#e8c46a','#c4543e','#5aa9e6','#d8dee6','#6fd08c','#b57de0','#8fd05a'];
 function wireRound(){
-  var f=$('p-field'); f.innerHTML='';
+  var f=$('p-field'); f.innerHTML=wallScene(G.fw,G.fh)+'<div class="fieldchip" id="wire-chip"></div>';
   G.level++;
   var count=Math.min(8, 4+Math.floor(G.level/2));
   var W=G.fw, H=G.fh;
@@ -1041,9 +1314,16 @@ function wireRound(){
   for(i=0;i<count;i++) G.pins.push({ x:Math.max(44,Math.min(W-44,seats[i].x)), y:Math.max(44,Math.min(H-44,seats[i].y)) });
   for(i=0;i<count;i++) G.edges.push([i,(i+1)%count]);
   for(i=0;i+2<count;i+=2) G.edges.push([i,(i+2)%count]);
-  /* a layout that is already solved would pay for nothing. Reseat until it is knotted. */
-  if(wireCrossings()===0 && count>3){
-    var s0=G.pins[0]; G.pins[0]=G.pins[Math.floor(count/2)]; G.pins[Math.floor(count/2)]=s0;
+  /* ⛔ a layout that is already solved pays for nothing, and worse, it looks finished: the
+     player sees a clean board and nothing tells them to touch it. The old fix swapped pins 0
+     and 2, which in a four pin cycle with one chord is the SAME picture, so round one spawned
+     solved 32% of the time (300 spawns measured, 2026-09-05). Now the seats are reshuffled
+     until the board is knotted. */
+  var tries=0;
+  while(wireCrossings()===0 && count>3 && tries<60){
+    tries++;
+    for(i=seats.length-1;i>0;i--){ var j2=Math.floor(Math.random()*(i+1)), t2=seats[i]; seats[i]=seats[j2]; seats[j2]=t2; }
+    for(i=0;i<count;i++){ G.pins[i].x=Math.max(44,Math.min(W-44,seats[i].x)); G.pins[i].y=Math.max(44,Math.min(H-44,seats[i].y)); }
   }
   var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
   svg.setAttribute('style','position:absolute;inset:0;width:100%;height:100%');
@@ -1054,13 +1334,18 @@ function wireRound(){
       var d=document.createElement('div');
       /* ⛔ 72 CSS px so the grab target is over 48 RENDERED px once the stage scales */
       d.style.cssText='position:absolute;width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;'
-        +'background:#1d2733;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab';
-      d.innerHTML='<div style="width:30px;height:30px;border-radius:50%;background:#e8c46a;border:2px solid #f4dd9a"></div>';
+        +'background:transparent;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab';
+      /* a socket plate with a live terminal, not a dot */
+      d.innerHTML='<div style="width:42px;height:42px;border-radius:9px;background:linear-gradient(180deg,#4f5d6e,#232c37);border:1.5px solid #0b0d10;box-shadow:0 4px 8px #000a;display:flex;align-items:center;justify-content:center">'
+        +'<div style="width:20px;height:20px;border-radius:50%;background:#e8c46a;border:2px solid #f4dd9a;box-shadow:0 0 10px #e8c46a99"></div></div>';
       d.addEventListener('pointerdown',function(ev){ G.drag=idx; d.setPointerCapture(ev.pointerId); });
       d.addEventListener('pointermove',function(ev){
         if(G.drag!==idx) return;
         var r=f.getBoundingClientRect(), sc=r.width/f.clientWidth;
-        G.pins[idx].x=(ev.clientX-r.left)/sc; G.pins[idx].y=(ev.clientY-r.top)/sc;
+        /* ⛔ clamped to the field: a pin dragged under the rail or off the edge used to stay
+           there, out of reach, with its wires still counted */
+        G.pins[idx].x=Math.max(30,Math.min(f.clientWidth-30,(ev.clientX-r.left)/sc));
+        G.pins[idx].y=Math.max(30,Math.min(f.clientHeight-30,(ev.clientY-r.top)/sc));
         wirePaint();
       });
       d.addEventListener('pointerup',function(){ G.drag=null; wireCheck(); });
@@ -1071,13 +1356,26 @@ function wireRound(){
 }
 function wirePaint(){
   var svg=$('wire-svg'); if(!svg) return;
-  var s='',i;
+  /* cables, each its own colour, and the ones that still cross carry a hot red halo so the
+     puzzle tells you what is left instead of making you count */
+  var cross={}, i, j, pairs=0;
+  for(i=0;i<G.edges.length;i++) for(j=i+1;j<G.edges.length;j++){
+    var e=G.edges[i], f=G.edges[j];
+    if(e[0]===f[0]||e[0]===f[1]||e[1]===f[0]||e[1]===f[1]) continue;
+    if(segsCross(G.pins[e[0]],G.pins[e[1]],G.pins[f[0]],G.pins[f[1]])){ cross[i]=1; cross[j]=1; pairs++; }
+  }
+  var s='';
   for(i=0;i<G.edges.length;i++){
-    var a=G.pins[G.edges[i][0]], b=G.pins[G.edges[i][1]];
-    s+='<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="#4a5f76" stroke-width="4" stroke-linecap="round"/>';
+    var a=G.pins[G.edges[i][0]], b=G.pins[G.edges[i][1]], c=WIRE_COL[i%WIRE_COL.length];
+    var d='x1="'+a.x.toFixed(1)+'" y1="'+a.y.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)+'"';
+    if(cross[i]) s+='<line '+d+' stroke="#ff5a3c" stroke-width="18" stroke-linecap="round" opacity=".3"/>';
+    s+='<line '+d+' stroke="#0b0d10" stroke-width="10" stroke-linecap="round"/>'
+      +'<line '+d+' stroke="'+c+'" stroke-width="6" stroke-linecap="round"/>'
+      +'<line '+d+' stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".28"/>';
   }
   svg.innerHTML=s;
   for(i=0;i<G.pinEls.length;i++){ G.pinEls[i].style.left=G.pins[i].x+'px'; G.pinEls[i].style.top=G.pins[i].y+'px'; }
+  var chip=$('wire-chip'); if(chip) chip.textContent = pairs ? (pairs+' CROSSING'+(pairs===1?'':'S')) : 'CLEAN, LET GO';
 }
 function wireCheck(){
   if(!G||G.over) return;
@@ -1238,7 +1536,18 @@ function paintDump(){
   var mine=(SAVE.dex||[]);
   var list=$('k-list'); list.innerHTML='';
   $('k-champ').innerHTML=''; $('k-strip').innerHTML='';
-  if(!mine.length){ $('k-note').textContent='You need a bug of your own before anybody will let you in.'; return; }
+  if(!mine.length){
+    $('k-note').textContent='';
+    $('k-champ').style.display='none'; $('k-strip').style.display='none';
+    var lock=$('k-lock'); lock.style.display='';
+    lock.innerHTML='<div class="lockpanel">'+dumpsterLockSVG()
+      +'<div class="lk">You need a bug of your own before anybody will let you in.</div>'
+      +'<div class="lk2">Thirty Shinies from the alley hatches one, and a clean shift is about thirty.</div></div>'
+      +'<div class="stack" style="margin-top:14px"><button class="btn primary" id="b-lock-go">'+(canWork()?'WORK THE ALLEY':'THE ALLEY IS PICKED CLEAN')+'</button></div>';
+    $('b-lock-go').onclick=function(){ if(!canWork()){ toast('Nothing left out there today'); return; } capNote(); show('s-block'); };
+    return;
+  }
+  $('k-lock').style.display='none'; $('k-champ').style.display=''; $('k-strip').style.display='';
   $('k-note').innerHTML='Five challengers, the same five for everybody today. They size up to your champion.'
     +'<div class="streakbar"><span>WIN STREAK <b>'+k.run+'</b></span>'
     +'<span>BEST <b>'+k.best+'</b></span><span>CROWNS <b>'+(k.crowns||0)+'</b></span>'
@@ -1259,6 +1568,12 @@ function paintDump(){
     c.onclick=function(){ SAVE.champ=i; save(); paintDump(); };
     $('k-strip').appendChild(c);
   });
+  /* the strip reserved 124px of nothing beside a lone bug; the empty seats are drawn now */
+  for(var gi=mine.length; gi<3; gi++){
+    var gc=document.createElement('div'); gc.className='cs ghost';
+    gc.innerHTML='<div style="font-size:30px;line-height:1;color:#28323d">+</div><div class="l">NEXT BUG</div>';
+    $('k-strip').appendChild(gc);
+  }
 
   var champLvl=lvlOf(cb);
   ladderFor(day).forEach(function(fcb,i){
@@ -1430,6 +1745,7 @@ function finishArena(){
 
 /* ---------- wiring ---------- */
 function capNote(){
+  paintBlocks();
   $('cap-note').textContent=shiftsLeft()+' shift'+(shiftsLeft()===1?'':'s')+' and '
     +capLeft()+' Shinies still out there today.';
 }
@@ -1473,7 +1789,7 @@ $('b-exit').onclick=function(){ window.SWS_EXIT(); };
   /* loadSave validates every field, so entries minted before levels existed
      arrive with lvl 1 and grow from there like everything else. */
   loadSave();
-  drawAlley(); paintHome();
+  drawAlley(); paintHome(); paintBlocks();
   /* THE DUMPSTER is the game now, not a flag. The ?battles=1 gate was hiding a
      crash in the old auto resolver, not an unfinished feature. */
   $('b-dump').style.display='';
@@ -1508,7 +1824,7 @@ if(/[?&]lbtest=1/.test(location.search)){
     plan:BUG_ENGINE.bugPlan, svg:bugSVG,
     dailyCap:function(){ return DAILY_CAP; },
     capState:capState, jobState:function(){ return G; },
-    reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null}; save();
+    reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null,bests:{}}; save();
       try{ localStorage.removeItem('lb_cap'); }catch(e){} return SAVE; }
   };
 }

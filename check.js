@@ -122,6 +122,15 @@ function ok(cond, label, detail) {
     ok(!home.none, 'the champion SVG is in the document', home);
     ok(home.h > 40 && home.w > 40, 'the champion SVG has a REAL rendered size (it computed to 494x0 before)', home);
     ok(home.vb && home.vb !== '0 0 200 200', 'the camera frames the bug instead of a fixed 200x200 box', home.vb);
+    /* ⛔ 2026-09-05: an SVG gradient in the drawn alley was given the id "b-dump", so
+       getElementById('b-dump') returned the gradient and THE DUMPSTER button silently left HOME.
+       Ids are one namespace for the whole document, and the duplicate-id check below cannot see
+       a SHADOWED id (there was only one "b-dump" element, it was just the wrong one). */
+    const doors = await p.evaluate(() => ['b-scav', 'b-dex', 'b-dump', 'b-how'].map(id => {
+      const el = document.getElementById(id); const r = el ? el.getBoundingClientRect() : null;
+      return { id, tag: el ? el.tagName : null, w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0 };
+    }));
+    ok(doors.every(d => d.tag === 'BUTTON' && d.w > 100 && d.h > 40), 'every door on HOME is a BUTTON with a real size (a gradient once stole b-dump)', doors);
 
     // ══ THE DUMPSTER ══════════════════════════════════════════════════
     group('THE DUMPSTER returns real results');
