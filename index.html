@@ -2248,7 +2248,7 @@ function growthNote(b, oldLvl, newLvl){
   for(i=0;i<ps.length;i++) if(ps[i].th>g0 && ps[i].th<=g1) grown.push(ps[i]);
   var name=BUG_ENGINE.bugName(b.cb), text=name+' is level '+newLvl+' now.';
   if(grown.length) text+=' The '+grown.map(function(p){ return p.label; }).join(' and the ')+' grew in.';
-  else { var gl=growthLeft(gr, newLvl); if(gl.left) text+=' The '+gl.next.label+' comes in at level '+gl.nextLvl+'.'; else if(ps.length) text+=' Every part is in.'; }
+  else { var gl=growthLeft(gr, newLvl); if(gl.left) text+=' The '+gl.next.label+(/s$/.test(gl.next.label)?' come':' comes')+' in at level '+gl.nextLvl+'.'; else if(ps.length) text+=' Every part is in.'; }
   return { grown:grown, text:text, newLvl:newLvl };
 }
 

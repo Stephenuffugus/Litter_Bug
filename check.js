@@ -491,7 +491,7 @@ function ok(cond, label, detail) {
     ok(!!ar.coached && ar.coached.ok, 'when the tell is a threat and a status move answers it, the coach names that move', ar.coached);
     ok(!!ar.offense && ar.offense.ok, 'when nothing threatens and a move of yours lands hard, the coach says so', ar.offense);
     ok(!!ar.grewText && /grew in/.test(ar.grewText) && ar.grewN > 0, 'a level that crosses a part threshold says which part grew in', ar.grewText);
-    ok(!!ar.nextText && /comes in at level/.test(ar.nextText), 'a level that crosses nothing points at the next part and its level', ar.nextText);
+    ok(!!ar.nextText && /comes? in at level/.test(ar.nextText), 'a level that crosses nothing points at the next part and its level', ar.nextText);
     ok(ar.before === 1 && ar.rows >= 2 && ar.hotFirst && ar.tagged, 'the ledger keeps every round, newest on top in ink, tagged by round', { before: ar.before, rows: ar.rows, hotFirst: ar.hotFirst, tagged: ar.tagged });
     ok(ar.logH >= 100 && ar.gap <= 16, 'the ledger box fills the space above the moves', { logH: ar.logH, gap: ar.gap });
 
