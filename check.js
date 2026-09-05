@@ -520,6 +520,38 @@ function ok(cond, label, detail) {
     ok(mm.jarOp0 > 0.9 && mm.artOp0 < 0.1 && mm.jarOp1 < 0.1 && mm.artOp1 > 0.9, 'at the start the jar is solid and the bug unseen; two seconds later the jar is gone and the bug is there', { jarOp0: mm.jarOp0, artOp0: mm.artOp0, jarOp1: mm.jarOp1, artOp1: mm.artOp1 });
     ok(mm.landed && mm.jarHidden && mm.scr === 's-mint', 'a tap on the stage lands the ceremony at its end', { landed: mm.landed, jarHidden: mm.jarHidden });
 
+    // ══ THE BUGDEX SORTS ══════════════════════════════════════════════
+    group('the Bugdex sorts: newest, grade, level');
+    const dsPage = await open(FILE + '?lbtest=1');
+    const ds = await dsPage.evaluate(async () => {
+      const D = window.LB_DEV, E = window.BUG_ENGINE; D.reset();
+      const fx = await (await fetch('fixtures/identity-60.json?' + Math.random())).json();
+      /* six fixture bugs with known grades, pushed in order, levels set by hand */
+      const picks = fx.slice(0, 6);
+      picks.forEach((f, i) => D.dex().push({ cb: f.h, grade: f.grade, score: E.bugGrade(f.h).score, lvl: [3, 1, 9, 2, 9, 5][i], wins: [0, 0, 2, 0, 5, 1][i], at: Date.now() + i }));
+      document.getElementById('b-dex').click();
+      const names = () => [...document.querySelectorAll('#x-grid .card .nm')].map(e => e.textContent);
+      const byNew = names();
+      const btn = k => document.querySelector('#x-sort button[data-sort="' + k + '"]');
+      const h = btn('grade').getBoundingClientRect().height;
+      btn('grade').click(); const byGrade = names(); const gradeOn = btn('grade').classList.contains('on') && !btn('new').classList.contains('on');
+      const gradeIdx = D.dexOrder().map(i => window.LB_DEV.grades.indexOf(D.dex()[i].grade));
+      const gradeMono = gradeIdx.every((g, i) => i === 0 || g <= gradeIdx[i - 1]);
+      btn('level').click(); const lvls = D.dexOrder().map(i => D.dex()[i].lvl);
+      const levelMono = lvls.every((l, i) => i === 0 || l <= lvls[i - 1]);
+      const topWins = D.dex()[D.dexOrder()[0]].wins;
+      btn('new').click(); const newest = D.dexOrder()[0] === D.dex().length - 1;
+      /* the card still opens the right specimen after a sort */
+      btn('grade').click(); document.querySelector('#x-grid .card').click(); const specName = document.querySelector('#sp-front .specname').textContent; const firstName = names()[0];
+      return { n: D.dex().length, byNew0: byNew[0], byGrade0: byGrade[0], gradeOn, gradeMono, gradeIdx, levelMono, lvls, topWins, newest, h, specName, firstName, scr: D.cur() };
+    });
+    await dsPage.close();
+    ok(ds.n === 6 && ds.newest, 'NEWEST puts the last minted bug first', ds);
+    ok(ds.gradeOn && ds.gradeMono, 'GRADE runs best to worst', { gradeIdx: ds.gradeIdx });
+    ok(ds.levelMono && ds.topWins === 5 && ds.lvls[0] === 9, 'LEVEL runs highest first, wins break the tie', { lvls: ds.lvls, topWins: ds.topWins });
+    ok(ds.h >= 48, 'the sort buttons are thumb sized', ds.h);
+    ok(ds.specName === ds.firstName && ds.scr === 's-spec', 'after a sort, tapping a card opens that card', { specName: ds.specName, firstName: ds.firstName });
+
     // ══ A CORRUPT SAVE ════════════════════════════════════════════════
     group('a junk save boots into a clean game, not a dead page');
     const JUNK = [

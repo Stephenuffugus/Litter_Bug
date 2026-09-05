@@ -175,6 +175,11 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .dexchips .chip.on{background:#123a1f;border-color:#2f8a4c;color:#9be5b0}
 .dexchips .chip.on b{color:#e6ecf2}
 .specfam{font-size:11px;letter-spacing:2px;color:var(--dim);font-weight:800;margin-top:4px;text-transform:uppercase}
+/* the sort strip: three ways to read a collection once it is more than a screen */
+.dexsort{display:flex;gap:8px;margin-top:10px}
+.dexsort button{flex:1;min-height:70px;border-radius:14px;border:1px solid var(--line);background:#10151b;color:var(--dim);
+  font-size:13px;font-weight:800;letter-spacing:2px;cursor:pointer;font-family:inherit}
+.dexsort button.on{background:#1b2a1f;border-color:#2f8a4c;color:#9be5b0}
 .bins{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
 .bin{min-height:110px;border-radius:14px;border:2px solid var(--line);background:linear-gradient(180deg,#1a2330,#10161d);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;
@@ -591,6 +596,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       <div class="gladder" id="x-ladder"></div>
       <div class="fladder" id="x-fam"></div>
       <div class="dexchips" id="x-chips"></div>
+      <div class="dexsort" id="x-sort"><button data-sort="new" class="on">NEWEST</button><button data-sort="grade">GRADE</button><button data-sort="level">LEVEL</button></div>
       <div class="dexgrid" id="x-grid"></div>
       <div class="stack" style="margin-top:18px">
         <button class="btn ghost" id="b-dex-back">Back</button>
@@ -1777,8 +1783,11 @@ function paintDex(){
   chips.innerHTML=ch;
   var cb=chips.querySelectorAll('.chip'), q;
   for(q=0;q<cb.length;q++)(function(el){ el.onclick=function(){ DEX_FILTER=parseInt(el.getAttribute('data-fam'),10); paintDex(); }; })(cb[q]);
+  var sb=document.querySelectorAll('#x-sort button'), si;
+  for(si=0;si<sb.length;si++)(function(el){ el.classList.toggle('on', el.getAttribute('data-sort')===DEX_SORT); el.onclick=function(){ DEX_SORT=el.getAttribute('data-sort'); paintDex(); }; })(sb[si]);
   var shown=0;
-  dex.forEach(function(b,i){
+  dexOrder(dex).forEach(function(i){
+    var b=dex[i];
     if(DEX_FILTER>=0){ var ff=famOf(b.cb); if(!ff||ff.wing!==DEX_FILTER) return; }
     shown++;
     var c=document.createElement('div'); c.className='card';
@@ -1801,6 +1810,14 @@ function famOf(cb){
   return { wing: F.wing, head: F.head, tail: has(P.plan.tail) ? 1+(P.tailKind||0) : 0 };
 }
 var DEX_FILTER=-1;   /* -1 all, else a wing family index */
+var DEX_SORT='new';  /* new: last minted first; grade: best grade then score; level: highest level then wins */
+function dexOrder(dex){
+  var idx=dex.map(function(b,i){ return i; });
+  if(DEX_SORT==='grade') idx.sort(function(a,b){ var ga=GRADES.indexOf(dex[a].grade), gb=GRADES.indexOf(dex[b].grade); return gb-ga || (dex[b].score||0)-(dex[a].score||0) || b-a; });
+  else if(DEX_SORT==='level') idx.sort(function(a,b){ return lvlOf(dex[b])-lvlOf(dex[a]) || (dex[b].wins||0)-(dex[a].wins||0) || b-a; });
+  else idx.reverse();
+  return idx;
+}
 var SPEC=-1;
 function _esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 function specData(b){
@@ -2345,6 +2362,7 @@ if(/[?&]lbtest=1/.test(location.search)){
     plan:BUG_ENGINE.bugPlan, svg:bugSVG, openSpec:openSpec, renderCard:renderBugCard, sfx:LB_SFX, openBeat:openBeat, openI:function(){ return OPEN_I; },
     coach:coachLine, growthNote:growthNote, ledger:function(){ return AR?AR.ledger:null; },
     ceremonyOn:function(){ return $('m-wrap').classList.contains('ceremony'); },
+    dexOrder:function(){ return dexOrder(SAVE.dex||[]); }, setSort:function(k){ DEX_SORT=k; paintDex(); return DEX_SORT; },
     dailyCap:function(){ return DAILY_CAP; },
     capState:capState, jobState:function(){ return G; },
     reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null,bests:{},times:{},week:null,cleanWeeks:0}; save();
