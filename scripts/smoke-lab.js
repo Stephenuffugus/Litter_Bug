@@ -140,7 +140,7 @@ function runChecks(){
     var a = window._generateBugSVG(testHash, 160);
     var other = 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210';
     var b = window._generateBugSVG(other, 160);
-    return { ok: a !== b, detail: a === b ? 'identical — bug' : 'differ' };
+    return { ok: a !== b, detail: a === b ? 'identical, bug' : 'differ' };
   });
 
   // 5. hashToBugTraits returns the expected trait shape.
@@ -201,7 +201,7 @@ function runChecks(){
     var pathMod = require('path');
     var jsonPath = pathMod.join(ROOT, 'assets', dirName, catalogFile);
     if (!fs2.existsSync(jsonPath)) {
-      return { ok: false, detail: catalogFile + ' missing — run `npm run ' + layer + '`' };
+      return { ok: false, detail: catalogFile + ' missing, run `npm run ' + layer + '`' };
     }
     var catalog;
     try { catalog = JSON.parse(fs2.readFileSync(jsonPath, 'utf8')); }
@@ -213,7 +213,7 @@ function runChecks(){
     for (var i = 0; i < catalog.length; i++) {
       if (catalog[i].file !== bank[i].file) {
         return { ok: false, detail: '[' + i + '] catalog=' + catalog[i].file
-          + ' bank=' + bank[i].file + ' — run `npm run ' + layer + '`' };
+          + ' bank=' + bank[i].file + ' · run `npm run ' + layer + '`' };
       }
     }
     return { ok: true, detail: catalog.length + ' entries aligned' };

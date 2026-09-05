@@ -277,7 +277,7 @@ if (window.parent !== window) {
     var card = document.getElementById('card');
     card.innerHTML = '<h2>Breed</h2>'
       + '<div class="sub">Pick two parents. The child inherits their traits. '
-      + 'Costs ' + W.BREED_COST + ' scrap &mdash; you have ' + (vault.scrap || 0) + '.</div>'
+      + 'Costs ' + W.BREED_COST + ' scrap, you have ' + (vault.scrap || 0) + '.</div>'
       + '<div class="bgrid">' + chips + '</div>'
       + preview
       + '<button id="mBreed"' + (canBreed ? '' : ' disabled') + '>' + (breedSel.length === 2 ? 'Breed this bug' : 'Breed') + '</button>'
@@ -540,7 +540,7 @@ if (window.parent !== window) {
   function showAway(tick) {
     var lines = tick.raids.map(function (r) {
       return '<div class="' + (r.defended ? 'held' : 'lostc') + '">' + r.rival + ' raided '
-        + r.ix + ',' + r.iy + ' (L' + r.level + ') &mdash; ' + (r.defended ? 'your bug held!' : 'cell lost') + '</div>';
+        + r.ix + ',' + r.iy + ' (L' + r.level + ') · ' + (r.defended ? 'your bug held!' : 'cell lost') + '</div>';
     }).join('');
     document.getElementById('card').innerHTML = '<h2>While you were away</h2>'
       + '<div class="sub">' + tick.defended + ' held, ' + tick.lost + ' lost. Reclaim the red cells by beating their new defender.</div>'

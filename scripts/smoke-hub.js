@@ -117,5 +117,5 @@ results.forEach(function (r) {
   if (!r[0]) fails++;
   console.log((r[0] ? 'PASS' : 'FAIL') + '  ' + r[1]);
 });
-console.log('smoke-hub: ' + (results.length - fails) + ' / ' + results.length + (fails ? ' — FAILURES' : ''));
+console.log('smoke-hub: ' + (results.length - fails) + ' / ' + results.length + (fails ? ' · FAILURES' : ''));
 process.exit(fails ? 1 : 0);

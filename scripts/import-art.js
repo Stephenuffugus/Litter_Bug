@@ -186,7 +186,7 @@ function buildBlock(catalog) {
         + '] }';
     }).join(',\n');
   }
-  return sentinelStart + ' — managed by scripts/import-art.js (do not edit by hand)\n'
+  return sentinelStart + ' · managed by scripts/import-art.js (do not edit by hand)\n'
     + indent + 'var ' + cfg.bankConst + ' = [\n'
     + entries + '\n'
     + indent + '];\n'
