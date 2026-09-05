@@ -368,6 +368,36 @@ function ok(cond, label, detail) {
     ok(idr.bestLat >= 3 && idr.latentAt1 === idr.bestLat && /of \d+ parts in · the .+ at level \d+/.test(idr.grownRow1), 'a young bug wears a dashed chip for every part not grown in yet, and the ledger says which is next', { lat: idr.bestLat, at1: idr.latentAt1, row: idr.grownRow1 });
     ok(idr.latentAt30 === 0 && /fully grown/.test(idr.grownRow30), 'at level 30 every chip is solid and the ledger says fully grown', { at30: idr.latentAt30, row: idr.grownRow30 });
 
+    // ══ SOUND ═════════════════════════════════════════════════════════
+    group('sound: every beat has a cue, every cue moves air, the pill mutes it');
+    const sndPage = await open(FILE + '?lbtest=1');
+    const snd = await sndPage.evaluate(async () => {
+      const S = window.LB_SFX, D = window.LB_DEV; const wait = ms => new Promise(r => setTimeout(r, ms));
+      D.reset(); S.reset();
+      const names = Object.keys(S.cues);
+      /* every cue bounced offline: RMS above the floor or it is a call with no sound behind it */
+      const rms = {}; for (const n of names) rms[n] = await new Promise(res => S.render(n, res));
+      const silent = names.filter(n => !(rms[n] > 0.002));
+      /* the beats fire from the game's own paths */
+      document.getElementById('b-dex').click(); const tick = S.log.indexOf('tick') >= 0; D.show('s-home');
+      D.startJob('sort'); await wait(300); D.bump(3); D.endJob(); const over = S.log.indexOf('over') >= 0;
+      D.startJob('pry'); await wait(300); for (let i = 0; i < 40 && !D.state().over; i++) D.bump(2); const clean = S.log.indexOf('clean') >= 0;
+      D.setShinies(D.mintCost); await D.doMint(); const jar = S.log.indexOf('jar') >= 0; D.keep();
+      /* the pill */
+      const pill = document.getElementById('b-snd'); const r = pill.getBoundingClientRect();
+      const label1 = pill.textContent; pill.click(); const off = !S.on(); const stored = localStorage.getItem('lb_snd'); const label2 = pill.textContent;
+      S.reset(); document.getElementById('b-dex').click(); const loggedWhileOff = S.log.indexOf('tick') >= 0; D.show('s-home');
+      pill.click(); const back = S.on();
+      return { cues: names.length, silent, tick, over, clean, jar, pillH: r.height, pillW: r.width, label1, label2, off, stored, loggedWhileOff, back, ctx: !!S.ctxRef() };
+    });
+    await sndPage.close();
+    ok(snd.cues >= 14, 'a cue for every beat of the alley and the dumpster', snd.cues);
+    ok(snd.silent.length === 0, 'every cue moves air when bounced offline', snd.silent);
+    ok(snd.tick && snd.over && snd.clean && snd.jar, 'a button, a shift ending, a clean shift and the jar each speak from the real path', { tick: snd.tick, over: snd.over, clean: snd.clean, jar: snd.jar });
+    ok(snd.pillH >= 48 && snd.label1 === 'SOUND ON' && snd.label2 === 'SOUND OFF' && snd.off && snd.stored === '0' && snd.back, 'the SOUND pill mutes, remembers, and unmutes', { pillH: snd.pillH, label1: snd.label1, label2: snd.label2, stored: snd.stored });
+    ok(snd.loggedWhileOff, 'muted still logs the beat (the mute is at the speaker, not the game)', snd.loggedWhileOff);
+    ok(snd.ctx, 'an AudioContext exists after the first beat', snd.ctx);
+
     // ══ A CORRUPT SAVE ════════════════════════════════════════════════
     group('a junk save boots into a clean game, not a dead page');
     const JUNK = [
