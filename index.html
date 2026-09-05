@@ -224,6 +224,27 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 
 /* ── mint ── */
 .mintwrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+/* THE MINT MOMENT (2026-09-05). Thirty Shinies used to cut straight to a finished card. Now the
+   jar sits on the screen, the lid lifts and the jar fades up and away, the bug rises out of it,
+   the grade stamps on, and the name and lore settle in after. Two seconds, skippable by a tap,
+   none of it under prefers-reduced-motion. */
+.mintstage{position:relative;width:230px;height:230px}
+.mintstage .mjar{position:absolute;left:50%;top:50%;width:140px;height:196px;transform:translate(-50%,-50%);filter:drop-shadow(0 10px 22px #000a)}
+.mintstage .mjar svg{width:100%;height:100%;display:block}
+.mintstage #m-art{position:relative}
+.ceremony .mintstage .mjar{animation:jarlift .95s ease-in .25s both}
+.ceremony .mintstage #m-art{animation:bugrise 1s cubic-bezier(.2,.8,.2,1) .55s both}
+.ceremony .mglow{position:absolute;left:50%;top:50%;width:260px;height:260px;border-radius:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle,#e8c46a55 0%,#e8c46a22 35%,transparent 70%);animation:glowin 1.4s ease-out .4s both;pointer-events:none}
+.ceremony #m-grade{animation:pop .5s ease-out 1.35s both}
+.ceremony #m-marks,.ceremony #m-name,.ceremony #m-species,.ceremony #m-lore,.ceremony #m-grow,.ceremony #m-kicker{animation:settle .6s ease-out 1.65s both}
+.ceremony #m-lore,.ceremony #m-grow{animation-delay:1.9s}
+.mintwrap:not(.ceremony) .mjar,.mintwrap:not(.ceremony) .mglow{display:none}
+@keyframes jarlift{0%{opacity:1;transform:translate(-50%,-50%)}35%{opacity:.85;transform:translate(-50%,-60%) rotate(-4deg)}100%{opacity:0;transform:translate(-50%,-150%) rotate(-14deg)}}
+@keyframes bugrise{0%{opacity:0;transform:translateY(46px) scale(.55)}60%{opacity:1}100%{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes glowin{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}}
+@keyframes settle{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){ .ceremony *{animation:none !important} .mintwrap .mjar,.mintwrap .mglow{display:none} }
 /* ⛔ this used to be a 1px outline on the page ground. On a COMMON that is grey
    text in a grey ring on a dark screen and it reads as a DISABLED BUTTON, which
    is a terrible thing for the label on the bug you just earned. It is a filled
@@ -545,8 +566,8 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
   <div class="screen" id="s-mint">
     <div class="pad center">
       <div class="dim" style="letter-spacing:3px;font-size:13px" id="m-kicker">SOMETHING IN THE JAR</div>
-      <div class="mintwrap" style="margin-top:14px">
-        <div id="m-art"></div>
+      <div class="mintwrap" id="m-wrap" style="margin-top:14px">
+        <div class="mintstage"><div class="mglow"></div><div class="mjar" id="m-jar"></div><div id="m-art"></div></div>
         <div class="gradepill" id="m-grade">COMMON</div>
         <div class="marks" id="m-marks"></div>
         <div class="specname" id="m-name"></div>
@@ -1697,6 +1718,9 @@ async function doMint(){
   $('m-lore').textContent=id.lore;
   $('m-kicker').textContent='SPECIMEN '+((SAVE.dex||[]).length+1);
   LB_SFX.play('jar');
+  /* the ceremony: reset the classes so a second mint plays it again, then let it run */
+  var mw=$('m-wrap'); mw.classList.remove('ceremony'); void mw.offsetWidth;
+  $('m-jar').innerHTML=jarSVG(); mw.classList.add('ceremony');
   var gl=growthLeft(gr,1);
   $('m-grow').textContent='Level 1. It fights small. Every win in the dumpster grows it.'
     +(gl.left ? ' '+gl.left+' of '+gl.total+' parts still to grow in, the '+gl.next.label+' first, at level '+gl.nextLvl+'.' : '');
@@ -2232,6 +2256,8 @@ $('b-done-home').onclick=function(){ paintHome(); show('s-home'); };
 $('b-done-mint').onclick=function(){ doMint(); };
 $('b-mint').onclick=function(){ doMint(); };
 $('b-mint-keep').onclick=function(){ keepBug(); };
+/* a tap anywhere on the mint screen lands the ceremony at its end */
+$('s-mint').addEventListener('click', function(e){ var mw=$('m-wrap'); if(mw.classList.contains('ceremony') && !(e.target&&e.target.id==='b-mint-keep')) mw.classList.remove('ceremony'); }, true);
 $('b-dex').onclick=function(){ paintDex(); show('s-dex'); };
 $('b-dex-back').onclick=function(){ paintHome(); show('s-home'); };
 $('b-spec-back').onclick=function(){ paintDex(); show('s-dex'); };
@@ -2318,6 +2344,7 @@ if(/[?&]lbtest=1/.test(location.search)){
     setCuts:function(a){ var C=BUG_ENGINE.GRADE_CUT; C.length=0; for(var i=0;i<a.length;i++) C.push(a[i]); return C; },
     plan:BUG_ENGINE.bugPlan, svg:bugSVG, openSpec:openSpec, renderCard:renderBugCard, sfx:LB_SFX, openBeat:openBeat, openI:function(){ return OPEN_I; },
     coach:coachLine, growthNote:growthNote, ledger:function(){ return AR?AR.ledger:null; },
+    ceremonyOn:function(){ return $('m-wrap').classList.contains('ceremony'); },
     dailyCap:function(){ return DAILY_CAP; },
     capState:capState, jobState:function(){ return G; },
     reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null,bests:{},times:{},week:null,cleanWeeks:0}; save();

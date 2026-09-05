@@ -495,6 +495,31 @@ function ok(cond, label, detail) {
     ok(ar.before === 1 && ar.rows >= 2 && ar.hotFirst && ar.tagged, 'the ledger keeps every round, newest on top in ink, tagged by round', { before: ar.before, rows: ar.rows, hotFirst: ar.hotFirst, tagged: ar.tagged });
     ok(ar.logH >= 100 && ar.gap <= 16, 'the ledger box fills the space above the moves', { logH: ar.logH, gap: ar.gap });
 
+    // ══ THE MINT MOMENT ═══════════════════════════════════════════════
+    group('the mint moment: the jar lifts, the bug rises, the grade stamps, a tap lands it');
+    const mmPage = await open(FILE + '?lbtest=1');
+    const mm = await mmPage.evaluate(async () => {
+      const D = window.LB_DEV; D.reset(); D.setShinies(D.mintCost);
+      await D.doMint();
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const on0 = D.ceremonyOn();
+      const jar = document.getElementById('m-jar'), art = document.getElementById('m-art'), pill = document.getElementById('m-grade');
+      const names = el => getComputedStyle(el).animationName;
+      const a0 = { jar: names(jar), art: names(art), pill: names(pill), jarSvg: !!jar.querySelector('svg') };
+      const jarOp0 = parseFloat(getComputedStyle(jar).opacity), artOp0 = parseFloat(getComputedStyle(art).opacity);
+      await wait(1900);
+      const jarOp1 = parseFloat(getComputedStyle(jar).opacity), artOp1 = parseFloat(getComputedStyle(art).opacity);
+      /* a tap on the stage lands it early */
+      document.getElementById('m-wrap').classList.add('ceremony');
+      document.getElementById('m-art').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const landed = !D.ceremonyOn(), jarHidden = getComputedStyle(jar).display === 'none';
+      return { on0, a0, jarOp0, artOp0, jarOp1, artOp1, landed, jarHidden, scr: D.cur() };
+    });
+    await mmPage.close();
+    ok(mm.on0 && mm.a0.jar === 'jarlift' && mm.a0.art === 'bugrise' && mm.a0.pill === 'pop' && mm.a0.jarSvg, 'the mint opens with the jar on stage, the bug rising, the pill stamping', mm.a0);
+    ok(mm.jarOp0 > 0.9 && mm.artOp0 < 0.1 && mm.jarOp1 < 0.1 && mm.artOp1 > 0.9, 'at the start the jar is solid and the bug unseen; two seconds later the jar is gone and the bug is there', { jarOp0: mm.jarOp0, artOp0: mm.artOp0, jarOp1: mm.jarOp1, artOp1: mm.artOp1 });
+    ok(mm.landed && mm.jarHidden && mm.scr === 's-mint', 'a tap on the stage lands the ceremony at its end', { landed: mm.landed, jarHidden: mm.jarHidden });
+
     // ══ A CORRUPT SAVE ════════════════════════════════════════════════
     group('a junk save boots into a clean game, not a dead page');
     const JUNK = [
