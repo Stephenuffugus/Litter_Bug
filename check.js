@@ -299,6 +299,28 @@ function ok(cond, label, detail) {
     ok(art.minSize > 40, 'every card SVG has a real rendered size', art.minSize);
     ok(art.minBodies >= 1, 'every card paints filled body geometry, not just a wire skeleton', art.minBodies);
 
+    // ══ THE CARD YOU CAN HOLD ═════════════════════════════════════════
+    group('the specimen card renders a 640x960 PNG with the bug on it');
+    const card = await p.evaluate(async () => {
+      const D = window.LB_DEV; D.reset();
+      D.setShinies(D.mintCost); await D.doMint(); D.keep();
+      const b = D.dex()[0];
+      const cv = await new Promise(res => D.renderCard(b, res));
+      const ctx = cv.getContext('2d');
+      /* the art band: count pixels that are not the plate or the ground */
+      const band = ctx.getImageData(130, 180, 380, 380).data; let lit = 0, n = 0;
+      for (let i = 0; i < band.length; i += 16) { n++; const r = band[i], g = band[i + 1], bl = band[i + 2]; if (Math.max(r, g, bl) - Math.min(r, g, bl) > 40 || Math.max(r, g, bl) > 120) lit++; }
+      D.openSpec(0); await new Promise(r => setTimeout(r, 200));
+      const front = document.getElementById('sp-front'), back = document.getElementById('sp-back');
+      return { w: cv.width, h: cv.height, litShare: lit / n, frontHasArt: !!(front && front.querySelector('svg')), backHasHash: !!(back && /[0-9a-f]{64}/.test(back.textContent)),
+        onScreen: (document.querySelector('.screen.on') || {}).id };
+    });
+    ok(card.w === 640 && card.h === 960, 'the card canvas is 640x960', card);
+    /* ⛔ a card with no bug on it is a coloured rectangle. The art band must carry real paint:
+       watched red by removing the drawImage in a mutant copy, which leaves only the plate. */
+    ok(card.litShare > 0.08, 'the art band of the card has the bug painted in it (more than the plate alone)', card.litShare);
+    ok(card.frontHasArt && card.backHasHash && card.onScreen === 's-spec', 'the specimen flip card shows the bug on the front and the full hash on the back', card);
+
     // ══ THE GRADE READS THE ART ═══════════════════════════════════════
     group('the grade reads the parts that are drawn');
     const grade = await p.evaluate(() => {
