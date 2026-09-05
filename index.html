@@ -125,6 +125,23 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .btn.job .best b{display:block;font-size:17px;color:var(--shine)}
 .btn.job.primary .best,.btn.job.primary .best b{color:#08150c}
 .btn.job.primary .bi{background:#123a1f;border-color:#2f8a4c}
+.btn.job{position:relative}
+/* the featured block wears a chip at its shoulder; the strip is the week, one cell a day */
+.btn.job .fb{position:absolute;top:-9px;right:14px;font-size:10px;letter-spacing:2px;font-weight:800;color:var(--shine);
+  background:#0b0d10;border:1px solid var(--shine);border-radius:999px;padding:3px 9px;line-height:1.2}
+#block-week,#d-week{width:100%}   /* the centred column shrink wraps its children; the strip wants the stack's width */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;width:100%;max-width:430px;margin:0 auto}
+.week .wd{border:1px solid var(--line);border-radius:10px;background:#0c1218;padding:6px 0 6px;text-align:center}
+.week .wd .wl{font-size:11px;letter-spacing:1px;color:var(--dim);font-weight:800;line-height:1}
+.week .wd .wm{width:16px;height:16px;margin:6px auto 0;border-radius:50%;border:1px dashed #34404d;box-sizing:border-box}
+.week .wd.on .wm{background:var(--grub);border:0;box-shadow:0 0 9px #6fd08c99}
+.week .wd.today{border-color:var(--shine);background:#121a12}
+.week .wd.today .wl{color:var(--shine)}
+.weekhead{font-size:11px;letter-spacing:2px;color:var(--dim);font-weight:800;text-align:center;margin:16px 0 7px}
+.fladder{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.fladder .gcell .gn{font-size:16px}
+.fladder .gcell .gn small{font-size:10px;color:var(--dim);font-weight:800}
+.fladder .gcell .gl{font-size:9px}
 .bins{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
 .bin{min-height:110px;border-radius:14px;border:2px solid var(--line);background:linear-gradient(180deg,#1a2330,#10161d);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;
@@ -375,7 +392,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       </div>
       <div class="dsec">
         <div class="dlab">How it plays</div>
-        <div class="dtxt">SCAVENGE gives you a sixty second job on one of four blocks. Sort the recycling, hunt a grub out of a junk pile, untangle the wires, or pry the lids. Four shifts a day, and a clean shift is about one bug.</div>
+        <div class="dtxt">SCAVENGE gives you a sixty second job on one of four blocks. Sort the recycling, hunt a grub out of a junk pile, untangle the wires, or pry the lids. Forty Shinies ends a shift early and stamps it clean, and then the clock is your score. Four shifts a day. One block is featured each day, and a clean shift there stamps the week.</div>
       </div>
       <div class="dsec">
         <div class="dlab">The dumpster</div>
@@ -402,7 +419,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
   <div class="screen" id="s-block">
     <div class="pad center">
       <div class="dirh">Which block?</div>
-      <div class="dim" style="margin-top:8px">Sixty seconds each.</div>
+      <div class="dim" id="block-note" style="margin-top:8px">Sixty seconds each.</div>
       <div class="stack" style="margin-top:22px">
         <button class="btn primary" data-job="sort">SORT THE RECYCLING</button>
         <button class="btn" data-job="grub">GRUB HUNT</button>
@@ -411,6 +428,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
         <button class="btn ghost" id="b-block-back">Back</button>
       </div>
       <div class="dim" id="cap-note" style="margin-top:18px"></div>
+      <div id="block-week"></div>
     </div>
   </div>
 
@@ -434,6 +452,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       <div style="font-size:52px;font-weight:800;color:var(--shine);margin-top:14px" id="d-shine">+0</div>
       <div class="dim" id="d-note" style="margin-top:6px"></div>
       <div class="dim" id="d-prog" style="margin-top:16px"></div>
+      <div id="d-week"></div>
       <div class="stack" style="margin-top:24px">
         <button class="btn gold" id="b-done-mint" style="display:none">OPEN THE JAR</button>
         <button class="btn primary" id="b-again">ANOTHER BLOCK</button>
@@ -469,6 +488,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
     </div>
     <div class="pad">
       <div class="gladder" id="x-ladder"></div>
+      <div class="fladder" id="x-fam"></div>
       <div class="dexgrid" id="x-grid"></div>
       <div class="stack" style="margin-top:18px">
         <button class="btn ghost" id="b-dex-back">Back</button>
@@ -621,6 +641,15 @@ function loadSave(){
   var bests={}, bk=(r.bests&&typeof r.bests==='object'&&!(r.bests instanceof Array))?r.bests:{};
   ['sort','grub','wire','pry'].forEach(function(k){ var v=Math.round(_num(bk[k],0)); if(v>0) bests[k]=Math.min(SHIFT_CAP,v); });
   SAVE.bests=bests;
+  /* your fastest CLEAN shift on each block (forty Shinies, in seconds), the week strip and
+     how many whole weeks you have stamped */
+  var times={}, tk=(r.times&&typeof r.times==='object'&&!(r.times instanceof Array))?r.times:{};
+  ['sort','grub','wire','pry'].forEach(function(k){ var v=_num(tk[k],0); if(v>0) times[k]=Math.min(60,Math.round(v*10)/10); });
+  SAVE.times=times;
+  var wk=r.week;
+  SAVE.week=(wk&&typeof wk==='object'&&!(wk instanceof Array)&&wk.s instanceof Array&&wk.s.length===7)
+    ? {w:Math.round(_num(wk.w,0)), s:wk.s.map(function(v){ return v?1:0; })} : null;
+  SAVE.cleanWeeks=Math.round(_num(r.cleanWeeks,0));
   var dex=[], i;
   if(r.dex instanceof Array) for(i=0;i<r.dex.length;i++){ var e=_cleanEntry(r.dex[i]); if(e) dex.push(e); }
   SAVE.dex=dex;
@@ -636,6 +665,35 @@ function loadSave(){
 }
 function save(){ LS.set(DEX_KEY, JSON.stringify(SAVE)); }
 function dayIndex(){ return Math.floor(Date.now()/864e5); }
+/* ---------- the featured block and the week strip ----------
+   Day two used to be day one again: the same four blocks, nothing pointing at any of them.
+   Now one block is featured each day (it rotates, so a week walks every block), and a CLEAN
+   shift on it (forty Shinies before the clock runs out) stamps that day on a Monday to
+   Sunday strip. Seven stamps is a clean week. None of this pays Shinies: the cap is law. */
+var BLOCKS=['sort','grub','wire','pry'];
+function featuredBlock(){ return BLOCKS[dayIndex()%BLOCKS.length]; }
+function weekIndex(){ return Math.floor((dayIndex()+3)/7); }   /* day 0 was a Thursday; +3 makes weeks start Monday */
+function dow(){ return (dayIndex()+3)%7; }                      /* 0 Monday .. 6 Sunday */
+function weekState(){
+  var w=SAVE.week;
+  if(!w||typeof w!=='object'||w.w!==weekIndex()){ w={w:weekIndex(), s:[0,0,0,0,0,0,0]}; SAVE.week=w; }
+  return w;
+}
+function stampWeek(){
+  var w=weekState(), d=dow();
+  if(w.s[d]) return false;
+  w.s[d]=1;
+  var all=true, i; for(i=0;i<7;i++) if(!w.s[i]) all=false;
+  if(all) SAVE.cleanWeeks=(SAVE.cleanWeeks||0)+1;
+  save(); return true;
+}
+var WEEK_L=['M','T','W','T','F','S','S'];
+function weekStrip(){
+  var w=weekState(), d=dow(), s='', i;
+  for(i=0;i<7;i++) s+='<div class="wd'+(w.s[i]?' on':'')+(i===d?' today':'')+'"><div class="wl">'+WEEK_L[i]+'</div><div class="wm"></div></div>';
+  return '<div class="week">'+s+'</div>';
+}
+function fmtT(t){ return (Math.round(t*10)/10).toFixed(1).replace(/\.0$/,'')+'s'; }
 
 /* ---------- device id (stable, local, not identity) ---------- */
 function deviceId(){
@@ -851,10 +909,14 @@ var G=null, tick=null;
 var JOBS={ sort:'SORTING', grub:'GRUB HUNT', wire:'WIRE UNTANGLE', pry:'PRY THE LIDS' };
 
 function bump(n){ if(!G||G.over) return; G.score=Math.max(0,Math.min(SHIFT_CAP,G.score+n));
-  $('p-score').textContent=G.score; }
+  $('p-score').textContent=G.score;
+  /* forty is the cap, so the shift is DONE at forty: before 2026-09-05 a fast thumb sat
+     through twenty dead seconds with nothing left to earn. Ending here is what makes the
+     clock a score. */
+  if(G.score>=SHIFT_CAP) endJob(); }
 
 function startJob(kind){
-  G={ kind:kind, t:60, score:0, over:false, items:[], sel:null };
+  G={ kind:kind, t:60, score:0, over:false, items:[], sel:null, t0:Date.now() };
   $('p-job').textContent=JOBS[kind]||'SHIFT';
   $('p-score').textContent='0'; $('p-time').textContent='60';
   $('p-field').innerHTML=''; $('p-controls').innerHTML='';
@@ -882,17 +944,28 @@ function endJob(){
   G.over=true; if(tick){ clearInterval(tick); tick=null; }
   if(G.raf){ cancelAnimationFrame(G.raf); G.raf=null; }
   if(G.spawn){ clearInterval(G.spawn); G.spawn=null; }
+  var clean=G.score>=SHIFT_CAP;
+  G.used=Math.max(0.1, Math.min(60, Math.round((Date.now()-(G.t0||Date.now()))/100)/10));
   var paid=earnShinies(G.score);
   noteShift();
   SAVE.jobs=(SAVE.jobs||0)+1;
   var bests=SAVE.bests||(SAVE.bests={}), prevBest=bests[G.kind]||0, newBest=G.score>prevBest&&G.score>0;
   if(newBest) bests[G.kind]=G.score;
+  /* a clean shift keeps its TIME, and the fastest one is the number on the picker */
+  var times=SAVE.times||(SAVE.times={}), prevT=times[G.kind]||0, newTime=false;
+  if(clean && (!prevT || G.used<prevT)){ times[G.kind]=G.used; newTime=true; }
+  var feat=clean && G.kind===featuredBlock(), stamped=feat ? stampWeek() : false;
   save();
+  $('d-head').textContent = clean ? 'CLEAN SHIFT' : 'SHIFT OVER';
   $('d-shine').textContent='+'+paid;
-  $('d-note').textContent = (paid<G.score
+  var note = paid<G.score
     ? 'You worked for '+G.score+', but the alley only had '+paid+' left today.'
-    : 'Straight into the jar.')
-    +(newBest ? (prevBest ? ' A new best on this block, up from '+prevBest+'.' : ' Your first shift on this block.') : '');
+    : (clean ? 'Forty in '+fmtT(G.used).replace(/s$/,'')+' seconds.' : 'Straight into the jar.');
+  if(clean) note += newTime ? (prevT ? ' Your fastest on this block, down from '+fmtT(prevT)+'.' : ' Your first clean shift on this block.') : ' Your best here is '+fmtT(prevT)+'.';
+  else if(newBest) note += prevBest ? ' A new best on this block, up from '+prevBest+'.' : ' Your first shift on this block.';
+  if(feat) note += stamped ? ' Today\'s block, so the week is stamped.' : ' Today\'s block, already stamped.';
+  $('d-note').textContent=note;
+  $('d-week').innerHTML = feat ? '<div class="weekhead">THE WEEK</div>'+weekStrip() : '';
   var need=Math.max(0,MINT_COST-(SAVE.shinies||0));
   $('d-prog').textContent = need>0
     ? (SAVE.shinies||0)+' of '+MINT_COST+' Shinies. '+need+' more and something hatches.'
@@ -1097,13 +1170,23 @@ function dumpsterLockSVG(){
 }
 var JOB_LABEL={ sort:'SORT THE RECYCLING', grub:'GRUB HUNT', wire:'WIRE UNTANGLE', pry:'PRY THE LIDS' };
 function paintBlocks(){
-  var jb=document.querySelectorAll('[data-job]'), i;
+  var jb=document.querySelectorAll('[data-job]'), i, feat=featuredBlock();
   for(i=0;i<jb.length;i++){
-    var k=jb[i].getAttribute('data-job'), best=(SAVE.bests||{})[k]||0;
+    var k=jb[i].getAttribute('data-job'), best=(SAVE.bests||{})[k]||0, t=(SAVE.times||{})[k]||0;
     jb[i].classList.add('job');
+    /* the featured block is the green one and the first one; the rest keep their order */
+    jb[i].classList.toggle('primary', k===feat);
     jb[i].innerHTML='<span class="bi">'+blockIcon(k)+'</span><span class="bn">'+(JOB_LABEL[k]||k)+'</span>'
-      +'<span class="best">'+(best?'BEST<b>'+best+'</b>':'NOT YET<br>WORKED')+'</span>';
+      +'<span class="best">'+(t ? 'CLEAN<b>'+fmtT(t)+'</b>' : (best ? 'BEST<b>'+best+'</b>' : 'NOT YET<br>WORKED'))+'</span>'
+      +(k===feat ? '<span class="fb">TODAY</span>' : '');
+    var par=jb[i].parentNode;
+    if(k===feat && par && par.firstElementChild!==jb[i]) par.insertBefore(jb[i], par.firstElementChild);
   }
+  var bn=$('block-note');
+  if(bn) bn.textContent='Sixty seconds each. Forty Shinies ends a shift early, and then the clock is your score. Today\'s block is '
+    +(JOB_LABEL[feat]||feat).toLowerCase()+'. A clean shift there stamps the week.';
+  var bw=$('block-week');
+  if(bw) bw.innerHTML='<div class="weekhead">THE WEEK'+((SAVE.cleanWeeks||0)>0 ? '  ·  '+SAVE.cleanWeeks+' CLEAN' : '')+'</div>'+weekStrip();
 }
 var MATS=[
   {k:'glass', label:'GLASS', col:'#5aa9e6', things:['bottle','jar','pane','tumbler']},
@@ -1253,7 +1336,7 @@ function mixHex(a,b,t){
 }
 function grubTap(isGrub,el){
   if(!G||G.over) return;
-  if(isGrub){ bump(2); puff(el,'#6fd08c'); grubRound(); }
+  if(isGrub){ bump(2); puff(el,'#6fd08c'); if(!G.over) grubRound(); }
   else { bump(-1); puff(el,'#c4543e'); toast('Just junk'); }
 }
 
@@ -1413,7 +1496,7 @@ function wirePaint(){
 }
 function wireCheck(){
   if(!G||G.over) return;
-  if(wireCrossings()===0){ bump(6); toast('Clean run'); wireRound(); }
+  if(wireCrossings()===0){ bump(6); toast('Clean run'); if(!G.over) wireRound(); }
 }
 
 /* ==========================================================================
@@ -1465,6 +1548,20 @@ function paintDex(){
         +'<div class="gl">'+gr.slice(0,4)+'</div></div>';
     });
   }
+  /* the families: what the renderer can DRAW that you have not pinned yet. Grades are the
+     ladder above; wings, heads and tails are the shapes. A cell goes green when it is full. */
+  var fam=$('x-fam'); fam.innerHTML='';
+  if(dex.length){
+    var seenG={}, seenW={}, seenH={}, seenT={};
+    dex.forEach(function(b){ seenG[b.grade]=1; var f=famOf(b.cb); if(f){ seenW[f.wing]=1; seenH[f.head]=1; seenT[f.tail]=1; } });
+    var cnt=function(o){ var n=0, k; for(k in o) n++; return n; };
+    [['GRADES',cnt(seenG),GRADES.length],['WINGS',cnt(seenW),FAM_WING.length],['HEADS',cnt(seenH),FAM_HEAD.length],['TAILS',cnt(seenT),FAM_TAIL.length]].forEach(function(r){
+      var full=r[1]>=r[2];
+      fam.innerHTML+='<div class="gcell'+(full?'':' none')+'" style="border-color:'+(full?'#6fd08c':'#28323d')+'">'
+        +'<div class="gn" style="color:'+(full?'#6fd08c':'#e6ecf2')+'">'+r[1]+'<small> OF '+r[2]+'</small></div>'
+        +'<div class="gl">'+r[0]+'</div></div>';
+    });
+  }
   if(!dex.length){
     g.innerHTML='<div class="empty">Nothing pinned yet. Work the alley for thirty Shinies and something will turn up.</div>';
     return;
@@ -1478,6 +1575,14 @@ function paintDex(){
     c.onclick=function(){ openSpec(i); };
     g.appendChild(c);
   });
+}
+var FAM_WING=['MEMBRANE','FOUR WING','SHELL','WINGLESS'], FAM_HEAD=['ROUND','WEDGE','CREST','SNOUT'], FAM_TAIL=['NO TAIL','PLAIN','FORKED','STINGER'];
+/* the family a bug belongs to, read off the SAME plan the renderer draws from */
+function famOf(cb){
+  var P=null; try{ P=BUG_ENGINE.bugPlan(cb); }catch(e){}
+  if(!P||!P.plan) return null;
+  var has=function(v){ return v!=null && v!==999; };
+  return { wing: has(P.plan.wings) ? (P.wingKind||0) : 3, head: P.headKind||0, tail: has(P.plan.tail) ? 1+(P.tailKind||0) : 0 };
 }
 var SPEC=-1;
 function _esc(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
@@ -1930,7 +2035,7 @@ if(/[?&]lbtest=1/.test(location.search)){
     earn:earnShinies, capLeft:capLeft, doMint:doMint, keep:keepBug,
     startJob:startJob, endJob:endJob, state:function(){ return G; }, bump:bump,
     show:show, dex:function(){ return SAVE.dex||[]; },
-    ladder:ladderFor, dayIndex:dayIndex,
+    ladder:ladderFor, dayIndex:dayIndex, featured:featuredBlock, dow:dow, weekState:weekState, famOf:famOf,
     /* arena hooks so a gate can drive a real battle, not a mocked one */
     openArena:openArena, playMove:playMove, arena:function(){ return AR; },
     king:kingState, champ:champ, lvlOf:lvlOf, growLvl:growLvl,
@@ -1948,7 +2053,7 @@ if(/[?&]lbtest=1/.test(location.search)){
     plan:BUG_ENGINE.bugPlan, svg:bugSVG, openSpec:openSpec, renderCard:renderBugCard,
     dailyCap:function(){ return DAILY_CAP; },
     capState:capState, jobState:function(){ return G; },
-    reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null,bests:{}}; save();
+    reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null,bests:{},times:{},week:null,cleanWeeks:0}; save();
       try{ localStorage.removeItem('lb_cap'); }catch(e){} return SAVE; }
   };
 }
