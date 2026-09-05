@@ -69,7 +69,7 @@ function ok(cond, label, detail) {
     /* a first run opens the rules, not HOME: the guard is `if (window.parent
        !== window)`-shaped, it is deliberate, and a check that demanded s-home
        was asserting the wrong thing on a clean browser. */
-    ok(boot.onScreen === 's-how' || boot.onScreen === 's-home', 'a fresh browser opens on the rules or HOME', boot.onScreen);
+    ok(boot.onScreen === 's-open' || boot.onScreen === 's-how' || boot.onScreen === 's-home', 'a fresh browser opens on the open, the rules or HOME', boot.onScreen);
     const afterRules = await p.evaluate(async () => {
       const b = document.getElementById('b-how-go'); if (b) b.click();
       await new Promise(r => setTimeout(r, 250));
@@ -420,6 +420,39 @@ function ok(cond, label, detail) {
     ok(v2.irid > v2.m * 0.12 && v2.irid < v2.m * 0.32 && v2.pairs > v2.m * 0.2 && v2.pairs < v2.m * 0.4 && v2.tint > v2.m * 0.3, 'iridescence, a second leg pair and a wing tint roll at their rates', { irid: v2.irid, pairs: v2.pairs, tint: v2.tint });
     ok(v2.bad === 0 && v2.tear > 0 && v2.iridDrawn > 0, 'two hundred renders are clean, teardrops and the sweep reach the picture', { bad: v2.bad, tear: v2.tear, iridDrawn: v2.iridDrawn });
 
+    // ══ THE OPEN ══════════════════════════════════════════════════════
+    group('the open: three beats on the first run, then never again');
+    const opPage = await open(FILE + '?lbtest=1');
+    await opPage.evaluate(() => { try { localStorage.removeItem('lb_how'); } catch (e) {} });
+    await opPage.reload({ waitUntil: 'networkidle2' });
+    await opPage.evaluate(() => new Promise(r => setTimeout(r, 400)));
+    const op = await opPage.evaluate(() => {
+      const D = window.LB_DEV; const cur0 = D.cur();
+      const beats = [...document.querySelectorAll('#s-open .beat')];
+      const seen = [], art = [], copy = [];
+      const nextBtn = document.getElementById('b-open-next'), r = nextBtn.getBoundingClientRect();
+      const skip = document.getElementById('b-open-skip').getBoundingClientRect();
+      for (let i = 0; i < 3; i++) {
+        const on = beats.find(b => b.classList.contains('on'));
+        seen.push(on ? on.getAttribute('data-beat') : null);
+        art.push(!!(on && on.querySelector('.bart svg')));
+        copy.push(on ? on.querySelector('.bline').textContent.length : 0);
+        const label = nextBtn.textContent;
+        if (i === 2 && label !== 'WORK THE ALLEY') copy.push('label:' + label);
+        nextBtn.click();
+      }
+      return { cur0, seen, art, copy, nextH: r.height, skipH: skip.height, after: D.cur(), stored: localStorage.getItem('lb_how') };
+    });
+    await opPage.reload({ waitUntil: 'networkidle2' });
+    await opPage.evaluate(() => new Promise(r => setTimeout(r, 400)));
+    const again = await opPage.evaluate(() => { const D = window.LB_DEV; const c = D.cur(); document.getElementById('b-how').click(); return { cur: c, how: D.cur() }; });
+    await opPage.close();
+    ok(op.cur0 === 's-open' && op.seen.join('') === '012', 'a fresh device opens on beat one and NEXT walks all three', JSON.stringify({ cur0: op.cur0, seen: op.seen }));
+    ok(op.art.every(Boolean) && op.copy.every(c => typeof c === 'number' && c > 30), 'every beat has a drawn picture and a line', JSON.stringify({ art: op.art, copy: op.copy }));
+    ok(op.nextH >= 48 && op.skipH >= 40, 'NEXT and SKIP are thumb sized', { nextH: op.nextH, skipH: op.skipH });
+    ok(op.after === 's-home' && op.stored === '1', 'the third beat lands on HOME and the device remembers', { after: op.after, stored: op.stored });
+    ok(again.cur === 's-home' && again.how === 's-how', 'the next visit opens on HOME, and HOW TO PLAY still has the rules', JSON.stringify(again));
+
     // ══ A CORRUPT SAVE ════════════════════════════════════════════════
     group('a junk save boots into a clean game, not a dead page');
     const JUNK = [
@@ -543,7 +576,7 @@ function ok(cond, label, detail) {
       const st = document.getElementById('stage');
       const scale = st.getBoundingClientRect().width / st.offsetWidth;
       const out = [];
-      const screens = ['s-home', 's-block', 's-dex', 's-dump', 's-how'];
+      const screens = ['s-home', 's-block', 's-dex', 's-dump', 's-how', 's-open'];
       for (const id of screens) {
         D.show(id);
         if (id === 's-home') paintHome(); if (id === 's-dex') paintDex(); if (id === 's-dump') paintDump();

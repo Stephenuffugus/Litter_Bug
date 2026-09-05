@@ -101,6 +101,30 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .dsec{margin-top:20px;text-align:left;width:100%;max-width:440px}
 .dlab{font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--grub);font-weight:800}
 .dtxt{font-size:18px;line-height:1.55;margin-top:7px}
+/* THE OPEN (2026-09-05): three beats over the alley on the first run, instead of a wall of
+   rules. The alley already shows through every screen (#wrap-bg), so a beat is a picture,
+   one line, and a dot strip. HOW TO PLAY keeps the full rules. */
+#s-open .pad{justify-content:center;padding-bottom:26px}
+.beat{display:none;flex-direction:column;align-items:center;text-align:center;width:100%}
+.beat.on{display:flex}
+.beat .bart{width:100%;max-width:430px;height:250px;border-radius:16px;border:1px solid var(--line);overflow:hidden;
+  background:linear-gradient(180deg,#0f1620 0%,#141c26 60%,#1a232e 100%);display:flex;align-items:center;justify-content:center;position:relative}
+.beat .bart svg{width:100%;height:100%;display:block}
+/* the jar has something in it: a real bug behind the glass, so the open shows what the game makes */
+.beat .bart .bjar{width:120px;height:168px;filter:drop-shadow(0 8px 18px #000a);position:relative}
+.beat .bart .bjar .bin{position:absolute;left:50%;top:56%;width:150px;height:150px;transform:translate(-50%,-50%) scale(.62);opacity:.95}
+.beat .bart .bjar .bin svg{width:150px;height:150px}
+.beat .bart .bjar > svg{position:relative}
+.beat .bart .bdump{width:88%;height:auto}
+.beat .bkick{font-size:13px;letter-spacing:4px;color:var(--grub);font-weight:800;margin-top:22px;text-transform:uppercase}
+.beat .bline{font-size:24px;line-height:1.35;font-weight:800;color:var(--ink);margin-top:8px;max-width:420px}
+.beat .bsub{font-size:16px;line-height:1.5;color:var(--dim);margin-top:10px;max-width:400px}
+.dots{display:flex;gap:9px;justify-content:center;margin:22px 0 16px}
+.dots i{width:9px;height:9px;border-radius:50%;background:#28323d;display:block}
+.dots i.on{background:var(--shine);box-shadow:0 0 8px #e8c46a88}
+/* ⛔ 72 not 56: the stage scales 0.69 at 375 wide, 56 CSS px is 39 real px */
+.openskip{position:absolute;right:14px;top:14px;z-index:61;height:72px;min-width:72px;padding:0 18px;border-radius:999px;border:1px solid var(--line);
+  background:#0f151bcc;color:var(--dim);font-size:13px;font-weight:800;letter-spacing:1.5px;cursor:pointer;font-family:inherit}
 .dlist{margin-top:9px;list-style:none;padding:0}
 .dlist li{font-size:17px;line-height:1.5;margin:8px 0;padding-left:26px;position:relative}
 .dlist li:before{content:"";position:absolute;left:0;top:6px;width:14px;height:14px;border-radius:50%;
@@ -426,6 +450,35 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       </div>
       <div class="stack" style="margin-top:24px">
         <button class="btn primary" id="b-how-go">GOT IT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ THE OPEN: three beats on the first run ══════════ -->
+  <div class="screen" id="s-open">
+    <button class="openskip" id="b-open-skip" type="button">SKIP</button>
+    <div class="pad center">
+      <div class="beat on" data-beat="0">
+        <div class="bart"><svg id="open-alley" viewBox="0 0 500 280" preserveAspectRatio="xMidYMid slice"></svg></div>
+        <div class="bkick">The alley</div>
+        <div class="bline">Every night the alley fills with what people throw away.</div>
+        <div class="bsub">Sort it, hunt it, untangle it, pry it open. Every shift pays Shinies.</div>
+      </div>
+      <div class="beat" data-beat="1">
+        <div class="bart"><div class="bjar" id="open-jar"></div></div>
+        <div class="bkick">The jar</div>
+        <div class="bline">Thirty Shinies hatch a bug that has never existed and never will again.</div>
+        <div class="bsub">Graded, named, and yours. Every one grows with every fight it wins.</div>
+      </div>
+      <div class="beat" data-beat="2">
+        <div class="bart"><div class="bdump" id="open-dump"></div></div>
+        <div class="bkick">The dumpster</div>
+        <div class="bline">Five challengers a day. Beat them all and you are King of the Dumpster.</div>
+        <div class="bsub">The rules are under HOW TO PLAY whenever you want them.</div>
+      </div>
+      <div class="dots" id="open-dots"><i class="on"></i><i></i><i></i></div>
+      <div class="stack">
+        <button class="btn primary" id="b-open-next">NEXT</button>
       </div>
     </div>
   </div>
@@ -2149,7 +2202,28 @@ function paintSnd(){ var b=$('b-snd'); if(!b) return; b.textContent = LB_SFX.on(
 $('b-snd').onclick=function(){ LB_SFX.toggle(); paintSnd(); };
 paintSnd();
 
-/* first run shows the rules, once per device */
+/* ---------- the open: three beats, once per device ---------- */
+var OPEN_I=0;
+function paintOpen(){
+  var beats=document.querySelectorAll('#s-open .beat'), dots=document.querySelectorAll('#open-dots i'), i;
+  for(i=0;i<beats.length;i++) beats[i].classList.toggle('on', i===OPEN_I);
+  for(i=0;i<dots.length;i++) dots[i].classList.toggle('on', i===OPEN_I);
+  $('b-open-next').textContent = OPEN_I>=2 ? 'WORK THE ALLEY' : 'NEXT';
+}
+function openBeat(i){
+  OPEN_I=Math.max(0, Math.min(2, i));
+  if(OPEN_I===0 && !$('open-alley').innerHTML) $('open-alley').innerHTML=alleyMarkup('alleyO');
+  if(OPEN_I===1 && !$('open-jar').innerHTML) $('open-jar').innerHTML='<div class="bin">'+bugSVG('1f59ba8f0882456281d83f3a81e1fa78b96c857a1bae54b976f9a3d9a4637c05',150,12)+'</div>'+jarSVG();
+  if(OPEN_I===2 && !$('open-dump').innerHTML) $('open-dump').innerHTML=dumpsterLockSVG();
+  paintOpen(); show('s-open');
+}
+function endOpen(){ try{ localStorage.setItem('lb_how','1'); }catch(e){} paintHome(); show('s-home'); }
+$('b-open-next').onclick=function(){ if(OPEN_I>=2){ endOpen(); return; } openBeat(OPEN_I+1); };
+$('b-open-skip').onclick=function(){ endOpen(); };
+/* a tap on the picture turns the page too */
+(function(){ var arts=document.querySelectorAll('#s-open .bart'), i; for(i=0;i<arts.length;i++) arts[i].onclick=function(){ $('b-open-next').onclick(); }; })();
+
+/* first run shows the open, once per device; HOW TO PLAY keeps the full rules */
 (function(){
   /* loadSave validates every field, so entries minted before levels existed
      arrive with lvl 1 and grow from there like everything else. */
@@ -2158,7 +2232,7 @@ paintSnd();
   /* THE DUMPSTER is the game now, not a flag. The ?battles=1 gate was hiding a
      crash in the old auto resolver, not an unfinished feature. */
   $('b-dump').style.display='';
-  try{ if(localStorage.getItem('lb_how')!=='1'){ localStorage.setItem('lb_how','1'); show('s-how'); } }catch(e){}
+  try{ if(localStorage.getItem('lb_how')!=='1') openBeat(0); }catch(e){}
 })();
 
 /* headless test hook */
@@ -2186,7 +2260,7 @@ if(/[?&]lbtest=1/.test(location.search)){
        so the tuner reaches straight through to it. */
     cuts:BUG_ENGINE.GRADE_CUT,
     setCuts:function(a){ var C=BUG_ENGINE.GRADE_CUT; C.length=0; for(var i=0;i<a.length;i++) C.push(a[i]); return C; },
-    plan:BUG_ENGINE.bugPlan, svg:bugSVG, openSpec:openSpec, renderCard:renderBugCard, sfx:LB_SFX,
+    plan:BUG_ENGINE.bugPlan, svg:bugSVG, openSpec:openSpec, renderCard:renderBugCard, sfx:LB_SFX, openBeat:openBeat, openI:function(){ return OPEN_I; },
     dailyCap:function(){ return DAILY_CAP; },
     capState:capState, jobState:function(){ return G; },
     reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null,bests:{},times:{},week:null,cleanWeeks:0}; save();
