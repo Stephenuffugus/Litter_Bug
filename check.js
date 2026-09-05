@@ -453,6 +453,48 @@ function ok(cond, label, detail) {
     ok(op.after === 's-home' && op.stored === '1', 'the third beat lands on HOME and the device remembers', { after: op.after, stored: op.stored });
     ok(again.cur === 's-home' && again.how === 's-how', 'the next visit opens on HOME, and HOW TO PLAY still has the rules', JSON.stringify(again));
 
+    // ══ THE ARENA: a ledger, a coach, a growth moment ══════════════════
+    group('the arena: the fight is a ledger, the tell coaches, a win names what grew in');
+    const arPage = await open(FILE + '?lbtest=1');
+    const ar = await arPage.evaluate(async () => {
+      const D = window.LB_DEV, E = window.BUG_ENGINE, B = window.BATTLE_ENGINE; D.reset();
+      const fx = await (await fetch('fixtures/identity-60.json?' + Math.random())).json();
+      /* the coach: find a pair where the foe's tell is a threat and the champion has an answer */
+      let coached = null, offense = null, quiet = 0, tried = 0;
+      for (let i = 0; i < fx.length && !(coached && offense); i++) for (let j = 0; j < fx.length && !(coached && offense); j++) {
+        if (i === j) continue; tried++;
+        const st = B.startBattle(fx[i].h, fx[j].h, 1, 1), fm = B.previewFoeMove(st), inb = B.damageBand(st.b, st.a, fm);
+        const line = D.coach(st, fm, inb);
+        const threat = !!inb && (inb.mult > 1.2 || inb.max / Math.max(1, st.a.hp) >= 0.3);
+        const soft = st.a.moves.find(m => m.eff && /guard|smolder|defUp2|accDownEnemy|rustlock/.test(m.eff));
+        if (threat && soft && !coached) coached = { line, move: soft.name, ok: line.indexOf(soft.name) === 0 };
+        if (!threat && !coached && !offense) { const hard = st.a.moves.find(m => { const b = B.damageBand(st.a, st.b, m); return b && b.mult > 1.2; }); if (hard) offense = { line, move: hard.name, ok: line.indexOf(hard.name) === 0 && /lands hard/.test(line) }; }
+        if (!line) quiet++;
+      }
+      /* the growth note on a fixture bug: level 1 to 8 crosses parts on most bugs */
+      let grewText = null, grewN = 0, nextText = null;
+      for (const f of fx) { const g = D.growthNote({ cb: f.h }, 1, 8); if (g.grown.length && !grewText) { grewText = g.text; grewN = g.grown.length; } const g2 = D.growthNote({ cb: f.h }, 1, 2); if (!g2.grown.length && !nextText) nextText = g2.text; if (grewText && nextText) break; }
+      /* the ledger through a real fight */
+      D.setShinies(D.mintCost); await D.doMint(); D.keep(); D.setChamp(0);
+      D.openArena(0);
+      const before = document.querySelectorAll('#a-log .rd').length;
+      D.playMove(0); await new Promise(r => setTimeout(r, 2600));
+      const rows = [...document.querySelectorAll('#a-log .rd')];
+      const hotFirst = rows.length >= 2 && rows[0].classList.contains('hot') && !rows[1].classList.contains('hot');
+      const tagged = rows.length >= 1 && /^R1$/.test(rows[0].querySelector('i').textContent);
+      const logBox = document.getElementById('a-log').getBoundingClientRect();
+      const moves = document.getElementById('a-moves').getBoundingClientRect();
+      const gap = Math.round(moves.top - logBox.bottom);
+      return { tried, coached, offense, quiet, grewText, grewN, nextText, before, rows: rows.length, hotFirst, tagged, logH: Math.round(logBox.height), gap };
+    });
+    await arPage.close();
+    ok(!!ar.coached && ar.coached.ok, 'when the tell is a threat and a status move answers it, the coach names that move', ar.coached);
+    ok(!!ar.offense && ar.offense.ok, 'when nothing threatens and a move of yours lands hard, the coach says so', ar.offense);
+    ok(!!ar.grewText && /grew in/.test(ar.grewText) && ar.grewN > 0, 'a level that crosses a part threshold says which part grew in', ar.grewText);
+    ok(!!ar.nextText && /comes in at level/.test(ar.nextText), 'a level that crosses nothing points at the next part and its level', ar.nextText);
+    ok(ar.before === 1 && ar.rows >= 2 && ar.hotFirst && ar.tagged, 'the ledger keeps every round, newest on top in ink, tagged by round', { before: ar.before, rows: ar.rows, hotFirst: ar.hotFirst, tagged: ar.tagged });
+    ok(ar.logH >= 100 && ar.gap <= 16, 'the ledger box fills the space above the moves', { logH: ar.logH, gap: ar.gap });
+
     // ══ A CORRUPT SAVE ════════════════════════════════════════════════
     group('a junk save boots into a clean game, not a dead page');
     const JUNK = [

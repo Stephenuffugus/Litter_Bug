@@ -319,9 +319,21 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .telegraph{margin:9px 0;padding:10px 13px;border-radius:12px;background:#0f151b;border:1px dashed #2c3a48;
   font-size:15px;line-height:1.4;color:var(--ink);min-height:62px;display:flex;align-items:center}
 .telegraph b{color:var(--shine)}
-.blog{margin-top:9px;flex:1;min-height:70px;font-size:14px;line-height:1.5;color:var(--dim);
-  display:flex;flex-direction:column;justify-content:flex-start;gap:3px;overflow:hidden}
+/* THE FIGHT LEDGER (2026-09-05). The log used to be two grey lines floating over a 300px hole
+   between the champion and the moves. It is a box now that fills that space: the newest round
+   on top in ink, older rounds stepping back into the dim, every round tagged, scrolling when a
+   long fight outgrows it. */
+.blog{margin-top:9px;flex:1;min-height:120px;font-size:14px;line-height:1.45;color:var(--dim);
+  display:flex;flex-direction:column;justify-content:flex-start;gap:4px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--line);border-radius:12px;background:#0d1218;padding:9px 12px 10px}
+.blog .lh{font-size:11px;letter-spacing:2.5px;color:#4a5866;font-weight:800;margin-bottom:2px}
+.blog .rd{display:flex;gap:9px;align-items:flex-start}
+.blog .rd i{flex:none;font-style:normal;font-size:11px;font-weight:800;letter-spacing:1px;color:#4a5866;padding-top:3px;min-width:22px}
+.blog .rd.o1{opacity:.72} .blog .rd.o2{opacity:.5} .blog .rd.o3{opacity:.36}
 .blog .hot{color:var(--ink)}
+.blog .hot i{color:var(--shine)}
+.telegraph .coach{display:block;margin-top:5px;color:var(--grub);font-weight:800}
+.overcard .marks{margin:10px auto 0}
 .moves{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
 /* ⛔ 92 CSS px, not 60: at the 0.694 stage scale that is 64 REAL px. */
 .mv{min-height:92px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,#1b222b,#131920);
@@ -629,6 +641,7 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
       <div class="overcard">
         <div class="overhead" id="a-over-head">YOU WIN</div>
         <div id="a-over-art"></div>
+        <div class="marks" id="a-over-marks"></div>
         <div class="dim" id="a-over-note" style="margin-top:10px;font-size:17px;line-height:1.5"></div>
         <div class="stack" style="margin-top:18px">
           <button class="btn primary" id="b-over-next">BACK TO THE LADDER</button>
@@ -2007,10 +2020,11 @@ function openArena(idx){
   var me=champ(); if(!me){ toast('Mint a bug first'); return; }
   var day=dayIndex(), fcb=ladderFor(day)[idx];
   var myLvl=lvlOf(me), foeLvl=Math.max(1,Math.min(30,myLvl+LADDER_OFF[idx]));
-  AR={ idx:idx, st:BATTLE_ENGINE.startBattle(me.cb, fcb, myLvl, foeLvl), busy:false, dexIdx:champIndex() };
+  AR={ idx:idx, st:BATTLE_ENGINE.startBattle(me.cb, fcb, myLvl, foeLvl), busy:false, dexIdx:champIndex(), ledger:[] };
   $('a-title').textContent='CHALLENGER '+(idx+1);
   $('a-over').classList.remove('on');
-  $('a-log').innerHTML='<div class="hot">The lid comes off. Pick a move.</div>';
+  $('a-over-marks').innerHTML='';
+  paintLedger(['The lid comes off. Pick a move.']);
   paintFighter($('a-foe'), AR.st.b, 128);
   paintFighter($('a-me'), AR.st.a, 138);
   paintArenaMoves();
@@ -2049,7 +2063,34 @@ function paintArenaMoves(){
       +(inb.mult>1.2?', super effective':(inb.mult<0.85?', you resist it':''))+'.</span>';
     if(frac>=1) warn+=' <span style="color:#c4543e">That can finish you.</span>';
   } else warn=' <span style="color:#5aa9e6">'+foeMove.desc+'.</span>';
-  $('a-tele').innerHTML='<div><b>'+st.b.name+'</b> is winding up <b>'+foeMove.name+'</b>.'+warn+'</div>';
+  var coach=coachLine(st, foeMove, inb);
+  $('a-tele').innerHTML='<div><b>'+st.b.name+'</b> is winding up <b>'+foeMove.name+'</b>.'+warn
+    +(coach?'<span class="coach">'+coach+'</span>':'')+'</div>';
+}
+/* ONE sentence of coaching under the tell (2026-09-05). The first challenger took a fresh champion
+   down in three rounds every time the thumb went for damage, while a status move that would have
+   softened the hit sat unexplained in the corner. When the incoming hit is a real threat, name the
+   move that answers it; otherwise, when a move of yours lands hard, say so. Never both. */
+var SOFTEN={ guard:'{m} halves the next hit.', smolder:'{m} takes the sting out of it.', defUp2:'{m} blunts it.',
+  accDownEnemy:'{m} spoils its aim.', rustlock:'{m} slows it, and it may seize.' };
+function coachLine(st, foeMove, inb){
+  var i, m, band, frac = inb ? inb.max/Math.max(1,st.a.hp) : 0;
+  if(inb && (inb.mult>1.2 || frac>=0.3)){
+    for(i=0;i<st.a.moves.length;i++){ m=st.a.moves[i]; if(m.eff && SOFTEN[m.eff]) return SOFTEN[m.eff].replace('{m}', m.name); }
+  }
+  for(i=0;i<st.a.moves.length;i++){ m=st.a.moves[i]; band=BATTLE_ENGINE.damageBand(st.a, st.b, m); if(band && band.mult>1.2) return m.name+' lands hard on it.'; }
+  return '';
+}
+/* the ledger: every round so far, newest on top */
+function paintLedger(lines){
+  var L=AR.ledger, out='<div class="lh">THE FIGHT</div>', k, r;
+  if(lines) L.unshift({ r:AR.st.round, lines:lines });
+  for(k=0;k<L.length;k++){
+    r=L[k];
+    out+='<div class="rd'+(k===0?' hot':(k<4?' o'+k:' o3'))+'"><i>'+(r.r>0?'R'+r.r:'')+'</i><div>'+r.lines.map(function(l){ return '<div>'+l+'</div>'; }).join('')+'</div></div>';
+  }
+  $('a-log').innerHTML=out;
+  $('a-log').scrollTop=0;
 }
 function lockMoves(on){
   var b=$('a-moves').querySelectorAll('.mv'),i;
@@ -2108,15 +2149,14 @@ function playMove(i){
 }
 function endStep(lines){
   var st=AR.st;
-  $('a-log').innerHTML=lines.map(function(l,i){
-    return '<div class="'+(i===lines.length-1?'hot':'')+'">'+l+'</div>'; }).join('');
+  paintLedger(lines);
   updateBars($('a-me'), st.a); updateBars($('a-foe'), st.b);
   if(st.over){ finishArena(); return; }
   AR.busy=false; paintArenaMoves(); lockMoves(false);
 }
 function finishArena(){
   var st=AR.st, k=kingState(), won=(!st.draw && st.winner==='a');
-  var head, note='', me=(SAVE.dex||[])[AR.dexIdx];
+  var head, note='', me=(SAVE.dex||[])[AR.dexIdx], growth=null;
   LB_SFX.play(won ? 'win' : 'lose');
   if(won){
     var already=k.beaten.indexOf(AR.idx)>=0;
@@ -2127,12 +2167,12 @@ function finishArena(){
       purse=LADDER_PURSE[AR.idx];
       bonus=Math.min(10,k.run);
       payPurse(purse+bonus);
-      if(me){ me.lvl=Math.min(30, lvlOf(me)+1); me.wins=(me.wins||0)+1; }
+      if(me){ growth=growthNote(me, lvlOf(me), Math.min(30, lvlOf(me)+1)); me.lvl=Math.min(30, lvlOf(me)+1); me.wins=(me.wins||0)+1; }
     }
     head='YOU WIN';
     note = already
       ? 'You had already taken this one today, so the purse is spent. The streak still counts: '+k.run+' in a row.'
-      : 'Purse '+purse+' Shinies, streak bonus '+bonus+'. '+(me?(BUG_ENGINE.bugName(me.cb)+' is level '+lvlOf(me)+' now and it shows.'):'');
+      : 'Purse '+purse+' Shinies, streak bonus '+bonus+'. '+(growth?growth.text:'');
     if(!already && k.beaten.length>=5){
       k.crowns=(k.crowns||0)+1;
       k.crownRun = (k.crownDay===dayIndex()-1) ? (k.crownRun||0)+1 : 1;
@@ -2152,7 +2192,23 @@ function finishArena(){
   $('a-over-head').style.color = won ? '#6fd08c' : '#c4543e';
   $('a-over-art').innerHTML = me ? bugSVG(me.cb,150,lvlOf(me)) : '';
   $('a-over-note').textContent=note;
+  var gm=$('a-over-marks'); gm.innerHTML='';
+  if(growth && growth.grown.length){
+    var gr=gradeOf(me.cb);
+    gm.innerHTML=growth.grown.map(function(p){ return '<span class="mark" style="border-color:'+GRADE_COLOR[gr.grade]+'88;color:'+GRADE_COLOR[gr.grade]+'">'+p.label+' grew in</span>'; }).join('');
+    setTimeout(function(){ LB_SFX.play('stamp'); }, 700);
+  }
   $('a-over').classList.add('on');
+}
+/* what a level gave the bug: the parts whose growth threshold sits between the old level and
+   the new one, told; or the next part in line, so a win always points at the next win */
+function growthNote(b, oldLvl, newLvl){
+  var gr=gradeOf(b.cb), g0=growthOf(oldLvl), g1=growthOf(newLvl), grown=[], i, ps=gr.parts||[];
+  for(i=0;i<ps.length;i++) if(ps[i].th>g0 && ps[i].th<=g1) grown.push(ps[i]);
+  var name=BUG_ENGINE.bugName(b.cb), text=name+' is level '+newLvl+' now.';
+  if(grown.length) text+=' The '+grown.map(function(p){ return p.label; }).join(' and the ')+' grew in.';
+  else { var gl=growthLeft(gr, newLvl); if(gl.left) text+=' The '+gl.next.label+' comes in at level '+gl.nextLvl+'.'; else if(ps.length) text+=' Every part is in.'; }
+  return { grown:grown, text:text, newLvl:newLvl };
 }
 
 /* ---------- wiring ---------- */
@@ -2261,6 +2317,7 @@ if(/[?&]lbtest=1/.test(location.search)){
     cuts:BUG_ENGINE.GRADE_CUT,
     setCuts:function(a){ var C=BUG_ENGINE.GRADE_CUT; C.length=0; for(var i=0;i<a.length;i++) C.push(a[i]); return C; },
     plan:BUG_ENGINE.bugPlan, svg:bugSVG, openSpec:openSpec, renderCard:renderBugCard, sfx:LB_SFX, openBeat:openBeat, openI:function(){ return OPEN_I; },
+    coach:coachLine, growthNote:growthNote, ledger:function(){ return AR?AR.ledger:null; },
     dailyCap:function(){ return DAILY_CAP; },
     capState:capState, jobState:function(){ return G; },
     reset:function(){ SAVE={shinies:0,dex:[],jobs:0,lastDay:0,champ:null,king:null,bests:{},times:{},week:null,cleanWeeks:0}; save();
