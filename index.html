@@ -168,7 +168,10 @@ h1.logo{font-size:46px;line-height:1;color:var(--grub);font-weight:800;letter-sp
 .fladder .gcell .gl{font-size:9px}
 /* the family chips: ALL or one wing family, a real filter over the grid */
 /* one row, scrolling if it must: two wrapped rows put half a screen of meters above the first card */
-.dexchips{display:flex;flex-wrap:nowrap;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+/* ⛔ flex:none: this row sits in the pad's flex column, and a scroll container in a flex column
+   has min-height 0, so when the Bugdex overflowed the phone this was the one item that shrank
+   and the chips were cut to a third. The gate only measured the chip, not the row. */
+.dexchips{display:flex;flex:none;flex-wrap:nowrap;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .dexchips::-webkit-scrollbar{display:none}   /* a classic scrollbar drawn inside the row covered the chips' bottom third */
 /* ⛔ the stage scales 0.69 at 375 wide, so 48 RENDERED px needs 70 CSS px, same reason .btn is 76 */
 /* ⛔ 70 not 62: at stage scale 0.694 a 62px chip is 43 real px wide */
